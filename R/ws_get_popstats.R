@@ -20,7 +20,7 @@ ws_get_popstats <- function(ws,
   if (missing(ws) || class(ws) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (missing(gr)) {stop("Please provide a vector of list of vectors of groups to import.")}
   if (class(gr) == "list" && length(gr) != length(ws)) {stop("list of gr has to have the same length as ws. Alternatively pass a vector gr to use for all workspace.")}
-  if (class(gr) != "list") {gr <- rep(list(gr), length(ws))}
+  if (class(gr) == "character") {gr <- rep(list(gr), length(ws))} else {stop("gr has to be a character vector.")}
   if (missing(FCS.file.folder)) {FCS.file.folder <- file.path(getwd(), "FCS_files")}
   if (!dir.exists(FCS.file.folder)) {stop(paste0(FCS.file.folder, " not found."))}
 
