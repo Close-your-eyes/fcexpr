@@ -12,10 +12,10 @@
 #' \dontrun{
 #' ws_get_popstats(ws = "fj.wsp", gr = "full.stain", FCS.file.folder = "FCS.files", groupwise = T)
 #' }
-get.popStats.from.ws <- function(ws,
-                                 gr,
-                                 FCS.file.folder,
-                                 groupwise = T) {
+ws_get_popstats <- function(ws,
+                            gr,
+                            FCS.file.folder,
+                            groupwise = T) {
 
   if (missing(ws) || class(ws) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (missing(gr)) {stop("Please provide a vector of list of vectors of groups to import.")}
