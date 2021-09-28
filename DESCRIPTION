@@ -6,7 +6,7 @@ Authors@R:
            family = "Skopnik",
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
+           comment = c(ORCID = "0000-0002-6089-4769"))
 Description: Helps to document, maintain and modify meta data of FCS files. Provides a collection of tools to analyze multidimensional data from flow cytometry.
 License: GPL (>= 3)
 Encoding: UTF-8
@@ -16,3 +16,5 @@ RoxygenNote: 7.1.2
 Imports: 
     CytoML,
     flowWorkspace
+    
+    

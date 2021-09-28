@@ -23,6 +23,6 @@ Title
 }
 \examples{
 \dontrun{
-ws_get_popstats(ws = "fj.wsp", gr = "full.stain", FCS.file.folder = "FCS.files", groupwise = T)
+ws_get_popstats(ws = 'fj.wsp', gr = 'full.stain', FCS.file.folder = 'FCS.files', groupwise = T)
 }
 }
