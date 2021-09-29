@@ -62,7 +62,7 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
         do.call(rbind, lapply(seq_along(ws), function(x) {
             wsp <- CytoML::open_flowjo_xml(ws[x], sample_names_from = "sampleNode")
             gr.wsp <- base::intersect(unique(CytoML::fj_ws_get_sample_groups(wsp)[, "groupName"]), gr[[x]])
-            ps <- if (!groupwise) {
+            if (!groupwise) {
                 do.call(rbind, lapply(gr.wsp, function(y) {
                     group_id <- unique(CytoML::fj_ws_get_sample_groups(wsp)[which(CytoML::fj_ws_get_sample_groups(wsp)$groupName == y), "groupID"]) +
                         1
