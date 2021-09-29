@@ -23,3 +23,7 @@ Imports:
     purrr,
     stats,
     utils
+Suggests: 
+    rmarkdown,
+    knitr
+VignetteBuilder: knitr
