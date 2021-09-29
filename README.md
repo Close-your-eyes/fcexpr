@@ -6,23 +6,30 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of fcexpr is to …
+A set of beginner-friendly functions to organize flow cytometry
+experiments.
 
 ## Installation
 
-You can install the released version of fcexpr from
-[CRAN](https://CRAN.R-project.org) with:
+Please install the necessary packages from bioconductor first:
 
 ``` r
-install.packages("fcexpr")
+install.packages("BiocManager")
+BiocManager::install(version = "3.13")
+BiocManager::install("flowCore")
+BiocManager::install("flowWorkspace")
+BiocManager::install("CytoML")
 ```
 
-And the development version from [GitHub](https://github.com/) with:
+Please the development version of fcexpr from
+[GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 ```
+
+A release on CRAN is not intended.
 
 ## Example
 
