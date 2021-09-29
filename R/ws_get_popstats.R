@@ -94,7 +94,7 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
     ps[, "PopulationFullPath"] <- gsub("^root", "", paste(ps[, "Parent"], sapply(sapply(base::strsplit(ps[, "Population"], "/"), rev), "[",
                                                                                  1), sep = "/"), "^root")
     ps[, "FractionOfParent"] <- ps[, "Count"]/ps[, "ParentCount"] * 100
-    #ps <- ps[, c(1, 7, 2, 3, 4, 5, 8, 9, 6)]
+    ps <- ps[,c(1,8,2,3,4,5,9,6,7)]
 
     return(ps)
 }
