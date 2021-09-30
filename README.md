@@ -31,17 +31,6 @@ devtools::install_github("Close-your-eyes/fcexpr")
 
 A release on CRAN is not intended.
 
-## Example
-
-``` r
-library(fcexpr)
-## To create a new experiment template folder on your disk run
-new_exp(path = 'full path to the parent directory',
-        name = 'name of the folder (e.g. CD3_titration)', date_prefix = T)
-## as date_prefix is set to TRUE (or short 'T' only) by default the folder 
-## will be prefixed by the current date 
-```
-
 ## Vignettes
 
 Please see vignette(s) for workflows:

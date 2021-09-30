@@ -1,16 +1,35 @@
-#' Title
+#' Have an excel file (sampledescription) created or modified to store meta data of FCS files in
 #'
-#' @param wd character
-#' @param FCS.file.folder character
-#' @param xlsx.file.name character
-#' @param sample.sheet.name character
-#' @param exclude.folders character
+#' Four cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
+#' in wd a xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
+#' When new FCS files are added to FCS.file.folder and the function is called
+#' they are added in order of acquisition to the xlsx-file. (iii) When file names
+#' in the FileName column of the xlsx-file are changed and the function is called
+#' the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
+#' are to be excluded or removed the entry in the FileName column has to be left
+#' blank and the function has to be called.
 #'
-#' @return No return value. Instead a sampledescription and FCS files are synced.
+#' Attention: Close the xlsx-file before calling the function so the file can be edited.
+#' Never edit the 'FilePath' or 'identity' columns in the xlsx-file manually.
+#'
+#'
+#' @param wd path to the experiment root folder; if omitted getwd() is assumed
+#' @param FCS.file.folder path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed
+#' @param xlsx.file.name name of the sampledescription file
+#' @param exclude.folders character vector of folders to exclude when checking for FCS files
+#'
+#' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
 #' @export
 #'
 #' @examples
-sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", sample.sheet.name = "samples", exclude.folders = c("compensation",
+#' \dontrun{
+#' # When the script is saved to R_scripts in the experiment folder, this will
+#' write the path of the experiment folder into wd:
+#' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+#' # If the sampledescription is to be initiated call
+#' sync_sampledescription(wd = wd, FCS.file.folder = "FCS_files")
+#' }
+sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", exclude.folders = c("compensation",
     "other_fcs_files", "experiment.file", "deleted_fcs_files")) {
 
     if (missing(wd)) {
@@ -32,7 +51,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
             identity = fcs.files, stringsAsFactors = FALSE)
         sd.init[, c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart")] <- ""
 
-        write.sd(stats::setNames(list(sd.init, sd.init[, c("FilePath", "identity")]), nm = c(sample.sheet.name, "initial.file.names")), wd = wd, xlsx.file.name = xlsx.file.name)
+        write.sd(stats::setNames(list(sd.init), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
 
         if (Sys.info()[["sysname"]] == "Darwin") {
             write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd.init)
@@ -41,7 +60,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         return(paste0(xlsx.file.name, " initiated."))
     }
 
-    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, sample.sheet.name = sample.sheet.name)
+    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, fcs.files = fcs.files)
 
     if (Sys.info()[["sysname"]] == "Darwin") {
         write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd)
@@ -64,7 +83,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
                 sd <- sd[which(!is.na(sd[,"FileName"])),]
                 sd[,"FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[,"FileName"], 8, nchar(sd[,"FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]))
                 sd[,"FilePath"] <- file.path(dirname(sd[,"FilePath"]), sd[,"FileName"])
-                write.sd(named.sheet.list = setNames(list(sd), c(sample.sheet.name)), wd = wd, xlsx.file.name = xlsx.file.name)
+                write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
                 print(paste0("FCS files removed and ", xlsx.file.name, " updated."))
             } else {
                 print("deleted_FCS_files folder could not be created - no files were removed.")
@@ -76,7 +95,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
     }
 
     fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
-    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, sample.sheet.name = sample.sheet.name)
+    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, fcs.files = fcs.files)
 
     # find new files for addition to sd
     fcs.files.diff <- fcs.files[which(!fcs.files %in% sd[,"identity"])]
@@ -91,13 +110,13 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         sd.diff[,c(names(sd)[which(!names(sd) %in% names(sd.diff))])] <- ""
         sd <- rbind(sd, sd.diff)
 
-        write.sd(named.sheet.list = setNames(list(sd), c(sample.sheet.name)), wd = wd, xlsx.file.name = xlsx.file.name)
+        write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
         print(paste0("New files added and renamed: ", paste(sd.diff[,"FileName"], collapse = ",")))
         file.rename(sd.diff[,"FilePath"], file.path(dirname(sd.diff[,"FilePath"]), sd.diff[,"FileName"]))
     }
 
     fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
-    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, sample.sheet.name = sample.sheet.name)
+    sd <- read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, fcs.files = fcs.files)
 
     # find files for renaming
     sd.rename.ind <- which(!sd[,"FileName"] %in% basename(names(fcs.files)))
@@ -114,7 +133,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         choice <- menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
 
         if (choice == 1) {
-            write.sd(named.sheet.list = setNames(list(sd), c(sample.sheet.name)), wd = wd, xlsx.file.name = xlsx.file.name)
+            write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
             file.rename(fcs.files[sd.rename.ind], file.path(dirname(fcs.files[sd.rename.ind]), sd[sd.rename.ind,"FileName"]))
         }
         if (choice == 2) {
@@ -146,7 +165,7 @@ write.sd <- function(named.sheet.list, wd, xlsx.file.name) {
 }
 
 check.FCS.files <- function(FCS.file.folder, exclude.folders) {
-    fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = TRUE, recursive = TRUE, ignore.case = T)
+    fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = T, recursive = T, ignore.case = T)
     fcs.file.paths <- fcs.file.paths[which(!grepl(paste0(tolower(exclude.folders), collapse = "|"), tolower(fcs.file.paths)))]
 
     if (length(fcs.file.paths) == 0) {
@@ -176,14 +195,16 @@ check.FCS.files <- function(FCS.file.folder, exclude.folders) {
     return(fcs.files)
 }
 
-read.and.check.sd <- function(wd, xlsx.file.name, sample.sheet.name) {
-    ##### to do: check sd for consistency (e.g. FileName, FilePath, identity etc.)
-    #remove sample sheet thing
-    #check for more lines than FCS files - cannot be - stop then.
-    if (!sample.sheet.name %in% names(openxlsx::loadWorkbook(file.path(wd, xlsx.file.name)))) {stop(paste0("Sheet '", sample.sheet.name, "' not found in ", file.path(wd, xlsx.file.name), "."))}
-    sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, xlsx.file.name), sheet = sample.sheet.name, skipEmptyCols = F, detectDates = T))
-    if (purrr::is_empty(sd)) {stop(paste0("Please open ", xlsx.file.name, " with excel once and save again. This error has to do with previous writing of xlxs files with the writexl package. The function causing the error is read.xlsx from openxlsx which cannot handle the files written with writexl. Read.xlsx is superior though as it correctly detects dates in an excel sheet."))}
-    if (!"FileName" %in% names(sd)) {stop(paste0("FileName column not found in ", xlsx.file.name, "."))}
+read.and.check.sd <- function(wd, xlsx.file.name, fcs.files) {
+    sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, xlsx.file.name), sheet = 1, skipEmptyCols = F, detectDates = T))
+    sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
+    if (any(!c("FileName", "FilePath", "identity") %in% names(sd))) {
+        stop("Columns FileName, FilePath, identity have to exist is the sampledescription file.")
+    }
+    if (nrow(sd) > length(fcs.files)) {
+        print(sd[which(!sd[,"identity"] %in% fcs.files),which(names(sd) %in% c("FileName", "identity"))])
+        stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save and run sync_sampledescription again.")
+    }
     if (any(sapply(c("/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\""), function(x) grepl(x, sd[,"FileName"])))) {stop("There is at least one FileName with one or more illegal character(s) which may cause problems in file-naming ( / : | ? ! * < > ' \")")}
     return(sd)
 }

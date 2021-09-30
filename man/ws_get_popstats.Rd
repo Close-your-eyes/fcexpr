@@ -2,27 +2,41 @@
 % Please edit documentation in R/ws_get_popstats.R
 \name{ws_get_popstats}
 \alias{ws_get_popstats}
-\title{Title}
+\title{Convenient function to import population counts from one or more flowjo workspaces}
 \usage{
 ws_get_popstats(ws, gr, FCS.file.folder, groupwise = T)
 }
 \arguments{
-\item{ws}{character}
+\item{ws}{character vector of paths to flowjo workspaces}
 
-\item{gr}{character}
+\item{gr}{character vector of flowjo groups to import or a list of those vectors, each for one ws}
 
-\item{FCS.file.folder}{character}
+\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
 
-\item{groupwise}{logical}
+\item{groupwise}{logical indicating if samples are to be imported groupwise or one by one}
 }
 \value{
-data.frame
+returns a data.frame with population counts
 }
 \description{
-Title
+At least one gate per group in flowjo is required to import.
+When groupwise is set to TRUE the gating tree for all samples within a group
+has to be equal (same gating tree structure, though gates can be at different
+positions for different samples). If this cannot be managed, groupwise has to be set to FALSE which
+increases computational time to import a bit as samples are imported one by one.
 }
 \examples{
 \dontrun{
-ws_get_popstats(ws = 'fj.wsp', gr = 'full.stain', FCS.file.folder = 'FCS.files', groupwise = T)
+# When the script is saved to R_scripts in the experiment folder, this will
+write the path of the experiment folder into wd:
+wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+# Workspaces can then be found with:
+ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
+# Groups can be read from workspaces by:
+gr <- lapply(ws, function(x) {
+unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
+})
+# Then import the population counts:
+ws_get_popstats(ws = ws, gr = gr)
 }
 }

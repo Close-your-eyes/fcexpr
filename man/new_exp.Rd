@@ -2,25 +2,25 @@
 % Please edit documentation in R/new_exp.R
 \name{new_exp}
 \alias{new_exp}
-\title{Title}
+\title{Create an experiment folder for flow cytometry experiments}
 \usage{
 new_exp(path = NULL, name = NULL, date_prefix = T)
 }
 \arguments{
-\item{path}{character}
+\item{path}{path to the parent directory where the experiment folder is to be initiated}
 
-\item{name}{character}
+\item{name}{name of the experiment folder}
 
-\item{date_prefix}{logical}
+\item{date_prefix}{logical if the folder name should be prefixed with the current date}
 }
 \value{
-No return value. Instead a folder is written to disk.
+No return value. Instead a folder with template files is written to disk.
 }
 \description{
-Title
+Create an experiment folder for flow cytometry experiments
 }
 \examples{
 \dontrun{
-new_exp(path = '/Users/CMS/Documents/experiments', name = 'CD3_titration', date_prefix = T)
+new_exp(path = '/Users/CMS/Documents/experiments', name = 'CD3_titration')
 }
 }

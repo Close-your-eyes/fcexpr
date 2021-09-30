@@ -2,31 +2,48 @@
 % Please edit documentation in R/sync_sampledescription.R
 \name{sync_sampledescription}
 \alias{sync_sampledescription}
-\title{Title}
+\title{Have an excel file (sampledescription) created or modified to store meta data of FCS files in}
 \usage{
 sync_sampledescription(
   wd,
   FCS.file.folder,
   xlsx.file.name = "sampledescription.xlsx",
-  sample.sheet.name = "samples",
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
     "deleted_fcs_files")
 )
 }
 \arguments{
-\item{wd}{character}
+\item{wd}{path to the experiment root folder; if omitted getwd() is assumed}
 
-\item{FCS.file.folder}{character}
+\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
 
-\item{xlsx.file.name}{character}
+\item{xlsx.file.name}{name of the sampledescription file}
 
-\item{sample.sheet.name}{character}
-
-\item{exclude.folders}{character}
+\item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
 }
 \value{
-No return value. Instead a sampledescription and FCS files are synced.
+No return value. Instead sampledescription.xlsx and FCS files are synced.
 }
 \description{
-Title
+Four cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
+in wd a xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
+When new FCS files are added to FCS.file.folder and the function is called
+they are added in order of acquisition to the xlsx-file. (iii) When file names
+in the FileName column of the xlsx-file are changed and the function is called
+the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
+are to be excluded or removed the entry in the FileName column has to be left
+blank and the function has to be called.
+}
+\details{
+Attention: Close the xlsx-file before calling the function so the file can be edited.
+Never edit the 'FilePath' or 'identity' columns in the xlsx-file manually.
+}
+\examples{
+\dontrun{
+# When the script is saved to R_scripts in the experiment folder, this will
+write the path of the experiment folder into wd:
+wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+# If the sampledescription is to be initiated call
+sync_sampledescription(wd = wd, FCS.file.folder = "FCS_files")
+}
 }
