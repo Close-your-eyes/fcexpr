@@ -15,7 +15,6 @@ Please install the necessary packages from bioconductor first:
 
 ``` r
 install.packages("BiocManager")
-BiocManager::install(version = "3.13")
 BiocManager::install("flowCore")
 BiocManager::install("flowWorkspace")
 BiocManager::install("CytoML")

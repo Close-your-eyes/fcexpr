@@ -17,16 +17,16 @@
 #'
 #' @examples
 #' \dontrun{
-#' # When the script is saved to R_scripts in the experiment folder, this will
-#' write the path of the experiment folder into wd:
+#' # When the script is saved to R_scripts in the experiment folder,
+#' # get the absolute path to the folder
 #' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-#' # Workspaces can then be found with:
+#' # find workspaces
 #' ws <- list.files(wd, pattern = "\\.wsp$", recursive = T, full.names = T)
-#' # Groups can be read from workspaces by:
+#' # get groups
 #' gr <- lapply(ws, function(x) {
 #' unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
 #' })
-#' # Then import the population counts:
+#' # import the population counts:
 #' ws_get_popstats(ws = ws, gr = gr)
 #' }
 ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
@@ -66,8 +66,8 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
                 flowWorkspace::sampleNames(gs) <- sapply(1:length(gs), function(z) {basename(flowWorkspace::keyword(flowWorkspace::gh_pop_get_data(gs[[z]]))[["FILENAME"]])})
                 ps <- as.data.frame(flowWorkspace::gs_pop_get_count_fast(gs, path = "full", xml = T))
                 ps[,"Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
-                ps[,"Group"] <- y
-                ps[, "wsp"] <- basename(ws[x])
+                ps[,"group"] <- y
+                ps[, "ws"] <- basename(ws[x])
                 return(ps)
             }))
         }))
@@ -88,8 +88,8 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
                         ps[, "Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
                         return(ps)
                     }))
-                    ps[, "Group"] <- y
-                    ps[, "wsp"] <- basename(ws[x])
+                    ps[, "group"] <- y
+                    ps[, "ws"] <- basename(ws[x])
                     return(ps)
                 }))
             } else {
@@ -97,8 +97,8 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
                     gs <- CytoML::flowjo_to_gatingset(wsp, name = y, path = FCS.file.folder, execute = F, emptyValue = F)
                     ps <- as.data.frame(flowWorkspace::gs_pop_get_count_fast(gs, path = "full", xml = T))
                     ps[, "Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
-                    ps[, "Group"] <- y
-                    ps[, "wsp"] <- basename(ws[x])
+                    ps[, "group"] <- y
+                    ps[, "ws"] <- basename(ws[x])
                     return(ps)
                 }))
             }
@@ -115,7 +115,7 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
 }
 
 flowjo_to_gatingset_CMS <- function (ws, name = NULL, subset = list(), execute = TRUE,
-                                     path = "", cytoset = NULL, backend_dir = tempdir(), backend = get_default_backend(),
+                                     path = "", cytoset = NULL, backend_dir = tempdir(), backend = flowWorkspace::get_default_backend(),
                                      includeGates = TRUE, additional.keys = "$TOT", additional.sampleID = FALSE,
                                      keywords = character(), keywords.source = "XML", keyword.ignore.case = FALSE,
                                      extend_val = 0, extend_to = -4000, channel.ignore.case = FALSE,
@@ -142,10 +142,10 @@ flowjo_to_gatingset_CMS <- function (ws, name = NULL, subset = list(), execute =
         groupInd <- match(name, groups)
     }
 
-    if (is(subset, "character")) {
+    if (methods::is(subset, "character")) {
         subset <- list(name = subset)
     }
-    if (!is(subset, "list")) {
+    if (!methods::is(subset, "list")) {
         stop("invalid 'subset' argument!")
     }
     if (is.null(additional.keys))
@@ -162,10 +162,10 @@ flowjo_to_gatingset_CMS <- function (ws, name = NULL, subset = list(), execute =
     }
     else {
         if (is.list(compensation) && !is.data.frame(compensation)) {
-            compensation <- sapply(compensation, check_comp,
+            compensation <- sapply(compensation, flowWorkspace:::check_comp,
                                    simplify = FALSE)
         }
-        else compensation <- check_comp(compensation)
+        else compensation <- flowWorkspace:::check_comp(compensation)
     }
     args <- list(ws = ws@doc, group_id = groupInd - 1, subset = subset,
                  execute = execute, path = suppressWarnings(normalizePath(path)),
@@ -179,7 +179,7 @@ flowjo_to_gatingset_CMS <- function (ws, name = NULL, subset = list(), execute =
                  transform = transform, fcs_file_extension = fcs_file_extension,
                  greedy_match = greedy_match, fcs_parse_arg = args, num_threads = mc.cores)
     p <- do.call(CytoML:::parse_workspace, args)
-    gs <- new("GatingSet", pointer = p)
+    gs <- methods::new("GatingSet", pointer = p)
     gslist <- suppressMessages(flowWorkspace::gs_split_by_tree(gs))
     if (length(gslist) > 1) {
         msg <- "GatingSet contains different gating tree structures and must be cleaned before using it!\n "
@@ -192,4 +192,3 @@ flowjo_to_gatingset_CMS <- function (ws, name = NULL, subset = list(), execute =
     }
     gs
 }
-?gs_split_by_tree

@@ -27,16 +27,16 @@ increases computational time to import a bit as samples are imported one by one.
 }
 \examples{
 \dontrun{
-# When the script is saved to R_scripts in the experiment folder, this will
-write the path of the experiment folder into wd:
+# When the script is saved to R_scripts in the experiment folder,
+# get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-# Workspaces can then be found with:
+# find workspaces
 ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
-# Groups can be read from workspaces by:
+# get groups
 gr <- lapply(ws, function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
 })
-# Then import the population counts:
+# import the population counts:
 ws_get_popstats(ws = ws, gr = gr)
 }
 }

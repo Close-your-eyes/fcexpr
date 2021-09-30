@@ -71,7 +71,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
     if (length(sd.delete.ind) > 0) {
         fcs.files.del <- fcs.files[which(fcs.files %in% sd[sd.delete.ind,"identity"])]
         print(names(fcs.files.del))
-        choice <- menu(c("Yes", "No"), title = "Move these FCS files to deleted_FCS_files and exclude them from sampledescription?")
+        choice <- utils::menu(c("Yes", "No"), title = "Move these FCS files to deleted_FCS_files and exclude them from sampledescription?")
 
         if (choice == 1) {
             dir.create(file.path(FCS.file.folder, "deleted_FCS_files"), showWarnings = F, recursive = T)
@@ -83,7 +83,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
                 sd <- sd[which(!is.na(sd[,"FileName"])),]
                 sd[,"FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[,"FileName"], 8, nchar(sd[,"FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]))
                 sd[,"FilePath"] <- file.path(dirname(sd[,"FilePath"]), sd[,"FileName"])
-                write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+                write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
                 print(paste0("FCS files removed and ", xlsx.file.name, " updated."))
             } else {
                 print("deleted_FCS_files folder could not be created - no files were removed.")
@@ -110,7 +110,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         sd.diff[,c(names(sd)[which(!names(sd) %in% names(sd.diff))])] <- ""
         sd <- rbind(sd, sd.diff)
 
-        write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+        write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
         print(paste0("New files added and renamed: ", paste(sd.diff[,"FileName"], collapse = ",")))
         file.rename(sd.diff[,"FilePath"], file.path(dirname(sd.diff[,"FilePath"]), sd.diff[,"FileName"]))
     }
@@ -122,7 +122,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
     sd.rename.ind <- which(!sd[,"FileName"] %in% basename(names(fcs.files)))
     if (length(sd.rename.ind) > 0) {
 
-        fcs.files <- setNames(names(fcs.files), fcs.files)
+        fcs.files <- stats::setNames(names(fcs.files), fcs.files)
         fcs.files <- fcs.files[sd[,"identity"]]
         sd[,"FileName"] <- ifelse(!grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]), sd[,"FileName"])
         sd[,"FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[,"FileName"])), paste0(sd[,"FileName"], ".fcs"), sd[,"FileName"])
@@ -130,10 +130,10 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         sd[,"FilePath"] <- file.path(dirname(fcs.files), sd[,"FileName"]) # if folder is moved to another top-folder or another machine, FilePaths are changed, here already new paths are written
 
         print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind])))
-        choice <- menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+        choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
 
         if (choice == 1) {
-            write.sd(named.sheet.list = setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+            write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
             file.rename(fcs.files[sd.rename.ind], file.path(dirname(fcs.files[sd.rename.ind]), sd[sd.rename.ind,"FileName"]))
         }
         if (choice == 2) {
@@ -203,7 +203,7 @@ read.and.check.sd <- function(wd, xlsx.file.name, fcs.files) {
     }
     if (nrow(sd) > length(fcs.files)) {
         print(sd[which(!sd[,"identity"] %in% fcs.files),which(names(sd) %in% c("FileName", "identity"))])
-        stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save and run sync_sampledescription again.")
+        stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save it, close it and run sync_sampledescription again.")
     }
     if (any(sapply(c("/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\""), function(x) grepl(x, sd[,"FileName"])))) {stop("There is at least one FileName with one or more illegal character(s) which may cause problems in file-naming ( / : | ? ! * < > ' \")")}
     return(sd)

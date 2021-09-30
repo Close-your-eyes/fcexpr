@@ -19,9 +19,11 @@ Imports:
     flowCore,
     flowWorkspace,
     lubridate,
+    methods,
     openxlsx,
     purrr,
     stats,
+    tidyr,
     utils
 Suggests: 
     rmarkdown,

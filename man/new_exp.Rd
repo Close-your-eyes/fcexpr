@@ -2,7 +2,7 @@
 % Please edit documentation in R/new_exp.R
 \name{new_exp}
 \alias{new_exp}
-\title{Create an experiment folder for flow cytometry experiments}
+\title{Create a template folder for flow cytometry experiments}
 \usage{
 new_exp(path = NULL, name = NULL, date_prefix = T)
 }
@@ -17,7 +17,7 @@ new_exp(path = NULL, name = NULL, date_prefix = T)
 No return value. Instead a folder with template files is written to disk.
 }
 \description{
-Create an experiment folder for flow cytometry experiments
+Create a template folder for flow cytometry experiments
 }
 \examples{
 \dontrun{
