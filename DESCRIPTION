@@ -1,5 +1,5 @@
 Package: fcexpr
-Title: Manage flow cytometry experiments with support of R and the help of beginner-friendly functions
+Title: Manage and analyze flow cytometry experiments
 Version: 0.0.0.9000
 Authors@R: 
     person(given = "Christopher Mark",
@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
            comment = c(ORCID = "0000-0002-6089-4769"))
-Description: Helps to document, maintain and modify meta data of FCS files. Provides a collection of tools to analyze multidimensional data from flow cytometry.
+Description: Largely based on functions from well-known bioconductor packages flowCore, CytoML and flowWorkspace. Solves some issues I had with these packages to reduce the effort for beginners to start working with R to analyze flow cytometry data. 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -21,11 +21,13 @@ Imports:
     lubridate,
     methods,
     openxlsx,
-    purrr,
     stats,
     tidyr,
-    utils
+    utils,
+    rstudioapi
 Suggests: 
     rmarkdown,
-    knitr
+    knitr,
+    dpylr,
+    ggplot2
 VignetteBuilder: knitr

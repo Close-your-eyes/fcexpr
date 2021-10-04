@@ -7,6 +7,7 @@
 ws_get_MFIs(
   ws,
   gr,
+  population = NULL,
   FCS.file.folder,
   mean.fun = "median",
   variance.fun = "sd",
@@ -17,6 +18,8 @@ ws_get_MFIs(
 \item{ws}{character vector of paths to flowjo workspaces}
 
 \item{gr}{character vector of flowjo groups to import or a list of those vectors, each for one ws}
+
+\item{population}{character vector of which populations to calculate values for; if omitted calculation is done for all population which increases computational time}
 
 \item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
 

@@ -62,11 +62,11 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
             wsp <- CytoML::open_flowjo_xml(ws[x])
             gr.wsp <- base::intersect(unique(CytoML::fj_ws_get_sample_groups(wsp)[,"groupName"]), gr[[x]])
             do.call(rbind, lapply(gr.wsp, function(y) {
-                gs <- CytoML::flowjo_to_gatingset(wsp, name = y, path = FCS.file.folder, execute = T, emptyValue = F, which.lines = 1)
+                gs <- CytoML::flowjo_to_gatingset(wsp, name = y, path = FCS.file.folder, execute = F, emptyValue = F, which.lines = 1, additional.keys = c())
                 flowWorkspace::sampleNames(gs) <- sapply(1:length(gs), function(z) {basename(flowWorkspace::keyword(flowWorkspace::gh_pop_get_data(gs[[z]]))[["FILENAME"]])})
                 ps <- as.data.frame(flowWorkspace::gs_pop_get_count_fast(gs, path = "full", xml = T))
-                ps[,"Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
-                ps[,"group"] <- y
+                ps[, "Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
+                ps[, "group"] <- y
                 ps[, "ws"] <- basename(ws[x])
                 return(ps)
             }))
@@ -83,7 +83,7 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
                         1
                     fcs.files <- CytoML::fj_ws_get_samples(wsp, group_id = group_id)[, "name"]
                     ps <- do.call(rbind, lapply(fcs.files, function(z) {
-                        gs <- flowjo_to_gatingset_CMS(ws = wsp, name = y, subset = z, path = FCS.file.folder, execute = F, emptyValue = F)
+                        gs <- flowjo_to_gatingset_CMS(ws = wsp, name = y, subset = z, path = FCS.file.folder, execute = F, emptyValue = F, which.lines = 1, additional.keys = c())
                         ps <- as.data.frame(flowWorkspace::gs_pop_get_count_fast(gs, path = "full", xml = T))
                         ps[, "Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
                         return(ps)
@@ -94,7 +94,7 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
                 }))
             } else {
                 do.call(rbind, lapply(gr.wsp, function(y) {
-                    gs <- CytoML::flowjo_to_gatingset(wsp, name = y, path = FCS.file.folder, execute = F, emptyValue = F)
+                    gs <- CytoML::flowjo_to_gatingset(ws = wsp, name = y, path = FCS.file.folder, execute = F, emptyValue = F, which.lines = 1, additional.keys = c())
                     ps <- as.data.frame(flowWorkspace::gs_pop_get_count_fast(gs, path = "full", xml = T))
                     ps[, "Population"] <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")[-1]
                     ps[, "group"] <- y

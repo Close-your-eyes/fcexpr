@@ -7,6 +7,7 @@
 #'
 #' @param ws character vector of paths to flowjo workspaces
 #' @param gr character vector of flowjo groups to import or a list of those vectors, each for one ws
+#' @param population character vector of which populations to calculate values for; if omitted calculation is done for all population which increases computational time
 #' @param FCS.file.folder path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed
 #' @param inverse.transform logical indicating if fluorescence values are to be inversely transformed
 #' @param mean.fun character name of the function name to use to calculate the average FI
@@ -31,6 +32,7 @@
 #' }
 ws_get_MFIs <- function(ws,
                         gr,
+                        population = NULL,
                         FCS.file.folder,
                         mean.fun = "median",
                         variance.fun = "sd",
@@ -58,21 +60,37 @@ ws_get_MFIs <- function(ws,
   mean.fun.fun <- match.fun(mean.fun)
   variance.fun.fun <- match.fun(variance.fun)
 
+
+
   MFI.table <- do.call(rbind, lapply(seq_along(ws), function(x) {
     wsp <- CytoML::open_flowjo_xml(ws[x])
     gr.wsp <- base::intersect(unique(CytoML::fj_ws_get_sample_groups(wsp)[,"groupName"]), gr[[x]])
     out <- do.call(rbind, lapply(gr.wsp, function(y) {
       gs <- CytoML::flowjo_to_gatingset(ws = wsp, name = y, path = FCS.file.folder, emptyValue = F, truncate_max_range = F)
-      out <- do.call(rbind, lapply(flowWorkspace::gs_get_pop_paths(gs), function(p) {
-        out <- do.call(rbind, lapply(1:length(gs), function(g) {
-          t <- cbind(utils::stack(apply(flowCore::exprs(flowWorkspace::gh_pop_get_data(gs[[g]], p, inverse.transform = inverse.transform)), 2, mean.fun.fun)),
-                     utils::stack(apply(flowCore::exprs(flowWorkspace::gh_pop_get_data(gs[[g]], p, inverse.transform = inverse.transform)), 2, variance.fun.fun))[,1])
+
+      if (is.null(population)) {
+        population <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")
+      }
+
+      if (any(!population %in% flowWorkspace::gs_get_pop_paths(gs, path = "auto"))) {
+        print(paste0("The following populations were not found in ", ws[x], " and ", gr.wsp, ":"))
+        print(population[which(!population %in% flowWorkspace::gs_get_pop_paths(gs, path = "auto"))])
+        print("Choices are: ")
+        print(flowWorkspace::gs_get_pop_paths(gs, path = "auto"))
+        return(NULL)
+      }
+
+      out <- do.call(rbind, lapply(population, function(p) {
+        out <- do.call(rbind, lapply(seq_along(gs), function(g) {
+          dat <- flowCore::exprs(flowWorkspace::gh_pop_get_data(gs[[g]], p, inverse.transform = inverse.transform))
+          t <- cbind(utils::stack(apply(dat, 2, mean.fun.fun)),
+                     utils::stack(apply(dat, 2, variance.fun.fun))[,1])
           names(t) <- c(mean.fun, "channel", variance.fun)
           t[,"channel.desc"] <- flowCore::parameters(flowWorkspace::gh_pop_get_data(gs[[g]], p))[["desc"]]
           t[,"FileName"] <- basename(flowCore::keyword(flowWorkspace::gh_pop_get_data(gs[[g]]))[["FILENAME"]])
           return(t)
         }))
-        out[,"PopulationFullPath"] <- p
+        out[,"Population"] <- p
         return(out)
       }))
       out[,"group"] <- y

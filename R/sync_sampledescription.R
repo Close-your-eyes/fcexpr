@@ -111,7 +111,7 @@ sync_sampledescription <- function(wd, FCS.file.folder, xlsx.file.name = "sample
         sd <- rbind(sd, sd.diff)
 
         write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-        print(paste0("New files added and renamed: ", paste(sd.diff[,"FileName"], collapse = ",")))
+        print(paste0(nrow(sd.diff), " new files have been found and added to the sampledescription."))
         file.rename(sd.diff[,"FilePath"], file.path(dirname(sd.diff[,"FilePath"]), sd.diff[,"FileName"]))
     }
 
