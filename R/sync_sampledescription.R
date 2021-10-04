@@ -29,7 +29,8 @@
 #' sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"))
 #' }
 sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", exclude.folders = c("compensation",
-    "other_fcs_files", "experiment.file", "deleted_fcs_files")) {
+    "other_fcs_files", "experiment.file", "deleted_fcs_files"),
+    add.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart")) {
 
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))
@@ -42,7 +43,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     if (!file.exists(file.path(wd, xlsx.file.name))) {
         fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = FALSE)
-        sd[, c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart")] <- ""
+        sd[, add.columns] <- ""
 
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
 
