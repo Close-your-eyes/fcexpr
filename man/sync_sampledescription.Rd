@@ -5,7 +5,6 @@
 \title{Have an excel file (sampledescription) created or modified to store meta data of FCS files in}
 \usage{
 sync_sampledescription(
-  wd,
   FCS.file.folder,
   xlsx.file.name = "sampledescription.xlsx",
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
@@ -13,9 +12,7 @@ sync_sampledescription(
 )
 }
 \arguments{
-\item{wd}{path to the experiment root folder; if omitted getwd() is assumed}
-
-\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
+\item{FCS.file.folder}{path to the root folder which contains FCS files}
 
 \item{xlsx.file.name}{name of the sampledescription file}
 
@@ -36,7 +33,7 @@ blank and the function has to be called.
 }
 \details{
 Attention: Close the xlsx-file before calling the function so the file can be edited.
-Never edit the 'FilePath' or 'identity' columns in the xlsx-file manually.
+Never edit the 'identity' columns in the xlsx-file manually.
 }
 \examples{
 \dontrun{
@@ -44,6 +41,6 @@ Never edit the 'FilePath' or 'identity' columns in the xlsx-file manually.
 write the path of the experiment folder into wd:
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # If the sampledescription is to be initiated call
-sync_sampledescription(wd = wd, FCS.file.folder = "FCS_files")
+sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"))
 }
 }

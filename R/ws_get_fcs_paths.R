@@ -15,13 +15,13 @@
 #' # find workspaces
 #' ws <- list.files(wd, pattern = "\\.wsp$", recursive = T, full.names = T)
 #' # get groups from the first ws
-#' gr <- lapply(ws[[1]], function(x) {
+#' gr <- lapply(ws[1], function(x) {
 #' unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
 #' })
 #' # pull out paths to fcs files of the first group
-#' paths <- fcs_paths_from_ws(ws[[1]], gr[[1]])
+#' paths <- fcs_paths_from_ws(ws[1], gr[[1]])
 #' }
-fcs_paths_from_ws <- function(ws, gr, FCS.file.folder) {
+ws_get_fcs_paths <- function(ws, gr, FCS.file.folder) {
 
   if (missing(FCS.file.folder)) {
     FCS.file.folder <- file.path(getwd(), "FCS_files")

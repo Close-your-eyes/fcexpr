@@ -29,7 +29,7 @@
 #' return(v)
 #' }))
 #' }
-voltage_from_fcs <- function(file_path) {
+fcs_get_voltages <- function(file_path) {
 
   ff <- flowCore::read.FCS(file_path, which.lines = 1, emptyValue = F, truncate_max_range = F)
   f <- suppressWarnings(utils::stack(flowCore::keyword(ff)[names(flowCore::keyword(ff)) != "SPILL"]))

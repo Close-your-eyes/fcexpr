@@ -45,11 +45,19 @@ ws_get_MFIs <- function(ws,
     stop("Please provide a vector of list of vectors of groups to import.")
   }
   if (class(gr) == "list" && length(gr) != length(ws)) {
-    stop("list of gr has to have the same length as ws. Alternatively pass a vector gr to use for all workspace.")
+    stop("list of gr has to have the same length as ws. Alternatively, pass a vector to use for all workspace.")
   }
   if (class(gr) == "character") {
     gr <- rep(list(gr), length(ws))
   }
+
+  if (class(population) == "list" && length(population) != length(ws)) {
+    stop("list of population has to have the same length as ws. Alternatively, pass a vector to use for all workspace.")
+  }
+  if (class(population) == "character") {
+    population <- rep(list(population), length(ws))
+  }
+
   if (missing(FCS.file.folder)) {
     FCS.file.folder <- file.path(getwd(), "FCS_files")
   }
@@ -61,26 +69,17 @@ ws_get_MFIs <- function(ws,
   variance.fun.fun <- match.fun(variance.fun)
 
 
-
   MFI.table <- do.call(rbind, lapply(seq_along(ws), function(x) {
     wsp <- CytoML::open_flowjo_xml(ws[x])
     gr.wsp <- base::intersect(unique(CytoML::fj_ws_get_sample_groups(wsp)[,"groupName"]), gr[[x]])
     out <- do.call(rbind, lapply(gr.wsp, function(y) {
-      gs <- CytoML::flowjo_to_gatingset(ws = wsp, name = y, path = FCS.file.folder, emptyValue = F, truncate_max_range = F)
-
+      gs <- CytoML::flowjo_to_gatingset(ws = wsp, name = y, path = FCS.file.folder, emptyValue = F, truncate_max_range = F, additional.keys = c())
       if (is.null(population)) {
-        population <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")
+        population.wsp <- flowWorkspace::gs_get_pop_paths(gs, path = "auto")
+      } else {
+        population.wsp <- base::intersect(flowWorkspace::gs_get_pop_paths(gs, path = "auto"), population[[x]])
       }
-
-      if (any(!population %in% flowWorkspace::gs_get_pop_paths(gs, path = "auto"))) {
-        print(paste0("The following populations were not found in ", ws[x], " and ", gr.wsp, ":"))
-        print(population[which(!population %in% flowWorkspace::gs_get_pop_paths(gs, path = "auto"))])
-        print("Choices are: ")
-        print(flowWorkspace::gs_get_pop_paths(gs, path = "auto"))
-        return(NULL)
-      }
-
-      out <- do.call(rbind, lapply(population, function(p) {
+      out <- do.call(rbind, lapply(population.wsp, function(p) {
         out <- do.call(rbind, lapply(seq_along(gs), function(g) {
           dat <- flowCore::exprs(flowWorkspace::gh_pop_get_data(gs[[g]], p, inverse.transform = inverse.transform))
           t <- cbind(utils::stack(apply(dat, 2, mean.fun.fun)),

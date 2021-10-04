@@ -28,6 +28,6 @@ Imports:
 Suggests: 
     rmarkdown,
     knitr,
-    dpylr,
+    dplyr,
     ggplot2
 VignetteBuilder: knitr
