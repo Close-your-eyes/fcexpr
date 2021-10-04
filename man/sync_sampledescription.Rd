@@ -8,7 +8,9 @@ sync_sampledescription(
   FCS.file.folder,
   xlsx.file.name = "sampledescription.xlsx",
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
-    "deleted_fcs_files")
+    "deleted_fcs_files"),
+  init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
+  write.log = T
 )
 }
 \arguments{
@@ -17,6 +19,10 @@ sync_sampledescription(
 \item{xlsx.file.name}{name of the sampledescription file}
 
 \item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
+
+\item{init.columns}{additional columns to add to the initial file}
+
+\item{write.log}{write a hidden log file to track back changes (currently only on Mac)}
 }
 \value{
 No return value. Instead sampledescription.xlsx and FCS files are synced.

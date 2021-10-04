@@ -16,6 +16,8 @@
 #' @param FCS.file.folder path to the root folder which contains FCS files
 #' @param xlsx.file.name name of the sampledescription file
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
+#' @param init.columns additional columns to add to the initial file
+#' @param write.log write a hidden log file to track back changes (currently only on Mac)
 #'
 #' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
 #' @export
@@ -30,7 +32,8 @@
 #' }
 sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", exclude.folders = c("compensation",
     "other_fcs_files", "experiment.file", "deleted_fcs_files"),
-    add.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart")) {
+    init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
+    write.log = T) {
 
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))
@@ -43,12 +46,12 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     if (!file.exists(file.path(wd, xlsx.file.name))) {
         fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = FALSE)
-        sd[, add.columns] <- ""
+        sd[, init.columns] <- ""
 
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
 
         if (Sys.info()[["sysname"]] == "Darwin") {
-            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd)
+            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
         }
         file.rename(names(fcs.files), file.path(dirname(names(fcs.files)), sd[, "FileName"]))
         return(paste0(xlsx.file.name, " initiated."))
@@ -57,7 +60,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     sd <- .read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, fcs.files = fcs.files)
 
     if (Sys.info()[["sysname"]] == "Darwin") {
-        .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd)
+        .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
     }
 
     # find files for deletion
@@ -65,7 +68,12 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     if (length(sd.delete.ind) > 0) {
         fcs.files.del <- fcs.files[which(fcs.files %in% sd[sd.delete.ind,"identity"])]
         print(names(fcs.files.del))
-        choice <- utils::menu(c("Yes", "No"), title = "Move these FCS files to deleted_FCS_files and exclude them from sampledescription?")
+
+        if (interactive()) {
+            choice <- utils::menu(c("Yes", "No"), title = "Move these FCS files to deleted_FCS_files and exclude them from sampledescription?")
+        } else {
+            choice <- 1
+        }
 
         if (choice == 1) {
             dir.create(file.path(FCS.file.folder, "deleted_FCS_files"), showWarnings = F, recursive = T)
@@ -77,6 +85,9 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
                 sd <- sd[which(!is.na(sd[,"FileName"])),]
                 sd[,"FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[,"FileName"], 8, nchar(sd[,"FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]))
                 .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+                if (Sys.info()[["sysname"]] == "Darwin") {
+                    .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
+                }
                 print(paste0("FCS files moved and ", xlsx.file.name, " updated."))
             } else {
                 print("deleted_FCS_files folder could not be created - no files were removed.")
@@ -103,6 +114,9 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         sd <- rbind(sd, sd.diff)
 
         .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+        if (Sys.info()[["sysname"]] == "Darwin") {
+            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
+        }
         print(paste0(nrow(sd.diff), " new files have been found and added to the sampledescription."))
         file.rename(names(fcs.files.diff), file.path(dirname(names(fcs.files.diff)), sd.diff[,"FileName"]))
     }
@@ -120,10 +134,17 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         sd[,"FileName"] <- sub("\\.FCS$", ".fcs", sd[,"FileName"])
 
         print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind])))
-        choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+        if (interactive()) {
+            choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+        } else {
+            choice <- 1
+        }
 
         if (choice == 1) {
             .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+            if (Sys.info()[["sysname"]] == "Darwin") {
+                .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
+            }
             file.rename(fcs.files[sd.rename.ind], file.path(dirname(fcs.files[sd.rename.ind]), sd[sd.rename.ind,"FileName"]))
         }
         if (choice == 2) {
@@ -145,34 +166,43 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
             sd[,"FileName"] <- sub("\\.FCS$", ".fcs", sd[,"FileName"])
 
             print(data.frame(FileName = sd[, "FileName"], PreviousFileName = basename(fcs.files)))
-            choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+            if (interactive()) {
+                choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+            } else {
+                choice <- 1
+            }
 
             if (choice == 1) {
                 .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
+                if (Sys.info()[["sysname"]] == "Darwin") {
+                    .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
+                }
                 file.rename(fcs.files, file.path(dirname(fcs.files), sd[,"FileName"]))
             }
             if (choice == 2) {
                 return("No files renamed.")
             }
         } else {
-            stop("No reodering as prefix-numbers not detected accurately.")
+            stop("No reodering as prefix-numbers were not detected accurately.")
         }
     }
 
 }
 
-.write.sd.log <- function(wd, xlsx.file.name, sd) {
+.write.sd.log <- function(wd, xlsx.file.name, sd, write.log) {
     # find out how to do on windows or omit on windows
-    file <- file.path(wd, paste0(".log_", xlsx.file.name))
-    if (file.exists(file)) {
-        log <- openxlsx::loadWorkbook(file)
-    } else {
-        log <- openxlsx::createWorkbook()
+    if (write.log) {
+        file <- file.path(wd, paste0(".log_", xlsx.file.name))
+        if (file.exists(file)) {
+            log <- openxlsx::loadWorkbook(file)
+        } else {
+            log <- openxlsx::createWorkbook()
+        }
+        time <- format(Sys.time(), "%Y.%m.%d-%H.%M.%S")
+        openxlsx::addWorksheet(log, time)
+        openxlsx::writeData(log, time, sd)
+        openxlsx::saveWorkbook(log, file, overwrite = T)
     }
-    time <- format(Sys.time(), "%Y.%m.%d-%H.%M.%S")
-    openxlsx::addWorksheet(log, time)
-    openxlsx::writeData(log, time, sd)
-    openxlsx::saveWorkbook(log, file, overwrite = T)
 }
 
 .write.sd <- function(named.sheet.list, wd, xlsx.file.name) {
