@@ -8,12 +8,13 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+
 ```{r, include = F}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-options(knitr.kable.NA = '')
+options(knitr.kable.NA = '', width = 60)
 ```
 
 Install necessary packages in RStudio:
@@ -27,14 +28,15 @@ devtools::install_github("Close-your-eyes/fcexpr")
 library(fcexpr)
 ```
 
-Let's create a folder for our latest flow cytometry experiment. Mac-user: To copy the path of a directory use CMD+Alt+C in the Finder.
+Let's create a folder for our latest flow cytometry experiment. Mac-user: To copy the path of a directory use CMD+Alt+C in the Finder. Please don't be puzzled by the strange dir that is shown here. Just use a 'normal' directory on your disk.
 ```{r}
-fcexpr::new_exp(path = "/Users/vonskopnik/Documents/experiments", name = "my_experiment")
+dir <- base::system.file("extdata", package = "fcexpr")
+fcexpr::new_exp(path = dir, name = "my_experiment")
 ```
 
 A respective folder appears in "path". It is prefixed with todays date as date_prefix = TRUE by default in fcexpr::new_exp (see ?fcexpr::new_exp). It has a default structure and contains a few template folders and files.
 ```{r}
-wd <- "/Users/vonskopnik/Documents/experiments/20211005_my_experiment"
+wd <- file.path(dir, paste0(base::gsub("-", "", base::Sys.Date()), "_my_experiment"))
 list.files(wd)
 list.files(wd, recursive = T)
 ```
@@ -168,4 +170,7 @@ knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 ```{r}
 list.files(file.path(wd, "FCS_files"), recursive = T)
+```
+```{r, echo=F}
+unlink(wd, recursive = T)
 ```

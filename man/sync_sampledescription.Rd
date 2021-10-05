@@ -22,7 +22,7 @@ sync_sampledescription(
 
 \item{init.columns}{additional columns to add to the initial file}
 
-\item{write.log}{write a hidden log file to track back changes (currently only on Mac)}
+\item{write.log}{write a hidden log file to track back changes}
 }
 \value{
 No return value. Instead sampledescription.xlsx and FCS files are synced.

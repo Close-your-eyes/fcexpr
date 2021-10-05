@@ -1,33 +1,33 @@
-#' Have an excel file (sampledescription) created or modified to store meta data of FCS files in
+#' Synchronize an excel file (sampledescription.xlsx) with FCS files
 #'
-#' Four cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
+#' Five cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
 #' in wd a xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
 #' When new FCS files are added to FCS.file.folder and the function is called
 #' they are added in order of acquisition to the xlsx-file. (iii) When file names
 #' in the FileName column of the xlsx-file are changed and the function is called
 #' the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
 #' are to be excluded or removed the entry in the FileName column has to be left
-#' blank and the function has to be called.
+#' blank and the function has to be called. (v) When the order of rows in the xlsx-file
+#' is changed FCS files will be re-numbered by the prefix.
 #'
-#' Attention: Close the xlsx-file before calling the function so the file can be edited.
-#' Never edit the 'identity' columns in the xlsx-file manually.
-#'
+#' The xlsx-file will always be written to the root of the FCS.file.folder.
+#' Preferentially, do not have the xlsx-files open in excel when calling the the function.
+#' Never edit the 'identity' column in the xlsx-file manually.
+#' Never mix up rows of FileName and identity.
+#' The identity column contain a concatenated string of the $FIL keyword, the number of events
+#' and the acquisition date time of the FCS file.
 #'
 #' @param FCS.file.folder path to the root folder which contains FCS files
 #' @param xlsx.file.name name of the sampledescription file
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
 #' @param init.columns additional columns to add to the initial file
-#' @param write.log write a hidden log file to track back changes (currently only on Mac)
+#' @param write.log write a hidden log file every time changes take place
 #'
 #' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # When the script is saved to R_scripts in the experiment folder, this will
-#' write the path of the experiment folder into wd:
-#' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-#' # If the sampledescription is to be initiated call
 #' sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"))
 #' }
 sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", exclude.folders = c("compensation",
@@ -49,19 +49,13 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         sd[, init.columns] <- ""
 
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-
-        if (Sys.info()[["sysname"]] == "Darwin") {
-            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-        }
+        .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
         file.rename(names(fcs.files), file.path(dirname(names(fcs.files)), sd[, "FileName"]))
         return(paste0(xlsx.file.name, " initiated."))
     }
 
     sd <- .read.and.check.sd(wd = wd, xlsx.file.name = xlsx.file.name, fcs.files = fcs.files)
-
-    if (Sys.info()[["sysname"]] == "Darwin") {
-        .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-    }
+    .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
 
     # find files for deletion
     sd.delete.ind <- intersect(which(is.na(sd[,"FileName"])), which(!is.na(sd[,"identity"])))
@@ -85,10 +79,8 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
                 sd <- sd[which(!is.na(sd[,"FileName"])),]
                 sd[,"FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[,"FileName"], 8, nchar(sd[,"FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]))
                 .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-                if (Sys.info()[["sysname"]] == "Darwin") {
-                    .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-                }
-                print(paste0("FCS files moved and ", xlsx.file.name, " updated."))
+                .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
+                print(paste0("FCS files moved to deleted_FCS_files and ", xlsx.file.name, " updated."))
             } else {
                 print("deleted_FCS_files folder could not be created - no files were removed.")
             }
@@ -114,9 +106,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         sd <- rbind(sd, sd.diff)
 
         .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-        if (Sys.info()[["sysname"]] == "Darwin") {
-            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-        }
+        .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
         print(paste0(nrow(sd.diff), " new files have been found and added to the sampledescription."))
         file.rename(names(fcs.files.diff), file.path(dirname(names(fcs.files.diff)), sd.diff[,"FileName"]))
     }
@@ -142,9 +132,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
 
         if (choice == 1) {
             .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-            if (Sys.info()[["sysname"]] == "Darwin") {
-                .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-            }
+            .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
             file.rename(fcs.files[sd.rename.ind], file.path(dirname(fcs.files[sd.rename.ind]), sd[sd.rename.ind,"FileName"]))
         }
         if (choice == 2) {
@@ -174,9 +162,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
 
             if (choice == 1) {
                 .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
-                if (Sys.info()[["sysname"]] == "Darwin") {
-                    .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
-                }
+                .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
                 file.rename(fcs.files, file.path(dirname(fcs.files), sd[,"FileName"]))
             }
             if (choice == 2) {
@@ -190,9 +176,14 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
 }
 
 .write.sd.log <- function(wd, xlsx.file.name, sd, write.log) {
-    # find out how to do on windows or omit on windows
     if (write.log) {
-        file <- file.path(wd, paste0(".log_", xlsx.file.name))
+        if (Sys.info()[["sysname"]] %in% c("Linux", "Darwin")) {
+            file <- file.path(wd, paste0(".log_", xlsx.file.name))
+        }
+        if (Sys.info()[["sysname"]] == "Windows") {
+            file <- file.path(wd, paste0("log_", xlsx.file.name))
+        }
+
         if (file.exists(file)) {
             log <- openxlsx::loadWorkbook(file)
         } else {
@@ -202,6 +193,11 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         openxlsx::addWorksheet(log, time)
         openxlsx::writeData(log, time, sd)
         openxlsx::saveWorkbook(log, file, overwrite = T)
+
+        if (Sys.info()[["sysname"]] == "Windows") {
+            command <- paste0("attrib +h ", file)
+            system(command)
+        }
     }
 }
 

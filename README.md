@@ -6,8 +6,7 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-A set of beginner-friendly functions to organize flow cytometry
-experiments.
+A set functions to organize and analyze flow cytometry experiments.
 
 ## Installation
 
@@ -27,8 +26,6 @@ requires devtools to be insalled first.
 install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 ```
-
-A release on CRAN is not intended.
 
 ## Vignettes
 
