@@ -47,7 +47,6 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = FALSE)
         sd[, init.columns] <- ""
-
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
         .write.sd.log(wd = wd, xlsx.file.name = xlsx.file.name, sd = sd, write.log = write.log)
         file.rename(names(fcs.files), file.path(dirname(names(fcs.files)), sd[, "FileName"]))
@@ -75,7 +74,6 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
             if (dir.exists(file.path(FCS.file.folder, "deleted_FCS_files"))) {
                 file.copy(names(fcs.files.del), file.path(FCS.file.folder, "deleted_FCS_files", basename(names(fcs.files.del))))
                 file.remove(names(fcs.files.del))
-
                 sd <- sd[which(!is.na(sd[,"FileName"])),]
                 sd[,"FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[,"FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[,"FileName"], 8, nchar(sd[,"FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[,"FileName"]))
                 .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
@@ -96,9 +94,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     # find new files for addition to sd
     fcs.files.diff <- fcs.files[which(!fcs.files %in% sd[,"identity"])]
     if (length(fcs.files.diff) != 0) {
-
         fcs.files.diff <- fcs.files.diff[order(lubridate::parse_date_time(sapply(strsplit(fcs.files.diff, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
-
         sd.diff <- data.frame(FileName = paste0(sprintf(paste0("%04d"), (nrow(sd) + 1):(nrow(sd) + length(fcs.files.diff))), "_-_", basename(names(fcs.files.diff))),
                               identity = fcs.files.diff,
                               stringsAsFactors = FALSE)
