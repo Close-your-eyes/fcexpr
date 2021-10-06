@@ -17,7 +17,7 @@
 #' The identity column contain a concatenated string of the $FIL keyword, the number of events
 #' and the acquisition date time of the FCS file.
 #'
-#' @param FCS.file.folder path to the root folder which contains FCS files
+#' @param FCS.file.folder path to the folder which contains FCS files
 #' @param xlsx.file.name name of the sampledescription file
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
 #' @param init.columns additional columns to add to the initial file
