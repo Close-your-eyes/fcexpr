@@ -1,0 +1,94 @@
+---
+title: "import data from fj workspaces"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{import data from fj workspaces}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = F}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(knitr.kable.NA = '', width = 60)
+```
+
+Install necessary packages in RStudio:
+```{r setup, eval=F}
+install.packages("BiocManager")
+BiocManager::install("flowCore")
+BiocManager::install("flowWorkspace")
+BiocManager::install("CytoML")
+install.packages("devtools")
+devtools::install_github("Close-your-eyes/fcexpr")
+library(fcexpr)
+
+```
+```{r setup2, message=F}
+library(tidyverse)
+```
+
+
+```{r, echo=F}
+dir <- base::system.file("extdata", package = "fcexpr")
+utils::untar(base::system.file("extdata", "Part_3.tgz", package = "fcexpr"), exdir = dir)
+wd <- file.path(dir, "Part_3")
+```
+
+We are starting with a minimal experiment folder. Epithelial cells have been transduced with GFP. Different factors have been varied (see the sampledescription below).
+```{r}
+list.files(wd)
+list.files(wd, recursive = T)
+```
+
+```{r, echo=F}
+knitr::kable(head(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")), 10))
+```
+
+When we run an R-script saved to the R_script folder we can have the folders directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
+```{r}
+# wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+```
+
+Then we find all the workspaces in our folder and the groups in these workspaces.
+```{r}
+# the pattern indicates that .wsp has to appear at the end of the file name (this is btw called a regular expression)
+ws <- list.files(path = wd, pattern = "\\.wsp$", recursive = T, full.names = T)
+basename(ws)
+# to get the group names elegantly we can use functions from the CytoML package
+# of course you can also enter the names by hand
+gr <- unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(ws))$groupName))
+gr
+# as we dont want the All Samples group we can remove it from gr
+gr <- gr[-1]
+```
+
+The gating for GFP positive events is very simple.
+
+```{r, echo=F}
+flowWorkspace::plot(CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(ws), name = gr, path = file.path(wd, "FCS_files")))
+```
+
+Now we want to import the number of events in the gates. In this simple example we only have one workspace in ws and only one group in gr. But the procedure can also handle multiple ws and multiple gr. Anyway, if we 
+```{r}
+ps.raw <- fcexpr::ws_get_popstats(ws = ws, gr = gr, FCS.file.folder = file.path(wd, "FCS_files"))
+knitr::kable(head(ps.raw, 10))
+```
+
+Then we want to join these counts with the meta data which documented excellently in the sampledescription.xlsx. For that we use functions from dplyr.
+```{r}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+ps <-
+  ps.raw %>%
+  dplyr::left_join(sd, by = "FileName")
+```
+
+
+
+
+
+```{r, echo=F}
+unlink(wd, recursive = T)
+```
