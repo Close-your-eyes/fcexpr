@@ -16,14 +16,14 @@
 #' @examples
 #' geo_mean(c(1,2,3,10,100))
 geo_mean <- function(x, rm.na = F) {
-  if (min(x) < 0) {
-    stop("No values below zero allowed.")
-  }
-  if (NA %in% x && !rm.na) {
-    stop("NAs found, please fix.")
-  } else if (NA %in% x && !rm.na) {
-    print("NAs are removed.")
-    x <- x[which(!is.na(x))]
-  }
-  exp(mean(log(x)))
+    if (min(x) < 0) {
+        stop("No values below zero allowed.")
+    }
+    if (NA %in% x && !rm.na) {
+        stop("NAs found, please fix.")
+    } else if (NA %in% x && !rm.na) {
+        print("NAs are removed.")
+        x <- x[which(!is.na(x))]
+    }
+    exp(mean(log(x)))
 }

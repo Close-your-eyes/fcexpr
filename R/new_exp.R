@@ -13,28 +13,28 @@
 #' }
 new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
 
-  if (base::is.null(path)) {
-    stop("Please provide a directory (path) to create the folder in.")
-  }
+    if (base::is.null(path)) {
+        stop("Please provide a directory (path) to create the folder in.")
+    }
 
-  if (date_prefix) {
-    if (base::is.null(name)) {
-      name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_experiment")
+    if (date_prefix) {
+        if (base::is.null(name)) {
+            name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_experiment")
+        } else {
+            name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_", name)
+        }
     } else {
-      name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_", name)
+        if (base::is.null(name)) {
+            name <- "experiment"
+        }
     }
-  } else {
-    if (base::is.null(name)) {
-      name <- "experiment"
+
+    if (dir.exists(base::file.path(path, name))) {
+        stop(paste0(base::file.path(path, name), " already exists."))
     }
-  }
 
-  if (dir.exists(base::file.path(path, name))) {
-    stop(paste0(base::file.path(path, name), " already exists."))
-  }
+    utils::untar(base::system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
+    base::file.rename(base::file.path(path, "template_folder"), base::file.path(path, name))
 
-  utils::untar(base::system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
-  base::file.rename(base::file.path(path, "template_folder"), base::file.path(path, name))
-
-  base::print(base::paste0(base::file.path(path, name), " created."))
+    base::print(base::paste0(base::file.path(path, name), " created."))
 }

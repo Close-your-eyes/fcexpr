@@ -15,13 +15,13 @@
 #' get the absolute path to the folder
 #' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 #' # Find workspaces
-#' ws <- list.files(wd, pattern = "\\.wsp$", recursive = T, full.names = T)
+#' ws <- list.files(wd, pattern = '\\.wsp$', recursive = T, full.names = T)
 #' # Get groups from the first ws
-#' gr <- lapply(ws[[1]], function(x) {
+#' gr <- lapply(ws[1], function(x) {
 #' unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-#' })
+#' })[[1]]
 #' # pull out paths to fcs files of the first group
-#' paths <- fcs_paths_from_ws(ws[[1]], gr[[1]])
+#' paths <- fcs_paths_from_ws(ws[1], gr[1])
 #' # iterate (loop) through the paths to get the voltage of each fcs file
 #' volts <- do.call(rbind, lapply(paths, function(x) {
 #' v <- voltage_from_fcs(x)
@@ -31,16 +31,16 @@
 #' }
 fcs_get_voltages <- function(file_path) {
 
-  ff <- flowCore::read.FCS(file_path, which.lines = 1, emptyValue = F, truncate_max_range = F)
-  f <- suppressWarnings(utils::stack(flowCore::keyword(ff)[names(flowCore::keyword(ff)) != "SPILL"]))
-  f[,"ind"] <- as.character(f[,"ind"])
-  f <- f[which(grepl("\\$P[[:digit:]]", f[,"ind"]) & !grepl("flowCore", f[,"ind"])),]
-  f[,"ind"] <- gsub("\\$", "", f[,"ind"])
-  f[,"type"] <- sapply(sapply(strsplit(f[,"ind"], ""), rev), "[", 1)
-  f[,"ind"] <- gsub("[[:alpha:]]$", "", f[,"ind"])
+    ff <- flowCore::read.FCS(file_path, which.lines = 1, emptyValue = F, truncate_max_range = F)
+    f <- suppressWarnings(utils::stack(flowCore::keyword(ff)[names(flowCore::keyword(ff)) != "SPILL"]))
+    f[, "ind"] <- as.character(f[, "ind"])
+    f <- f[which(grepl("\\$P[[:digit:]]", f[, "ind"]) & !grepl("flowCore", f[, "ind"])), ]
+    f[, "ind"] <- gsub("\\$", "", f[, "ind"])
+    f[, "type"] <- sapply(sapply(strsplit(f[, "ind"], ""), rev), "[", 1)
+    f[, "ind"] <- gsub("[[:alpha:]]$", "", f[, "ind"])
 
-  f <- tidyr::pivot_wider(f, names_from = "type", values_from = "values")
-  f <- f[which(f[,"N"] != "Time"),]
+    f <- tidyr::pivot_wider(f, names_from = "type", values_from = "values")
+    f <- f[which(f[, "N"] != "Time"), ]
 
-  return(as.data.frame(f))
+    return(as.data.frame(f))
 }
