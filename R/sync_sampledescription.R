@@ -49,7 +49,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
                 }
             }
         })
-        fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
+        fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = FALSE)
         sd[, init.columns] <- ""
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, xlsx.file.name = xlsx.file.name)
@@ -100,7 +100,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     # find new files for addition to sd
     fcs.files.diff <- fcs.files[which(!fcs.files %in% sd[, "identity"])]
     if (length(fcs.files.diff) != 0) {
-        fcs.files.diff <- fcs.files.diff[order(lubridate::parse_date_time(sapply(strsplit(fcs.files.diff, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
+        fcs.files.diff <- fcs.files.diff[order(lubridate::parse_date_time(sapply(strsplit(fcs.files.diff, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S"))]
         sd.diff <- data.frame(FileName = paste0(sprintf(paste0("%04d"), (nrow(sd) + 1):(nrow(sd) + length(fcs.files.diff))), "_-_", basename(names(fcs.files.diff))),
             identity = fcs.files.diff, stringsAsFactors = FALSE)
         sd.diff[, c(names(sd)[which(!names(sd) %in% names(sd.diff))])] <- ""
@@ -239,7 +239,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
             sub <- 0
         }
         datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
-            "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S"), locale = "en_GB.UTF-8") - sub, "%Y.%m.%d-%H.%M.%S")
+            "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
         identity <- paste0(flowCore::keyword(ff)[["$FIL"]], "_-_", trimws(flowCore::keyword(ff)[["$TOT"]]), "_-_", datetime)
         return(identity)
     })
