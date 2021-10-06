@@ -32,3 +32,5 @@ devtools::install_github("Close-your-eyes/fcexpr")
 Please see vignette(s) for workflows:  
 [synchronize FCS files and
 sampledescription](https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html)
+[import data from flowjo
+workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)

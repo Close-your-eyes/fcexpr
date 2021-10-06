@@ -2,6 +2,7 @@ pandoc: 2.11.4
 pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
+  import_data_from_fj_workspaces: import_data_from_fj_workspaces.html
   synchronizing_FCS_files_with_an_xlsx_file: synchronizing_FCS_files_with_an_xlsx_file.html
-last_built: 2021-10-06T06:17Z
+last_built: 2021-10-06T20:44Z
 

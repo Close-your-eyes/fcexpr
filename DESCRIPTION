@@ -29,5 +29,6 @@ Suggests:
     rmarkdown,
     knitr,
     dplyr,
-    ggplot2
+    ggplot2,
+    tidyverse
 VignetteBuilder: knitr
