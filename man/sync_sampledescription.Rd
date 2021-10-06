@@ -14,7 +14,7 @@ sync_sampledescription(
 )
 }
 \arguments{
-\item{FCS.file.folder}{path to the root folder which contains FCS files}
+\item{FCS.file.folder}{path to the folder which contains FCS files}
 
 \item{xlsx.file.name}{name of the sampledescription file}
 
