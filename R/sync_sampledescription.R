@@ -203,10 +203,10 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
             openxlsx::saveWorkbook(log, file, overwrite = T)
         })
 
-        if (Sys.info()[["sysname"]] == "Windows") {
+'        if (Sys.info()[["sysname"]] == "Windows") {
             command <- paste0("attrib +h ", file)
             system(command)
-        }
+        }'
     }
 }
 
