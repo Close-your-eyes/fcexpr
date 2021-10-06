@@ -1,4 +1,4 @@
-#' Get the paths to fcs files within a group of a workspace
+#' Get the paths to fcs files from a group in a workspace
 #'
 #' @param ws character of path to flowjo workspaces
 #' @param gr character of group name to consider
@@ -21,11 +21,10 @@
 #' # pull out paths to fcs files of the first group
 #' paths <- fcs_paths_from_ws(ws[1], gr[1])
 #' }
-ws_get_fcs_paths <- function(ws, gr, FCS.file.folder) {
+ws_get_fcs_paths <- function(ws,
+                             gr,
+                             FCS.file.folder = file.path(getwd(), "FCS_files")) {
 
-    if (missing(FCS.file.folder)) {
-        FCS.file.folder <- file.path(getwd(), "FCS_files")
-    }
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))
     }

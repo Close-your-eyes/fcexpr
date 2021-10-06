@@ -8,7 +8,7 @@ ws_get_MFIs(
   ws,
   gr,
   population = NULL,
-  FCS.file.folder,
+  FCS.file.folder = file.path(getwd(), "FCS_files"),
   mean.fun = "median",
   variance.fun = "sd",
   inverse.transform = T
@@ -17,11 +17,11 @@ ws_get_MFIs(
 \arguments{
 \item{ws}{character vector of paths to flowjo workspaces}
 
-\item{gr}{character vector of flowjo groups to import or a list of those vectors, each for one ws}
+\item{gr}{character vector of flowjo groups to import or a list of those vectors, one for each ws}
 
 \item{population}{character vector of which populations to calculate values for; if omitted calculation is done for all population which increases computational time}
 
-\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
+\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed}
 
 \item{mean.fun}{character name of the function name to use to calculate the average FI}
 
@@ -44,11 +44,11 @@ the logicle transform.
 # get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # find workspaces
-ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
+ws <- list.files(wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # get groups
 gr <- lapply(ws, function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-})
+})[[1]]
 # read the compensated values from flowjo and calculate MFIs
 ws_get_MFIs(ws = ws, gr = gr)
 }

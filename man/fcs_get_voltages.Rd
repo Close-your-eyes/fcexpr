@@ -23,13 +23,13 @@ voltage of PMTs.
 get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # Find workspaces
-ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
+ws <- list.files(wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # Get groups from the first ws
-gr <- lapply(ws[[1]], function(x) {
+gr <- lapply(ws[1], function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-})
+})[[1]]
 # pull out paths to fcs files of the first group
-paths <- fcs_paths_from_ws(ws[[1]], gr[[1]])
+paths <- fcs_paths_from_ws(ws[1], gr[1])
 # iterate (loop) through the paths to get the voltage of each fcs file
 volts <- do.call(rbind, lapply(paths, function(x) {
 v <- voltage_from_fcs(x)

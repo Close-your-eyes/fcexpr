@@ -2,7 +2,7 @@
 % Please edit documentation in R/sync_sampledescription.R
 \name{sync_sampledescription}
 \alias{sync_sampledescription}
-\title{Have an excel file (sampledescription) created or modified to store meta data of FCS files in}
+\title{Synchronize an excel file (sampledescription.xlsx) with FCS files}
 \usage{
 sync_sampledescription(
   FCS.file.folder,
@@ -22,31 +22,32 @@ sync_sampledescription(
 
 \item{init.columns}{additional columns to add to the initial file}
 
-\item{write.log}{write a hidden log file to track back changes}
+\item{write.log}{write a hidden log file every time changes take place}
 }
 \value{
 No return value. Instead sampledescription.xlsx and FCS files are synced.
 }
 \description{
-Four cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
+Five cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
 in wd a xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
 When new FCS files are added to FCS.file.folder and the function is called
 they are added in order of acquisition to the xlsx-file. (iii) When file names
 in the FileName column of the xlsx-file are changed and the function is called
 the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
 are to be excluded or removed the entry in the FileName column has to be left
-blank and the function has to be called.
+blank and the function has to be called. (v) When the order of rows in the xlsx-file
+is changed FCS files will be re-numbered by the prefix.
 }
 \details{
-Attention: Close the xlsx-file before calling the function so the file can be edited.
-Never edit the 'identity' columns in the xlsx-file manually.
+The xlsx-file will always be written to the root of the FCS.file.folder.
+Preferentially, do not have the xlsx-files open in excel when calling the the function.
+Never edit the 'identity' column in the xlsx-file manually.
+Never mix up rows of FileName and identity.
+The identity column contain a concatenated string of the $FIL keyword, the number of events
+and the acquisition date time of the FCS file.
 }
 \examples{
 \dontrun{
-# When the script is saved to R_scripts in the experiment folder, this will
-write the path of the experiment folder into wd:
-wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-# If the sampledescription is to be initiated call
-sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"))
+sync_sampledescription(FCS.file.folder = file.path(wd, 'FCS_files'))
 }
 }

@@ -30,7 +30,13 @@
 #' # read the compensated values from flowjo and calculate MFIs
 #' ws_get_MFIs(ws = ws, gr = gr)
 #' }
-ws_get_MFIs <- function(ws, gr, population = NULL, FCS.file.folder, mean.fun = "median", variance.fun = "sd", inverse.transform = T) {
+ws_get_MFIs <- function(ws,
+                        gr,
+                        population = NULL,
+                        FCS.file.folder = file.path(getwd(), "FCS_files"),
+                        mean.fun = "median",
+                        variance.fun = "sd",
+                        inverse.transform = T) {
 
     if (missing(ws) || class(ws) != "character") {
         stop("Please provide a vector of paths to flowjo workspaces.")
@@ -43,19 +49,16 @@ ws_get_MFIs <- function(ws, gr, population = NULL, FCS.file.folder, mean.fun = "
     }
     if (class(gr) == "character") {
         gr <- rep(list(gr), length(ws))
-    }
-    if (class(gr) == "list" && length(gr) == 1) {
+    } else if (class(gr) == "list" && length(gr) == 1) {
         gr <- rep(gr, length(ws))
     }
-    if (class(population) == "list" && length(population) != length(ws)) {
-        stop("list of population has to have the same length as ws. Alternatively, pass a vector to use for all workspace.")
+    if (class(population) == "list" && (length(population) != 1 & length(population) != length(ws))) {
+        stop("list of population has to have the same length as ws.")
     }
     if (class(population) == "character") {
         population <- rep(list(population), length(ws))
-    }
-
-    if (missing(FCS.file.folder)) {
-        FCS.file.folder <- file.path(getwd(), "FCS_files")
+    } else if (class(population) == "list" && length(population) == 1) {
+        population <- rep(population, length(ws))
     }
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))
@@ -63,7 +66,6 @@ ws_get_MFIs <- function(ws, gr, population = NULL, FCS.file.folder, mean.fun = "
 
     mean.fun.fun <- match.fun(mean.fun)
     variance.fun.fun <- match.fun(variance.fun)
-
 
     MFI.table <- do.call(rbind, lapply(seq_along(ws), function(x) {
         wsp <- CytoML::open_flowjo_xml(ws[x])

@@ -25,5 +25,5 @@ geo_mean <- function(x, rm.na = F) {
         print("NAs are removed.")
         x <- x[which(!is.na(x))]
     }
-    exp(mean(log(x)))
+    return(exp(mean(log(x))))
 }

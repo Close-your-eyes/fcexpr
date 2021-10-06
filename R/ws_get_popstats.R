@@ -8,7 +8,7 @@
 #'
 #'
 #' @param ws character vector of paths to flowjo workspaces
-#' @param gr character vector of flowjo groups to import or a list of those vectors, one for each
+#' @param gr character vector of flowjo groups to import or a list of those vectors, one for each ws
 #' @param FCS.file.folder path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed
 #' @param groupwise logical indicating if samples are to be imported groupwise or one by one
 #'
@@ -29,7 +29,10 @@
 #' # import the population counts:
 #' ws_get_popstats(ws = ws, gr = gr)
 #' }
-ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
+ws_get_popstats <- function(ws,
+                            gr,
+                            FCS.file.folder = file.path(getwd(), "FCS_files"),
+                            groupwise = T) {
 
     if (missing(ws) || class(ws) != "character") {
         stop("Please provide a vector of paths to flowjo workspaces.")
@@ -42,12 +45,8 @@ ws_get_popstats <- function(ws, gr, FCS.file.folder, groupwise = T) {
     }
     if (class(gr) == "character") {
         gr <- rep(list(gr), length(ws))
-    }
-    if (class(gr) == "list" && length(gr) == 1) {
+    } else if (class(gr) == "list" && length(gr) == 1) {
         gr <- rep(gr, length(ws))
-    }
-    if (missing(FCS.file.folder)) {
-        FCS.file.folder <- file.path(getwd(), "FCS_files")
     }
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))

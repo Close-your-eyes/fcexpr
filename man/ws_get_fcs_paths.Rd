@@ -2,22 +2,22 @@
 % Please edit documentation in R/ws_get_fcs_paths.R
 \name{ws_get_fcs_paths}
 \alias{ws_get_fcs_paths}
-\title{Get the paths to fcs files within a group of a workspace}
+\title{Get the paths to fcs files from a group in a workspace}
 \usage{
-ws_get_fcs_paths(ws, gr, FCS.file.folder)
+ws_get_fcs_paths(ws, gr, FCS.file.folder = file.path(getwd(), "FCS_files"))
 }
 \arguments{
 \item{ws}{character of path to flowjo workspaces}
 
 \item{gr}{character of group name to consider}
 
-\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
+\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed}
 }
 \value{
 character vector of absolute paths to fcs files
 }
 \description{
-Get the paths to fcs files within a group of a workspace
+Get the paths to fcs files from a group in a workspace
 }
 \examples{
 \dontrun{
@@ -25,12 +25,12 @@ Get the paths to fcs files within a group of a workspace
 # get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # find workspaces
-ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
+ws <- list.files(wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # get groups from the first ws
 gr <- lapply(ws[1], function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-})
+})[[1]]
 # pull out paths to fcs files of the first group
-paths <- fcs_paths_from_ws(ws[1], gr[[1]])
+paths <- fcs_paths_from_ws(ws[1], gr[1])
 }
 }

@@ -41,6 +41,14 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
 
     # initiate
     if (!file.exists(file.path(wd, xlsx.file.name))) {
+        lapply(list.files(wd, "\\.xlsx$", full.names = T), function(x) {
+            if(all(c("FileName", "identity") %in% names(openxlsx::read.xlsx(x, rows = c(1,2))))) {
+                choice <- utils::menu(c("Yes", "No"), title = paste0("Another putative sampledescription file was found in the parent folder of FCS.file.folder: ", basename(x), ". Do you want to continue initiating another file (type 1)? If not change the xlsx.file.name argument to ", basename(x), " and type 2."))
+                if (choice == 2) {
+                    return(NULL)
+                }
+            }
+        })
         fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S", locale = "en_GB.UTF-8"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = FALSE)
         sd[, init.columns] <- ""

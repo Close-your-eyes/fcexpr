@@ -4,14 +4,19 @@
 \alias{ws_get_popstats}
 \title{Convenient function to import population counts from one or more flowjo workspaces}
 \usage{
-ws_get_popstats(ws, gr, FCS.file.folder, groupwise = T)
+ws_get_popstats(
+  ws,
+  gr,
+  FCS.file.folder = file.path(getwd(), "FCS_files"),
+  groupwise = T
+)
 }
 \arguments{
 \item{ws}{character vector of paths to flowjo workspaces}
 
-\item{gr}{character vector of flowjo groups to import or a list of those vectors, each for one ws}
+\item{gr}{character vector of flowjo groups to import or a list of those vectors, one for each ws}
 
-\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), "FCS_files") is assumed}
+\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed}
 
 \item{groupwise}{logical indicating if samples are to be imported groupwise or one by one}
 }
@@ -31,11 +36,11 @@ increases computational time to import a bit as samples are imported one by one.
 # get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # find workspaces
-ws <- list.files(wd, pattern = "\\\\.wsp$", recursive = T, full.names = T)
+ws <- list.files(wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # get groups
 gr <- lapply(ws, function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-})
+})[[1]]
 # import the population counts:
 ws_get_popstats(ws = ws, gr = gr)
 }
