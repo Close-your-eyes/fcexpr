@@ -37,6 +37,7 @@ fcexpr::new_exp(path = dir, name = "my_experiment")
 A respective folder appears in "path". It is prefixed with todays date as date_prefix = TRUE by default in fcexpr::new_exp (see ?fcexpr::new_exp). It has a default structure and contains a few template folders and files.
 ```{r}
 wd <- file.path(dir, paste0(base::gsub("-", "", base::Sys.Date()), "_my_experiment"))
+print(wd)
 list.files(wd)
 list.files(wd, recursive = T)
 ```
@@ -49,7 +50,7 @@ utils::untar(base::system.file("extdata", "Part_1.tgz", package = "fcexpr"), exd
 list.files(file.path(wd, "FCS_files", "Part_1"))
 ```
 
-To initiate an xlsx-file that allows to document meta data of the FCS files we call the sync_sampledescription function. The xlsx-file will always be written to the root-folder of the FCS.file.folder-path. So here that is '/Users/vonskopnik/Documents/experiments/20211004_my_experiment'.
+To initiate an xlsx-file that allows to document meta data of the FCS files we call the sync_sampledescription function. The xlsx-file will always be written to the parent folder of FCS.file.folder.
 ```{r}
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), init.columns = c())
 ```
