@@ -29,4 +29,6 @@ devtools::install_github("Close-your-eyes/fcexpr")
 
 ## Vignettes
 
-Please see vignette(s) for workflows:
+Please see vignette(s) for workflows:  
+[synchronize FCS files and
+sampledescription](https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html)
