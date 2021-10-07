@@ -6,7 +6,7 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-A set functions to organize and analyze flow cytometry experiments.
+A set of functions to organize and analyze flow cytometry experiments.
 
 ## Installation
 
@@ -20,14 +20,14 @@ BiocManager::install("CytoML")
 ```
 
 Please install the development version of fcexpr from GitHub. This
-requires devtools to be insalled first.
+requires devtools to be installed first.
 
 ``` r
 install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 ```
 
-## Vignettes
+## Vignettes (tutorials)
 
 Please see vignette(s) for workflows:  
 [synchronize FCS files and
