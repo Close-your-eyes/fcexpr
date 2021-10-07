@@ -49,7 +49,7 @@ list.files(wd, recursive = T)
 knitr::kable(head(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")), 10))
 ```
 
-When we run an R-script saved to the R_script folder we can have the folders directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
+When we run an R-script which is saved in the R_script folder we can have our directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
 ```{r}
 # wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 ```
@@ -65,6 +65,7 @@ gr <- unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xm
 gr
 # as we dont want the All Samples group we can remove it from gr
 gr <- gr[-1]
+gr
 ```
 
 The gating for GFP positive events is straight forward.
@@ -79,7 +80,7 @@ ps.raw <- fcexpr::ws_get_popstats(ws = ws, gr = gr, FCS.file.folder = file.path(
 knitr::kable(head(ps.raw, 10))
 ```
 
-Then we want to join these counts with the meta data which are documented excellently in the sampledescription.xlsx. For that we use a function from the dplyr package. As we have synchronized the FCS file names and the FileName column previously, we can use this column to match (join) the meta data and the counts from flowjo (~phenotype data).
+Then we want to join these counts with the meta data which are documented excellently in the sampledescription.xlsx. For that we use a function from the dplyr package. As we have previously synchronized the FCS file names and the FileName column in our sampledescription.xlsx, we can use this column to match (join) the meta data and the counts from flowjo (~phenotype data).
 ```{r}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 knitr::kable(head(sd, 10))
@@ -96,7 +97,7 @@ openxlsx::write.xlsx(ps, file.path(wd, "pop_counts.xlsx"))
 ```
 
 But actually we can continue to plot the data in R with ggplot2.
-We are most interested in GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.
+We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.
 ```{r}
 ps_sub <-
   ps %>%
@@ -131,11 +132,10 @@ ggplot(ps_sub, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = Fract
 ```
 
 
-Even though statistics are missing, we can assume that the seeding density is very distinctive in terms of GFP transduction rate. Low seeding density (~hihg seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup also increases the transduction rate as well as incubation time of viral sup and target cells (2 h < 24 h < 48 h). Using more FCS also has a little effect as it may increase proliferation rate and hence transduction rate.
+Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are altered due to the random sampling.
 
-
-Another relevant read-out are MFIs. Importing these takes a bit longer as the whole FCS files have to be read into memory (actually they are saved to a temporary folder on our hard disk by a function from CytoML). Selecting a population decreaes the computational time needed. If no population is provided MFIs for all will be returned. If we have a simple gating tree like in this case calling the population of interest "GFP+" is sufficient. Though, if we had two gating trees that end up in a "GFP+" gate, then we would have to specify the gate of interest unambiguously, something like that: preGate/DAPI-/GFP+.  
-If you don't want to type the population by hand, you can also pull the populations from the workspaces.
+Another relevant read-out are MFIs. Importing these takes a bit longer as the whole FCS files have to be read into memory (actually they are saved to a temporary folder on our hard disk by a function from CytoML). Selecting a population decreases the computational time needed. If no population is provided MFIs for all gated populations will be returned. If we have a simple gating tree like in this case calling the population of interest "GFP+" is sufficient. Though, if we had two gating trees that end up in a "GFP+" gate, then we would have to specify the gate of interest unambiguously, something like that: preGate/DAPI-/GFP+.  
+If you don't want to type or guess the appropriate population by hand, you can also pull the necessary strings (characters) from the workspaces.
 
 ```{r}
 wsp <- CytoML::open_flowjo_xml(ws)
@@ -166,7 +166,7 @@ ggplot(mfi, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = median))
   facet_grid(cols = vars(incubation.time.h), rows = vars(FCS.percent))
 ```
 
-
+There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.
 
 
 
