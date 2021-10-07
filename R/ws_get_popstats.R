@@ -21,11 +21,11 @@
 #' # get the absolute path to the folder
 #' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 #' # find workspaces
-#' ws <- list.files(wd, pattern = '\\.wsp$', recursive = T, full.names = T)
+#' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
 #' # get groups
 #' gr <- lapply(ws, function(x) {
 #' unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-#' })[[1]]
+#' })
 #' # import the population counts:
 #' ws_get_popstats(ws = ws, gr = gr)
 #' }
