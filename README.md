@@ -27,9 +27,17 @@ install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 ```
 
+If you want you can start by creating a default folder for your
+experiment:
+
+``` r
+fcecpr::new_exp(path = 'your system directory', name = 'your folder name')
+```
+
+Please see vignette(s) for further workflows:
+
 ## Vignettes (tutorials)
 
-Please see vignette(s) for workflows:  
 [synchronize FCS files and
 sampledescription](https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html)  
 [import data from flowjo

@@ -133,7 +133,7 @@ fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), wri
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, **but the only the FileName** from the xlsx-file.
+The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, **but only the FileName** from the xlsx-file.
 
 ```{r, echo=F,include=F}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))

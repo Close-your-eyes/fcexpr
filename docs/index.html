@@ -79,7 +79,7 @@
 <a href="#fcexpr" class="anchor"></a>fcexpr</h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>A set functions to organize and analyze flow cytometry experiments.</p>
+<p>A set of functions to organize and analyze flow cytometry experiments.</p>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
@@ -89,15 +89,19 @@
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowCore"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowWorkspace"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"CytoML"</span><span class="op">)</span></code></pre></div>
-<p>Please install the development version of fcexpr from GitHub. This requires devtools to be insalled first.</p>
+<p>Please install the development version of fcexpr from GitHub. This requires devtools to be installed first.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
 <span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
+<p>If you want you can start by creating a default folder for your experiment:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">fcecpr</span><span class="fu">::</span><span class="fu">new_exp</span><span class="op">(</span>path <span class="op">=</span> <span class="st">'your system directory'</span>, name <span class="op">=</span> <span class="st">'your folder name'</span><span class="op">)</span></code></pre></div>
+<p>Please see vignette(s) for further workflows:</p>
 </div>
-<div id="vignettes" class="section level2">
+<div id="vignettes-tutorials" class="section level2">
 <h2 class="hasAnchor">
-<a href="#vignettes" class="anchor"></a>Vignettes</h2>
-<p>Please see vignette(s) for workflows:<br><a href="https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html">synchronize FCS files and sampledescription</a><br><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html">import data from flowjo workspaces</a></p>
+<a href="#vignettes-tutorials" class="anchor"></a>Vignettes (tutorials)</h2>
+<p><a href="https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html">synchronize FCS files and sampledescription</a><br><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html">import data from flowjo workspaces</a></p>
 </div>
 </div>
   </div>

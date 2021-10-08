@@ -99,12 +99,12 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">dir</span> <span class="op">&lt;-</span> <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, package <span class="op">=</span> <span class="st">"fcexpr"</span><span class="op">)</span>
 <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">dir</span>, name <span class="op">=</span> <span class="st">"my_experiment"</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmpzzG2iu/temp_libpathfe06982ee6a/fcexpr/extdata/20211007_my_experiment created."</span></code></pre></div>
+<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmprTuZYf/temp_libpath6da37574455/fcexpr/extdata/20211008_my_experiment created."</span></code></pre></div>
 <p>A respective folder appears in “path”. It is prefixed with todays date as date_prefix = TRUE by default in fcexpr::new_exp (see ?fcexpr::new_exp). It has a default structure and contains a few template folders and files.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">wd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">""</span>, <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.Date</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="st">"_my_experiment"</span><span class="op">)</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">wd</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmpzzG2iu/temp_libpathfe06982ee6a/fcexpr/extdata/20211007_my_experiment"</span>
+<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmprTuZYf/temp_libpath6da37574455/fcexpr/extdata/20211008_my_experiment"</span>
 <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">wd</span><span class="op">)</span>
 <span class="co">#&gt; [1] "FCS_files"     "FJ_workspaces" "Protocols"    </span>
 <span class="co">#&gt; [4] "R_scripts"     "Results"</span>
@@ -681,7 +681,7 @@
 </tr>
 </tbody>
 </table>
-<p>The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, <strong>but the only the FileName</strong> from the xlsx-file.</p>
+<p>The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, <strong>but only the FileName</strong> from the xlsx-file.</p>
 <table class="table">
 <colgroup>
 <col width="29%">
@@ -821,9 +821,9 @@
 </table>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/sync_sampledescription.html">sync_sampledescription</a></span><span class="op">(</span>FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, write.log <span class="op">=</span> <span class="cn">F</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmpzzG2iu/temp_libpathfe06982ee6a/fcexpr/extdata/20211007_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
-<span class="co">#&gt; [2] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmpzzG2iu/temp_libpathfe06982ee6a/fcexpr/extdata/20211007_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
-<span class="co">#&gt; [3] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmpzzG2iu/temp_libpathfe06982ee6a/fcexpr/extdata/20211007_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
+<span class="co">#&gt; [1] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmprTuZYf/temp_libpath6da37574455/fcexpr/extdata/20211008_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
+<span class="co">#&gt; [2] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmprTuZYf/temp_libpath6da37574455/fcexpr/extdata/20211008_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
+<span class="co">#&gt; [3] "/private/var/folders/dd/vc7zwd_541xc0tvg6srjjv400000gp/T/RtmprTuZYf/temp_libpath6da37574455/fcexpr/extdata/20211008_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
 <span class="co">#&gt; [1] "FCS files moved to deleted_FCS_files and sampledescription.xlsx updated."</span>
 <span class="co">#&gt;                               FileName</span>
 <span class="co">#&gt; 1 0012_-_Specimen_001_Tube_003_003.fcs</span>

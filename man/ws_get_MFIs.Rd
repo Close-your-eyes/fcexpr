@@ -44,12 +44,12 @@ the logicle transform.
 # get the absolute path to the folder
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # find workspaces
-ws <- list.files(wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
+ws <- list.files(path = wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # get groups
 gr <- lapply(ws, function(x) {
 unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(x))$groupName))
-})[[1]]
-# read the compensated values from flowjo and calculate MFIs
+})
+# read (compensated) values from flowjo and calculate MFIs
 ws_get_MFIs(ws = ws, gr = gr)
 }
 }
