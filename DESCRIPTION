@@ -24,11 +24,12 @@ Imports:
     stats,
     tidyr,
     utils,
-    rstudioapi
+    rstudioapi,
+    xml2,
+    dplyr
 Suggests: 
     rmarkdown,
     knitr,
-    dplyr,
     ggplot2,
     tidyverse
 VignetteBuilder: knitr
