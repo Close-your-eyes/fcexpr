@@ -24,10 +24,10 @@ wsx_get_popstats <- function(ws) {
   if (class(ws) != "character") {
     stop("Provide a path to wsp file.")
   }
-
   if (!file.exists(ws)) {
     stop("wsp file not found.")
   }
+
 
   samples <- wsp_xml_get_samples(ws)
   groups <- wsp_xml_get_groups(ws)
@@ -35,7 +35,9 @@ wsx_get_popstats <- function(ws) {
   s0 <- wsp_xml_get_roots(ws)
   fp <- gates_get_full_paths(s)
 
-  d <- do.call(rbind, lapply(1:xml_length(xml_child(f, "SampleList")), function(x) {
+  wsx <- xml2::read_xml(ws) #fix
+
+  d <- do.call(rbind, lapply(1:xml_length(xml_child(wsx, "SampleList")), function(x) {
     data.frame(FileName = samples[x, "FileName"],
                PopulationFullPath = fp[[x]][-1],
                xDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(f, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
@@ -78,11 +80,11 @@ wsp_xml_get_roots <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
   }
-  if (!any(class(f) == "xml_document")) {
+  if (!any(class(x) == "xml_document")) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
-  lapply(xml_children(xml2::xml_child(f, "SampleList")), function(x) {
-    xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))
+  lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    xml2::xml_attrs(xml2::xml_child(y, "SampleNode"))
   })
 }
 
@@ -90,11 +92,11 @@ wsp_xml_get_gates <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
   }
-  if (!any(class(f) == "xml_document")) {
+  if (!any(class(x) == "xml_document")) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
-  lapply(xml_children(xml2::xml_child(f, "SampleList")), function(x) {
-    xml2::xml_attrs(xml2::xml_find_all(x, ".//Population"))
+  lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
   })
 }
 
@@ -102,11 +104,11 @@ wsp_xml_get_samples <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
   }
-  if (!any(class(f) == "xml_document")) {
+  if (!any(class(x) == "xml_document")) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
-  s <- as.data.frame(t(sapply(xml_children(xml2::xml_child(x, "SampleList")), function(x) {
-    xml2::xml_attrs(xml2::xml_child(x, "DataSet"))
+  s <- as.data.frame(t(sapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    xml2::xml_attrs(xml2::xml_child(y, "DataSet"))
   })))
   names(s) <- c("FilePath", "sampleID")
   s$FilePath <- gsub("file:", "", s$FilePath)
@@ -118,14 +120,14 @@ wsp_xml_get_groups <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
   }
-  if (!any(class(f) == "xml_document")) {
+  if (!any(class(x) == "xml_document")) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
 
-  g <- sapply(xml_children(xml2::xml_child(f, "Groups")), function(y){
+  g <- sapply(xml2::xml_children(xml2::xml_child(f, "Groups")), function(y){
     xml2::xml_attrs(y)[["name"]]
   })
-  gs <- lapply(xml_children(xml2::xml_child(f, "Groups")), function(y) {
+  gs <- lapply(xml2::xml_children(xml2::xml_child(f, "Groups")), function(y) {
     unlist(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(xml2::xml_child(y, "Group"), "SampleRefs"))))
   })
   gr <- data.frame(group = rep(g, lengths(gs)),  sampleID = unlist(gs))
