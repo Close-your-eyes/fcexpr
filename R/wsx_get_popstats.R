@@ -35,13 +35,13 @@ wsx_get_popstats <- function(ws) {
   s0 <- wsp_xml_get_roots(ws)
   fp <- gates_get_full_paths(s)
 
-  wsx <- xml2::read_xml(ws) #fix
-
+  #fix (make cleverer)
+  wsx <- xml2::read_xml(ws)
   d <- do.call(rbind, lapply(1:xml_length(xml_child(wsx, "SampleList")), function(x) {
     data.frame(FileName = samples[x, "FileName"],
                PopulationFullPath = fp[[x]][-1],
-               xDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(f, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
-               yDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(f, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))})
+               xDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
+               yDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))})
     )
   }))
 
@@ -88,7 +88,7 @@ wsp_xml_get_roots <- function(x) {
   })
 }
 
-wsp_xml_get_gates <- function(x) {
+'wsp_xml_get_gates <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
   }
@@ -98,7 +98,52 @@ wsp_xml_get_gates <- function(x) {
   lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
     xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
   })
+}'
+
+wsp_xml_get_gates <- function(x) {
+  if (is.character(x)) {
+    x <- xml2::read_xml(x)
+  }
+  if (!any(class(x) == "xml_document")) {
+    stop("x must be a xml-document or a character path to its location on disk")
+  }
+
+  s <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    b <- xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
+    fp <- lapply(xml2::xml_find_all(y, ".//Population"), function(z) {
+      par <- unlist(lapply(xml2::xml_parents(z), function(a) {
+        if (all(c("name","annotation","owningGroup","expanded","sortPriority","count") %in% names(xml2::xml_attrs(a)) && !"sampleID" %in% names(xml2::xml_attrs(a)))) {
+          return(xml2::xml_attr(a, "name"))
+        } else {
+          return(NA)
+        }
+      }))
+      return(paste(rev(par[which(!is.na(par))]), collapse = "/"))
+    })
+
+    for (i in seq_along(b)) {
+      b[[i]] <- c(b[[i]], "parents" = fp[[i]])
+      b[[i]] <- c(b[[i]], "PopulationFullPath" = gsub("^/", "", paste(c(b[[i]]["parents"], b[[i]]["name"]), collapse = "/")))
+    }
+    return(b)
+  })
+
+
+  id <- lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    xml2::xml_attrs(xml2::xml_find_all(y, ".//Gate"))
+  })
+
+  out <- lapply(1:length(s), function(x) {
+    data.frame(PopulationFullPath = sapply(s[[x]], "[", "PopulationFullPath"),
+               Population = sapply(s[[x]], "[", "name"),
+               count = sapply(s[[x]], "[", "count"),
+               gate_id = sapply(id[[x]], "[", "id"),
+               parentgate_id = sapply(id[[x]], "[", "parent_id"))
+  })
+
+  return(out)
 }
+
 
 wsp_xml_get_samples <- function(x) {
   if (is.character(x)) {
@@ -124,10 +169,10 @@ wsp_xml_get_groups <- function(x) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
 
-  g <- sapply(xml2::xml_children(xml2::xml_child(f, "Groups")), function(y){
+  g <- sapply(xml2::xml_children(xml2::xml_child(x, "Groups")), function(y){
     xml2::xml_attrs(y)[["name"]]
   })
-  gs <- lapply(xml2::xml_children(xml2::xml_child(f, "Groups")), function(y) {
+  gs <- lapply(xml2::xml_children(xml2::xml_child(x, "Groups")), function(y) {
     unlist(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(xml2::xml_child(y, "Group"), "SampleRefs"))))
   })
   gr <- data.frame(group = rep(g, lengths(gs)),  sampleID = unlist(gs))
