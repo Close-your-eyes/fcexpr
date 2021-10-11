@@ -28,31 +28,20 @@ wsx_get_popstats <- function(ws) {
     stop("wsp file not found.")
   }
 
-###fixs
   samples <- wsp_xml_get_samples(ws)
   groups <- wsp_xml_get_groups(ws)
-  s <- wsp_xml_get_gates(ws)
-  s0 <- wsp_xml_get_roots(ws)
+  gates <- wsp_xml_get_gates(ws)
 
-  #fix (make cleverer)
-  wsx <- xml2::read_xml(ws)
-  d <- do.call(rbind, lapply(1:xml_length(xml_child(wsx, "SampleList")), function(x) {
-    data.frame(FileName = samples[x, "FileName"],
-               PopulationFullPath = s[[x]]$PopulationFullPath,
-               xDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
-               yDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))})
-    )
-  }))
-
+  ##fix
   table <- do.call(rbind, lapply(1:length(s), function(x) {
 
     data.frame(FileName = unname(s0[[x]]["name"]),
-               PopulationFullPath = c("root", s[[x]]$PopulationFullPath),
-               Parent = stats::lag(s[[x]]$PopulationFullPath, k=1),
-               Population = unname(shortest_unique_path(s[[x]]$PopulationFullPath)),
-               count = as.numeric(unname(c(s0[[x]]["count"], s[[x]]$count))),
-               ParentCount = as.numeric(stats::lag(unname(c(s0[[x]]["count"], s[[x]]$count)), k=1)),
-               FractionOfParent = as.numeric(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count"))))/as.numeric(stats::lag(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count"))), k=1)),
+               PopulationFullPath = c("root", gates[[x]]$PopulationFullPath),
+               Parent = stats::lag(gates[[x]]$PopulationFullPath, k=1),
+               Population = unname(shortest_unique_path(gates[[x]]$PopulationFullPath)),
+               count = as.numeric(unname(c(s0[[x]]["count"], gates[[x]]$count))),
+               ParentCount = as.numeric(stats::lag(unname(c(s0[[x]]["count"], gates[[x]]$count)), k=1)),
+               FractionOfParent = as.numeric(unname(c(s0[[x]]["count"], sapply(gates[[x]], "[", "count"))))/as.numeric(stats::lag(unname(c(s0[[x]]["count"], sapply(gates[[x]], "[", "count"))), k=1)),
                sampleID = unname(s0[[x]]["sampleID"]))
   }))
   table <- merge(table, groups, by = "sampleID")
@@ -77,17 +66,6 @@ wsp_xml_get_roots <- function(x) {
   })
 }
 
-'wsp_xml_get_gates <- function(x) {
-  if (is.character(x)) {
-    x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-  lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
-  })
-}'
 
 wsp_xml_get_gates <- function(x) {
   if (is.character(x)) {
@@ -97,37 +75,48 @@ wsp_xml_get_gates <- function(x) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
 
+  s0 <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+    xml_attrs(xml_child(y, "SampleNode"))
+  })
+
   s <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
     b <- xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
-    fp <- lapply(xml2::xml_find_all(y, ".//Population"), function(z) {
+    fp <- unlist(lapply(xml2::xml_find_all(y, ".//Population"), function(z) {
       par <- unlist(lapply(xml2::xml_parents(z), function(a) {
-        if (all(c("name","annotation","owningGroup","expanded","sortPriority","count") %in% names(xml2::xml_attrs(a)) && !"sampleID" %in% names(xml2::xml_attrs(a)))) {
-          return(xml2::xml_attr(a, "name"))
-        } else {
-          return(NA)
-        }
+        return(xml2::xml_attr(a, "name"))
       }))
       return(paste(rev(par[which(!is.na(par))]), collapse = "/"))
-    })
+    }))
+    fp <- gsub(fp[1], "root", fp)
 
     for (i in seq_along(b)) {
-      b[[i]] <- c(b[[i]], "parents" = fp[[i]])
+      b[[i]] <- c(b[[i]], "parents" = fp[i])
       b[[i]] <- c(b[[i]], "PopulationFullPath" = gsub("^/", "", paste(c(b[[i]]["parents"], b[[i]]["name"]), collapse = "/")))
     }
     return(b)
   })
 
 
-  id <- lapply(xml_children(xml2::xml_child(x, "SampleList")), function(y) {
+  id <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
     xml2::xml_attrs(xml2::xml_find_all(y, ".//Gate"))
   })
 
-  out <- lapply(1:length(s), function(x) {
-    data.frame(PopulationFullPath = sapply(s[[x]], "[", "PopulationFullPath"),
-               Population = sapply(s[[x]], "[", "name"),
-               count = sapply(s[[x]], "[", "count"),
-               gate_id = sapply(id[[x]], "[", "id"),
-               parentgate_id = sapply(id[[x]], "[", "parent_id"))
+  dims <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(z) {
+    list(xDim = sapply(xml2::xml_find_all(z, ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
+         yDim = sapply(xml2::xml_find_all(z, ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))}))
+  })
+
+  out <- lapply(seq_along(s), function(y) {
+    r <- data.frame(PopulationFullPath = unname(c("root", gsub("root/", "", sapply(s[[y]], "[", "PopulationFullPath")))),
+                    Population = unname(c("root", sapply(s[[y]], "[", "name"))),
+                    Count = as.numeric(unname(c(s0[[y]][["count"]], sapply(s[[y]], "[", "count")))),
+                    gate_id = c("root", sapply(id[[y]], "[", "id")),
+                    parentgate_id = c(NA, "root", sapply(id[[y]], "[", "parent_id")[-1]),
+                    xDim = c(NA, dims[[y]][["xDim"]]),
+                    yDim = c(NA, dims[[y]][["yDim"]]))
+    rr <- dplyr::left_join(r, setNames(r[,c(3,4)], c("ParentCount", "gate_id")), by = c("parentgate_id"="gate_id"))
+    rr <- dplyr::left_join(r, setNames(r[,c(1,4)], c("Parent", "gate_id")), by = c("parentgate_id"="gate_id"))
+    return(rr)
   })
 
   return(out)
