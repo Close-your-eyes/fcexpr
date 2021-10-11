@@ -28,18 +28,17 @@ wsx_get_popstats <- function(ws) {
     stop("wsp file not found.")
   }
 
-
+###fixs
   samples <- wsp_xml_get_samples(ws)
   groups <- wsp_xml_get_groups(ws)
   s <- wsp_xml_get_gates(ws)
   s0 <- wsp_xml_get_roots(ws)
-  fp <- gates_get_full_paths(s)
 
   #fix (make cleverer)
   wsx <- xml2::read_xml(ws)
   d <- do.call(rbind, lapply(1:xml_length(xml_child(wsx, "SampleList")), function(x) {
     data.frame(FileName = samples[x, "FileName"],
-               PopulationFullPath = fp[[x]][-1],
+               PopulationFullPath = s[[x]]$PopulationFullPath,
                xDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
                yDim = sapply(xml2::xml_find_all(xml2::xml_child(xml2::xml_child(wsx, "SampleList"), x), ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))})
     )
@@ -48,11 +47,11 @@ wsx_get_popstats <- function(ws) {
   table <- do.call(rbind, lapply(1:length(s), function(x) {
 
     data.frame(FileName = unname(s0[[x]]["name"]),
-               PopulationFullPath = fp[[x]],
-               Parent = stats::lag(fp[[x]], k=1),
-               Population = unname(shortest_unique_path(fp[[x]])),
-               count = as.numeric(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count")))),
-               ParentCount = as.numeric(stats::lag(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count"))), k=1)),
+               PopulationFullPath = c("root", s[[x]]$PopulationFullPath),
+               Parent = stats::lag(s[[x]]$PopulationFullPath, k=1),
+               Population = unname(shortest_unique_path(s[[x]]$PopulationFullPath)),
+               count = as.numeric(unname(c(s0[[x]]["count"], s[[x]]$count))),
+               ParentCount = as.numeric(stats::lag(unname(c(s0[[x]]["count"], s[[x]]$count)), k=1)),
                FractionOfParent = as.numeric(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count"))))/as.numeric(stats::lag(unname(c(s0[[x]]["count"], sapply(s[[x]], "[", "count"))), k=1)),
                sampleID = unname(s0[[x]]["sampleID"]))
   }))
@@ -65,16 +64,6 @@ wsx_get_popstats <- function(ws) {
   return(table)
 }
 
-
-gates_get_full_paths <- function(s) {
-  # s = wsp_xml_get_gates(ws)
-  lapply(s, function(x) {
-    rec <- sapply(x, "[", 1)
-    c("root", sapply(seq_along(rec), function(y) {
-      paste(rec[1:y], collapse = "/")
-    }))
-  })
-}
 
 wsp_xml_get_roots <- function(x) {
   if (is.character(x)) {
