@@ -33,30 +33,31 @@ wsx_get_popstats <- function(ws) {
 
   ## check FJ version
 
-  gg <- xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate")
+  gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate")
   gates <- lapply(gg, function(g) {
 
-    prnts <- xml_parents(g)
+    prnts <- xml2::xml_parents(g)
 
-    s_node <- xml_child(prnts[which(xml_name(prnts) == "Sample")], "DataSet")[[1]]
-    sampleID <- xml_attr(s_node, "sampleID")
-    FilePath <- xml_attr(s_node, "uri")
+    s_node <- xml2::xml_child(prnts[which(xml2::xml_name(prnts) == "Sample")], "DataSet")[[1]]
+    sampleID <- xml2::xml_attr(s_node, "sampleID")
+    FilePath <- xml2::xml_attr(s_node, "uri")
     FileName <- basename(FilePath)
 
-    p_nodes <- prnts[which(xml_name(prnts) == "Population")]
-    PopulationFullPath <- paste(rev(xml_attr(p_nodes, "name")), collapse = "/")
+    #p_nodes <- prnts[which(xml2::xml_name(prnts) == "Population")]
+    p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("NotNode", "Population"))]
+    PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
     Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {NA} else {dirname(PopulationFullPath)}
     Population <- basename(PopulationFullPath)
-    Count <- xml_attr(p_nodes[1], "count")
-    ParentCount <- if (length(p_nodes) > 1) {xml_attr(p_nodes[2], "count")} else {NA}
-    xDim <- xml_attr(xml_child(xml_child(xml_child(g), 1)), "name")
-    yDim <- xml_attr(xml_child(xml_child(xml_child(g), 2)), "name")
+    Count <- xml2::xml_attr(p_nodes[1], "count")
+    ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {NA}
+    xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 1)), "name")
+    yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 2)), "name")
     # handle different gatetpyes??
-    #xGateLim <- as.numeric(xml_attrs(xml_child(xml_child(g), 1)))
-    #yGateLim <- as.numeric(xml_attrs(xml_child(xml_child(g), 2)))
-    gate_id <- xml_attr(g, "id")
-    parentgate_id <- xml_attr(g, "parent_id")
-    eventsInside <- xml_attr(xml_child(g), "eventsInside")
+    #xGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 1)))
+    #yGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 2)))
+    gate_id <- xml2::xml_attr(g, "id")
+    parentgate_id <- xml2::xml_attr(g, "parent_id")
+    eventsInside <- xml2::xml_attr(xml2::xml_child(g), "eventsInside")
 
     return(data.frame(FileName = FileName,
                       PopulationFullPath = PopulationFullPath,
@@ -85,7 +86,7 @@ wsx_get_popstats <- function(ws) {
   gates_out <- do.call(rbind, gates_list)
 
   gates_out <- dplyr::left_join(gates_out, wsp_xml_get_groups(ws), by = "sampleID")
-  gates_out[,"ws"] <- basename(xml_attr(ws, "nonAutoSaveFileName"))
+  gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   return(gates_out)
 }
 
