@@ -21,135 +21,72 @@
 #' }
 wsx_get_popstats <- function(ws) {
 
-  if (class(ws) != "character") {
-    stop("Provide a path to wsp file.")
-  }
-  if (!file.exists(ws)) {
-    stop("wsp file not found.")
-  }
-
-  samples <- wsp_xml_get_samples(ws)
-  groups <- wsp_xml_get_groups(ws)
-  gates <- wsp_xml_get_gates(ws)
-
-
-  table <- dplyr::left_join(samples, groups, by = "sampleID")
-  table <- dplyr::left_join(table, do.call(rbind,gates), by = "FileName")
-  table <- table[,which(names(table) != "sampleID")]
-  table <- table[,which(names(table) != "gate_id")]
-  table <- table[,which(names(table) != "parentgate_id")]
-  table[,"FractionOfParent"] <- table[,"Count"]/table[,"ParentCount"]
-  table[,"ws"] <- basename(ws)
-  table <- table[,c(which(names(table) == "FileName"),
-                    which(names(table) == "PopulationFullPath"),
-                    which(names(table) == "Parent"),
-                    which(names(table) == "Population"),
-                    which(names(table) == "Count"),
-                    which(names(table) == "ParentCount"),
-                    which(names(table) == "FractionOfParent"),
-                    which(names(table) == "xDim"),
-                    which(names(table) == "yDim"),
-                    which(names(table) == "group"),
-                    which(names(table) == "ws"),
-                    which(names(table) == "FilePath"))]
-  table <- table[order(table$FileName),]
-
-  return(table)
-}
-
-
-wsp_xml_get_roots <- function(x) {
-  if (is.character(x)) {
-    x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-  lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    xml2::xml_attrs(xml2::xml_child(y, "SampleNode"))
-  })
-}
-
-
-
-g <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-  xml2::xml_find_all(y, ".//Gate")
-})
-
-xml_name(p1[[4]])
-xml_name(p1)
-xml_attrs(p1[[4]])
-p1 <- xml_parents(g[[80]][1])
-t1 <- g[[80]][1]
-t2 <- g[[80]][12]
-
-gg <- xml_find_all(xml2::xml_child(x, "SampleList"), ".//Gate")
-xml_parents(gg[1])
-
-
-
-wsp_xml_get_gates <- function(x) {
-  if (is.character(x)) {
-    x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-
-  s0 <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    xml2::xml_attrs(xml2::xml_child(y, "SampleNode"))
-  })
-
-
-  s <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    b <- xml2::xml_attrs(xml2::xml_find_all(y, ".//Population"))
-    fp <- unlist(lapply(xml2::xml_find_all(y, ".//Population"), function(z) {
-      par <- unlist(lapply(xml2::xml_parents(z), function(a) {
-        return(xml2::xml_attr(a, "name"))
-      }))
-      return(paste(rev(par[which(!is.na(par))]), collapse = "/"))
-    }))
-    fp <- gsub(fp[1], "root", fp)
-
-    for (i in seq_along(b)) {
-      b[[i]] <- c(b[[i]], "parents" = fp[i])
-      b[[i]] <- c(b[[i]], "PopulationFullPath" = gsub("^/", "", paste(c(b[[i]]["parents"], b[[i]]["name"]), collapse = "/")))
+  if (is.character(ws)) {
+    if (!file.exists(ws)) {
+      stop("wsp file not found.")
     }
-    return(b)
-  })
-
-
-  id <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    xml2::xml_attrs(xml2::xml_find_all(y, ".//Gate"))
-  })
-
-  dims <- lapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(z) {
-    list(xDim = sapply(xml2::xml_find_all(z, ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 1), 1))}),
-         yDim = sapply(xml2::xml_find_all(z, ".//Gate"), function(y) {xml2::xml_attrs(xml2::xml_child(xml2::xml_child(xml2::xml_child(y), 2), 1))}))
-  })
-  browser()
-  out <- lapply(seq_along(s), function(y) {
-
-    r <- data.frame(FileName = s0[[y]][["name"]],
-                    PopulationFullPath = unname(c("root", gsub("root/", "", sapply(s[[y]], "[", "PopulationFullPath")))),
-                    Population = unname(c("root", sapply(s[[y]], "[", "name"))),
-                    Count = as.numeric(unname(c(s0[[y]][["count"]], sapply(s[[y]], "[", "count")))),
-                    gate_id = c("root", sapply(id[[y]], "[", "id")),
-                    parentgate_id = c(NA, "root", sapply(id[[y]], "[", "parent_id")[which(!is.na(sapply(id[[y]], "[", "parent_id")))]),
-                    xDim = c(NA, dims[[y]][["xDim"]]),
-                    yDim = c(NA, dims[[y]][["yDim"]]))
-    rr <- dplyr::left_join(r, setNames(r[,c(which(names(r) == "Count"),which(names(r) == "gate_id"))], c("ParentCount", "gate_id")), by = c("parentgate_id"="gate_id"))
-    rr <- dplyr::left_join(rr, setNames(r[,c(which(names(r) == "PopulationFullPath"),which(names(r) == "gate_id"))], c("Parent", "gate_id")), by = c("parentgate_id"="gate_id"))
-    return(rr)
-  })
-
-  full.paths <- unique(sapply(out, "[", "PopulationFullPath"))
-  auto.paths <- lapply(full.paths, function(x) shortest_unique_path(x))
-  for (x in seq_along(out)) {
-    out[[x]][["Population"]] <- auto.paths[[which(sapply(full.paths, function(y) identical(y, out[[x]][["PopulationFullPath"]])))]]
+    ws <- xml2::read_xml(ws)
+  }
+  if (!any(class(ws) == "xml_document")) {
+    stop("x must be a xml-document or a character path to its location on disk")
   }
 
-  return(out)
+  ## check FJ version
+
+  gg <- xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate")
+  gates <- lapply(gg, function(g) {
+
+    prnts <- xml_parents(g)
+
+    s_node <- xml_child(prnts[which(xml_name(prnts) == "Sample")], "DataSet")[[1]]
+    sampleID <- xml_attr(s_node, "sampleID")
+    FilePath <- xml_attr(s_node, "uri")
+    FileName <- basename(FilePath)
+
+    p_nodes <- prnts[which(xml_name(prnts) == "Population")]
+    PopulationFullPath <- paste(rev(xml_attr(p_nodes, "name")), collapse = "/")
+    Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {NA} else {dirname(PopulationFullPath)}
+    Population <- basename(PopulationFullPath)
+    Count <- xml_attr(p_nodes[1], "count")
+    ParentCount <- if (length(p_nodes) > 1) {xml_attr(p_nodes[2], "count")} else {NA}
+    xDim <- xml_attr(xml_child(xml_child(xml_child(g), 1)), "name")
+    yDim <- xml_attr(xml_child(xml_child(xml_child(g), 2)), "name")
+    # handle different gatetpyes??
+    #xGateLim <- as.numeric(xml_attrs(xml_child(xml_child(g), 1)))
+    #yGateLim <- as.numeric(xml_attrs(xml_child(xml_child(g), 2)))
+    gate_id <- xml_attr(g, "id")
+    parentgate_id <- xml_attr(g, "parent_id")
+    eventsInside <- xml_attr(xml_child(g), "eventsInside")
+
+    return(data.frame(FileName = FileName,
+                      PopulationFullPath = PopulationFullPath,
+                      Parent = Parent,
+                      Population = Population,
+                      Count = Count,
+                      ParentCount = ParentCount,
+                      xDim = xDim,
+                      yDim = yDim,
+                      gate_id = gate_id,
+                      parentgate_id = parentgate_id,
+                      eventsInside = eventsInside,
+                      sampleID = sampleID,
+                      FilePath = FilePath)
+    )
+  })
+
+  gates_df <- do.call(rbind, gates)
+  gates_list <- split(gates_df, gates_df$sampleID)
+  full_paths <- unique(lapply(gates_list, function(y) y$PopulationFullPath))
+  auto_paths <- lapply(full_paths, function(x) shortest_unique_path(x))
+
+  for (y in seq_along(gates_list)) {
+    gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
+  }
+  gates_out <- do.call(rbind, gates_list)
+
+  gates_out <- dplyr::left_join(gates_out, wsp_xml_get_groups(ws), by = "sampleID")
+  gates_out[,"ws"] <- basename(xml_attr(ws, "nonAutoSaveFileName"))
+  return(gates_out)
 }
 
 
