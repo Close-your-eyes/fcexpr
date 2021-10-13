@@ -33,6 +33,13 @@ wsx_get_popstats <- function(ws) {
   }
 
   ## check FJ version
+  if (xml_attr(ws, "flowJoVersion") != "10.7.1") {
+    warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
+  }
+
+  ## get stats
+ ' stat <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Statistic")
+  prnts <- xml2::xml_parents(stat[n])'
 
 
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
@@ -54,9 +61,6 @@ wsx_get_popstats <- function(ws) {
     gate_level <- length(p_nodes)
 
     if (xml2::xml_name(gg[n]) == "Dependents") {
-      #ps_gate_node <- xml2::xml_child(xml2::xml_child(xml2::xml_child(prnts[which(xml2::xml_name(prnts) == "Subpopulations")][1], "Population"), "Gate"), 1)
-      #xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(ps_gate_node, 1), 1), "name")
-      #yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(ps_gate_node, 2), 1), "name")
       xDim <- NA
       yDim <- NA
     } else {
@@ -73,6 +77,7 @@ wsx_get_popstats <- function(ws) {
     # handle different gatetpyes??
     #xGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 1)))
     #yGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 2)))
+
     gate_id <- xml2::xml_attr(gg[n], "id")
     parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
     eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
@@ -89,7 +94,7 @@ wsx_get_popstats <- function(ws) {
                       parentgate_id = parentgate_id,
                       eventsInside = eventsInside,
                       sampleID = sampleID,
-                      FilePath = FilePath, ## fix, remove prefix
+                      FilePath = gsub("^file:", "", FilePath),
                       gate_level = gate_level,
                       origin = origin,
                       n = n)
@@ -109,7 +114,7 @@ wsx_get_popstats <- function(ws) {
                parentgate_id = NA,
                eventsInside = NA,
                sampleID = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "sampleID"),
-               FilePath = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri"), ## fix, remove prefix
+               FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                gate_level = 0,
                origin = "root",
                n = 0)
@@ -117,17 +122,22 @@ wsx_get_popstats <- function(ws) {
 
 
   gates_df <- do.call(rbind, gates)
-  gates_df <- rbind(gates_df, roots)
+  gates_df <- rbind(roots,gates_df)
   gates_list <- split(gates_df, gates_df$sampleID)
-
-  ## filter here for gate + dependents problem; seems like a workaround but which other solution?!
-  '    if (xml2::xml_name(prnts[1]) == "NotNode" && xml_name(gg[n]) == "Dependents") {
-      # special case of NotNode which appears as Gate AND and Dependents; so Dependents has to be filtered
-      return(NULL)
-    }'
+  # remove duplicate rows from gate+dependents
+  gates_list <- lapply(gates_list, function(y) {
+    ex <- Reduce(intersect, list(c(which(duplicated(y$PopulationFullPath)),
+                                   which(duplicated(y$PopulationFullPath, fromLast=T))),
+                                 which(y$origin == "Dependents")))
+    if (length(ex) > 0) {
+     y <- y[-ex,]
+    }
+    return(y)
+  })
 
   full_paths <- unique(lapply(gates_list, function(y) {
     if (length(unique(y$PopulationFullPath)) != length(y$PopulationFullPath)) {
+      browser()
       stop("PopulationFullPaths not unique which cannot or should not be. Check.")
     }
     y$PopulationFullPath
@@ -142,6 +152,7 @@ wsx_get_popstats <- function(ws) {
   gates_out <- dplyr::left_join(gates_out, wsp_xml_get_groups(ws), by = "sampleID")
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
+  rownames(gates_out) = seq(1,nrow(gates_out),1)
   return(gates_out)
 }
 
