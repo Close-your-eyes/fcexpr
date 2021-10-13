@@ -33,25 +33,33 @@ wsx_get_popstats <- function(ws) {
 
   ## check FJ version
 
-  gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate")
+
+  gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply(gg, function(g) {
 
     prnts <- xml2::xml_parents(g)
 
-    s_node <- xml2::xml_child(prnts[which(xml2::xml_name(prnts) == "Sample")], "DataSet")[[1]]
-    sampleID <- xml2::xml_attr(s_node, "sampleID")
-    FilePath <- xml2::xml_attr(s_node, "uri")
+    s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
+    sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
+    FilePath <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri")
     FileName <- basename(FilePath)
 
-    #p_nodes <- prnts[which(xml2::xml_name(prnts) == "Population")]
-    p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("NotNode", "Population"))]
+    p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
     PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
-    Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {NA} else {dirname(PopulationFullPath)}
+    Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {"root"} else {dirname(PopulationFullPath)}
     Population <- basename(PopulationFullPath)
     Count <- xml2::xml_attr(p_nodes[1], "count")
-    ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {NA}
-    xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 1)), "name")
-    yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 2)), "name")
+    ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {xml2::xml_attr(xml2::xml_child(s_node, "SampleNode"), "count")}
+    gate_level <- length(p_nodes)
+
+    if (xml_name(g) == "Dependents") {
+      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(p_nodes, 1), 1), "name")
+      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(p_nodes, 1), 2), "name")
+    } else {
+      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 1)), "name")
+      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 2)), "name")
+    }
+
     # handle different gatetpyes??
     #xGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 1)))
     #yGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 2)))
@@ -71,14 +79,38 @@ wsx_get_popstats <- function(ws) {
                       parentgate_id = parentgate_id,
                       eventsInside = eventsInside,
                       sampleID = sampleID,
-                      FilePath = FilePath)
+                      FilePath = FilePath,
+                      gate_level = gate_level)
     )
   })
 
   gates_df <- do.call(rbind, gates)
   gates_list <- split(gates_df, gates_df$sampleID)
+
+  for (y in seq_along(gates_list)) {
+    sl_node <- xml2::xml_child(xml2::xml_child(ws, "SampleList"), y)
+    root <- data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "uri")),
+                       PopulationFullPath = "root",
+                       Parent = NA,
+                       Population = "root",
+                       Count = xml2::xml_attr(xml2::xml_child(sl_node, "SampleNode"), "count"),
+                       ParentCount = NA,
+                       xDim = NA,
+                       yDim = NA,
+                       gate_id = NA,
+                       parentgate_id = NA,
+                       eventsInside = NA,
+                       sampleID = xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "sampleID"),
+                       FilePath = xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "uri"),
+                       gate_level = 0)
+    gates_list[[y]] <- rbind(root, gates_list[[y]])
+    if (length(unique(gates_list[[y]]$FileName)) > 1) {
+      stop("Wrong root attached to df in gate_list.")
+    }
+  }
+
   full_paths <- unique(lapply(gates_list, function(y) y$PopulationFullPath))
-  auto_paths <- lapply(full_paths, function(x) shortest_unique_path(x))
+  auto_paths <- lapply(full_paths, function(y) shortest_unique_path(y))
 
   for (y in seq_along(gates_list)) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
@@ -87,6 +119,7 @@ wsx_get_popstats <- function(ws) {
 
   gates_out <- dplyr::left_join(gates_out, wsp_xml_get_groups(ws), by = "sampleID")
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
+  gates_out <- gates_out[order(gates_out$FileName),]
   return(gates_out)
 }
 
