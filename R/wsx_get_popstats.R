@@ -21,6 +21,7 @@
 #' }
 wsx_get_popstats <- function(ws) {
 
+  ## graph in xml refers to the current (or last) channels looked at in FJ; not where the Gate is set
   if (is.character(ws)) {
     if (!file.exists(ws)) {
       stop("wsp file not found.")
@@ -35,9 +36,9 @@ wsx_get_popstats <- function(ws) {
 
 
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
-  gates <- lapply(gg, function(g) {
+  gates <- lapply(seq_along(gg), function(n) {
 
-    prnts <- xml2::xml_parents(g)
+    prnts <- xml2::xml_parents(gg[n])
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
@@ -52,20 +53,29 @@ wsx_get_popstats <- function(ws) {
     ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {xml2::xml_attr(xml2::xml_child(s_node, "SampleNode"), "count")}
     gate_level <- length(p_nodes)
 
-    if (xml_name(g) == "Dependents") {
-      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(p_nodes, 1), 1), "name")
-      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(p_nodes, 1), 2), "name")
+    if (xml2::xml_name(gg[n]) == "Dependents") {
+      #ps_gate_node <- xml2::xml_child(xml2::xml_child(xml2::xml_child(prnts[which(xml2::xml_name(prnts) == "Subpopulations")][1], "Population"), "Gate"), 1)
+      #xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(ps_gate_node, 1), 1), "name")
+      #yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(ps_gate_node, 2), 1), "name")
+      xDim <- NA
+      yDim <- NA
     } else {
-      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 1)), "name")
-      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(g), 2)), "name")
+      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
+      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
+    }
+
+    if (xml2::xml_name(gg[n]) == "Dependents") {
+      origin <- "Dependents"
+    } else {
+      origin <- "Gate"
     }
 
     # handle different gatetpyes??
     #xGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 1)))
     #yGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 2)))
-    gate_id <- xml2::xml_attr(g, "id")
-    parentgate_id <- xml2::xml_attr(g, "parent_id")
-    eventsInside <- xml2::xml_attr(xml2::xml_child(g), "eventsInside")
+    gate_id <- xml2::xml_attr(gg[n], "id")
+    parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
+    eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
 
     return(data.frame(FileName = FileName,
                       PopulationFullPath = PopulationFullPath,
@@ -79,37 +89,49 @@ wsx_get_popstats <- function(ws) {
                       parentgate_id = parentgate_id,
                       eventsInside = eventsInside,
                       sampleID = sampleID,
-                      FilePath = FilePath,
-                      gate_level = gate_level)
+                      FilePath = FilePath, ## fix, remove prefix
+                      gate_level = gate_level,
+                      origin = origin,
+                      n = n)
     )
   })
 
+  roots <- do.call(rbind, lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(y) {
+    data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
+               PopulationFullPath = "root",
+               Parent = NA,
+               Population = "root",
+               Count = xml2::xml_attr(xml2::xml_child(y, "SampleNode"), "count"),
+               ParentCount = NA,
+               xDim = NA,
+               yDim = NA,
+               gate_id = NA,
+               parentgate_id = NA,
+               eventsInside = NA,
+               sampleID = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "sampleID"),
+               FilePath = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri"), ## fix, remove prefix
+               gate_level = 0,
+               origin = "root",
+               n = 0)
+  }))
+
+
   gates_df <- do.call(rbind, gates)
+  gates_df <- rbind(gates_df, roots)
   gates_list <- split(gates_df, gates_df$sampleID)
 
-  for (y in seq_along(gates_list)) {
-    sl_node <- xml2::xml_child(xml2::xml_child(ws, "SampleList"), y)
-    root <- data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "uri")),
-                       PopulationFullPath = "root",
-                       Parent = NA,
-                       Population = "root",
-                       Count = xml2::xml_attr(xml2::xml_child(sl_node, "SampleNode"), "count"),
-                       ParentCount = NA,
-                       xDim = NA,
-                       yDim = NA,
-                       gate_id = NA,
-                       parentgate_id = NA,
-                       eventsInside = NA,
-                       sampleID = xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "sampleID"),
-                       FilePath = xml2::xml_attr(xml2::xml_child(sl_node, "DataSet"), "uri"),
-                       gate_level = 0)
-    gates_list[[y]] <- rbind(root, gates_list[[y]])
-    if (length(unique(gates_list[[y]]$FileName)) > 1) {
-      stop("Wrong root attached to df in gate_list.")
-    }
-  }
+  ## filter here for gate + dependents problem; seems like a workaround but which other solution?!
+  '    if (xml2::xml_name(prnts[1]) == "NotNode" && xml_name(gg[n]) == "Dependents") {
+      # special case of NotNode which appears as Gate AND and Dependents; so Dependents has to be filtered
+      return(NULL)
+    }'
 
-  full_paths <- unique(lapply(gates_list, function(y) y$PopulationFullPath))
+  full_paths <- unique(lapply(gates_list, function(y) {
+    if (length(unique(y$PopulationFullPath)) != length(y$PopulationFullPath)) {
+      stop("PopulationFullPaths not unique which cannot or should not be. Check.")
+    }
+    y$PopulationFullPath
+  }))
   auto_paths <- lapply(full_paths, function(y) shortest_unique_path(y))
 
   for (y in seq_along(gates_list)) {
