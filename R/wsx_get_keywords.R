@@ -18,13 +18,14 @@
 #' # make it a data.frame
 #' kk <- do.call(rbind, k)
 #' # create a FileName-column
-#' kk$FileName <- rep(names(k), sapply(k,nrow)) # do not use kk$FileName <- rownames(kk) as rownames have been received a suffix to make them unique
-#' # select keywords and make it a wider data.frame for joining with the sampledescription
-#' kk <- kk[which(kk$name %in% c("$CYT", "$OP")),] # you can use dplyr
+#' kk$FileName <- rep(names(k), sapply(k,nrow))
+#' # do not use kk$FileName <- rownames(kk) as rownames have been received a suffix to make them unique
+#' # select keywords and make it a wider data.frame for subsequent joining with the sampledescription
+#' kk <- kk[which(kk$name %in% c("$CYT", "$OP")),]
 #' kk <- tidyr::pivot_wider(kk, names_from = name, values_from = value)
-#' # make valid column names
+#' # make valid column names (general)
 #' names(kk) <- make.names(names(kk))
-#' # or
+#' # or in this special case
 #' names(kk) <- gsub("\\$", "", names(kk))
 #' # sd is your sampledescription
 #' sd <- dplyr::left_join(sd, kk, by = "FileName")

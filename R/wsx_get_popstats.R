@@ -33,14 +33,9 @@ wsx_get_popstats <- function(ws) {
   }
 
   ## check FJ version
-  if (xml_attr(ws, "flowJoVersion") != "10.7.1") {
+  if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
     warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
   }
-
-  ## get stats
- ' stat <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Statistic")
-  prnts <- xml2::xml_parents(stat[n])'
-
 
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply(seq_along(gg), function(n) {
@@ -126,11 +121,11 @@ wsx_get_popstats <- function(ws) {
   gates_list <- split(gates_df, gates_df$sampleID)
   # remove duplicate rows from gate+dependents
   gates_list <- lapply(gates_list, function(y) {
-    ex <- Reduce(intersect, list(c(which(duplicated(y$PopulationFullPath)),
-                                   which(duplicated(y$PopulationFullPath, fromLast=T))),
-                                 which(y$origin == "Dependents")))
+    ex <- base::intersect(c(which(duplicated(y$PopulationFullPath)),
+                            which(duplicated(y$PopulationFullPath, fromLast=T))),
+                          which(y$origin == "Dependents"))
     if (length(ex) > 0) {
-     y <- y[-ex,]
+      y <- y[-ex,]
     }
     return(y)
   })
