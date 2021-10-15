@@ -2,12 +2,13 @@
 #'
 #' In comparison to ws_get_popstats another backend (xml2) is used to read data from a flowjo .wsp-file (under the hood an .xml-file).
 #' No groups or similar have to be selected - filtering has to be conducted afterwards.
-#' Also, no restriction with respect to inconsistent gating trees are made. Every sample in handled invididually.
-#' Since original FCS files are not touch (all infoamtion are stored in the .wsp file) no FCS folder path has to be provided.
+#' Also, no restriction with respect to inconsistent gating trees are made. Every sample in handled individually.
+#' All information are gathered from the .wsp file, no FCS files are touched or required.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
+#' @param return_stats return statistics next to cells counts
 #'
-#' @return returns a data.frame with population counts
+#' @return returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
 #'
 #' @examples
@@ -20,20 +21,22 @@
 #' # import the population counts:
 #' wsx_get_popstats(ws = ws[1])
 #' }
-wsx_get_popstats <- function(ws) {
+wsx_get_popstats <- function(ws, return_stats = T) {
 
   ## graph in xml refers to the current (or last) channels looked at in FJ; not where the Gate is set
   if (is.character(ws)) {
     if (!file.exists(ws)) {
-      stop("wsp file not found.")
+      stop("ws file not found.")
+    }
+    if (length(ws) > 1) {
+      stop("Only one ws at a time.")
     }
     ws <- xml2::read_xml(ws)
   }
   if (!any(class(ws) == "xml_document")) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
-  ' stat <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Statistic")
-  prnts <- xml2::xml_parents(stat[n])'
+
   ## check FJ version
   if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
     warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
@@ -46,7 +49,7 @@ wsx_get_popstats <- function(ws) {
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
-    FilePath <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri")
+    FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri"))
     FileName <- basename(FilePath)
 
     p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
@@ -91,7 +94,7 @@ wsx_get_popstats <- function(ws) {
                       parentgate_id = parentgate_id,
                       eventsInside = eventsInside,
                       sampleID = sampleID,
-                      FilePath = gsub("^file:", "", FilePath),
+                      FilePath = FilePath,
                       gate_level = gate_level,
                       origin = origin,
                       n = n)
@@ -134,7 +137,6 @@ wsx_get_popstats <- function(ws) {
 
   full_paths <- unique(lapply(gates_list, function(y) {
     if (length(unique(y$PopulationFullPath)) != length(y$PopulationFullPath)) {
-      browser()
       stop("PopulationFullPaths not unique which cannot or should not be. Check.")
     }
     y$PopulationFullPath
@@ -150,8 +152,42 @@ wsx_get_popstats <- function(ws) {
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
+
+  gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
+
+
+  if (return_stats) {
+    stats_out <- do.call(rbind, lapply(seq_along(xml2::xml_children(xml2::xml_child(ws, "SampleList"))), function(n) {
+
+      node <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))[n]
+      stats <- xml2::xml_find_all(node, ".//Statistic")
+
+      stats_df <- do.call(rbind, lapply(stats, function(x) {
+        prnts <- xml2::xml_parents(x)
+        p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
+
+        sampleID <- xml2::xml_attr(xml2::xml_child(node, "DataSet"), "sampleID")
+        FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(node, "DataSet"), "uri"))
+        FileName <- basename(FilePath)
+        PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
+
+
+        data.frame(FileName = FileName,
+                   PopulationFullPath = PopulationFullPath,
+                   statistic = xml2::xml_attr(xml2::xml_child(prnts[1]), "name"),
+                   channel = xml2::xml_attr(xml2::xml_child(prnts[1]), "id"),
+                   value = as.numeric(xml2::xml_attr(xml2::xml_child(prnts[1]), "value")),
+                   FilePath = FilePath)
+      }))
+
+      return(stats_df)
+    }))
+    return(list(counts = gates_out, stats = stats_out))
+  }
   return(gates_out)
 }
+
+
 
 
 wsp_xml_get_samples <- function(x) {

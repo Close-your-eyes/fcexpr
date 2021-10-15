@@ -4,18 +4,21 @@
 \alias{wsx_get_popstats}
 \title{Convenient function to import population counts from a flowjo workspace}
 \usage{
-wsx_get_popstats(ws)
+wsx_get_popstats(ws, return_stats = T)
 }
 \arguments{
-\item{ws}{character of path to flowjo workspace}
+\item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
+
+\item{return_stats}{return statistics next to cells counts}
 }
 \value{
-returns a data.frame with population counts
+returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
 }
 \description{
 In comparison to ws_get_popstats another backend (xml2) is used to read data from a flowjo .wsp-file (under the hood an .xml-file).
-As is should be quick to extract data no groups have to be selected. Filtering has to be conducted afterwards.
-Also, no restriction to gating trees within a group are made and no folder of FCS has to be provided.
+No groups or similar have to be selected - filtering has to be conducted afterwards.
+Also, no restriction with respect to inconsistent gating trees are made. Every sample in handled individually.
+All information are gathered from the .wsp file, no FCS files are touched or required.
 }
 \examples{
 \dontrun{
