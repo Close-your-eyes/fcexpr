@@ -166,17 +166,17 @@ wsx_get_popstats <- function(ws, return_stats = T) {
         prnts <- xml2::xml_parents(x)
         p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
 
-        sampleID <- xml2::xml_attr(xml2::xml_child(node, "DataSet"), "sampleID")
+        sampleID <- xml2::xml_attr(xml2::xml_child(x, "DataSet"), "sampleID")
         FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(node, "DataSet"), "uri"))
         FileName <- basename(FilePath)
-        PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
+        PopulationFullPath <- if (xml2::xml_length(p_nodes) == 0) {"root"} else {paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")}
 
 
         data.frame(FileName = FileName,
                    PopulationFullPath = PopulationFullPath,
-                   statistic = xml2::xml_attr(xml2::xml_child(prnts[1]), "name"),
-                   channel = xml2::xml_attr(xml2::xml_child(prnts[1]), "id"),
-                   value = as.numeric(xml2::xml_attr(xml2::xml_child(prnts[1]), "value")),
+                   statistic = xml2::xml_attr(x, "name"),
+                   channel = xml2::xml_attr(x, "id"),
+                   value = as.numeric(xml2::xml_attr(x, "value")),
                    FilePath = FilePath)
       }))
 
@@ -222,10 +222,14 @@ wsp_xml_get_groups <- function(x) {
   })
   gr <- data.frame(group = rep(g, lengths(gs)),  sampleID = unlist(gs))
   gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-    if (nrow(gr[which(gr$sampleID == y),]) > 1) {
-      g <- gr[base::intersect(which(gr$sampleID == y), which(gr$group != "All Samples")), ]
-      g <- data.frame(group = paste(g$group, collapse = ", "), sampleID = g$sampleID)
+    g <- if (length(gr[which(gr$sampleID == y),"group"]) > 1) {
+      gr[base::intersect(which(gr$sampleID == y), which(gr$group != "All Samples")), ]
+    } else if (gr[which(gr$sampleID == y),"group"] == "All Samples") {
+      gr[which(gr$sampleID == y), ]
+    } else {
+      stop("group error occured.")
     }
+    g <- data.frame(group = paste(g$group, collapse = ", "), sampleID = g$sampleID)
   }))
   return(gr)
 }
