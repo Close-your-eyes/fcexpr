@@ -48,7 +48,7 @@ to other software (see workflow (i) below). Not only that the subsequent softwar
 4) not scalable to many samples and to problems where the exact read-out parameter is unknown yet.  
 So, I want to make a plea for workflow (ii) and provide tools to easily accomplish it. Once you have a data.frame with aggregated values from your cytometric experiment you can apply common procedures to tidy and plot the data with tools from the [tidyverse](https://www.tidyverse.org).
 
-![alt text](https://github.com/Close-your-eyes/fcexpr/blob/main/inst/extdata/workflows.png)
+![alt text](inst/extdata/workflows.png)
 
 ## How to start
 

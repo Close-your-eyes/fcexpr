@@ -52,8 +52,7 @@ your cytometric experiment you can apply common procedures to tidy and
 plot the data with tools from the
 [tidyverse](https://www.tidyverse.org).
 
-![alt
-text](https://github.com/Close-your-eyes/fcexpr/blob/main/inst/extdata/workflows.png)
+![alt text](inst/extdata/workflows.png)
 
 ## How to start
 
