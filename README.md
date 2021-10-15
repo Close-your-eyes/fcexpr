@@ -38,8 +38,8 @@ commercial software. Other commercial software may also be convenient
 though. When it comes to statistical analysis of gated data scientists
 usually export aggregated values from FlowJo (MFIs or cell counts) to
 other software (see workflow (i) below). Not only that the subsequent
-software is commercial as well, it is also 1) often inconvenient to
-manually copy and arrange the data  
+software is commercial as well, it is also  
+1) often inconvenient to manually copy and arrange the data  
 2) hence inefficient with respect to labor time  
 3) problematic with respect to reproducibility (unambiguous links
 between meta-data and the phenotypic data may be lost in the process of
@@ -52,7 +52,8 @@ your cytometric experiment you can apply common procedures to tidy and
 plot the data with tools from the
 [tidyverse](https://www.tidyverse.org).
 
-![alt text](https://github.com/Close-your-eyes/fcexpr/blob/main/inst/extdata/workflows.png)
+![alt
+text](https://github.com/Close-your-eyes/fcexpr/blob/main/inst/extdata/workflows.png)
 
 ## How to start
 
