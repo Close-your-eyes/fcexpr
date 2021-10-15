@@ -21,8 +21,7 @@ BiocManager::install("flowWorkspace")
 BiocManager::install("CytoML")
 ```
 
-Please install fcexpr from GitHub. This requires devtools to be
-installed first.
+Please install fcexpr from GitHub. This requires devtools.
 
 ``` r
 install.packages("devtools")
