@@ -59,10 +59,7 @@ ws
 ```
 
 Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files)
-  
-``` {r, echo=F}
-knitr::include_graphics(path = base::system.file("extdata", "5qdab0.jpg", package = "fcexpr"))
-```
+![alt text](inst/extdata/5qdab0.jpg)
 
 Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
 ```{r}
