@@ -58,19 +58,21 @@ ws <- list.files(path = wd, pattern = "\\.wsp$", recursive = T, full.names = T)
 ws
 ```
 
-The gating for GFP positive events is straight forward.
-![alt text](inst/extdata/gating.png)
-
-
-Under the hood, the .wsp file is an XML file with all population counts and statistics stored independently of FCS files.
+Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files)
+  
 ``` {r, echo=F}
 knitr::include_graphics(path = base::system.file("extdata", "5qdab0.jpg", package = "fcexpr"))
 ```
 
-Import the aggregated values from a workspace file. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
+Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
 ```{r}
 ps.raw <- fcexpr::wsx_get_popstats(ws[1])
 knitr::kable(head(ps.raw[[1]], 10))
+```
+
+The gating for GFP positive events is straight forward.
+``` {r, echo=F}
+knitr::include_graphics(path = base::system.file("extdata", "gating.png", package = "fcexpr"))
 ```
 
 Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.
@@ -125,7 +127,7 @@ ggplot(ps_sub, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = Fract
 ```
 
 
-Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.
+We can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.
 
 Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[["stats"]] is NULL.
 

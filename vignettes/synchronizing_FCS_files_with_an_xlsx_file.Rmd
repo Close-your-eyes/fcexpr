@@ -126,7 +126,7 @@ fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), wri
 list.files(file.path(wd, "FCS_files", "Part_1"))
 ```
 
-## Addition of new FCS files to the cohort or the experiment.
+## Addition of new FCS files
 
 When FCS files are added to the FCS_files folder and sync_sampledescription is run, the xlsx-file will be appended by the new files (~synchronized).
 ```{r}
