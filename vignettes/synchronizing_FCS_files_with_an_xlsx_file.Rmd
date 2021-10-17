@@ -14,85 +14,58 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-options(knitr.kable.NA = '', width = 60)
+options(knitr.kable.NA = '', width = 80)
 ```
 
 Install necessary packages in RStudio:
 ```{r setup, eval=F}
 install.packages("BiocManager")
 BiocManager::install("flowCore")
-BiocManager::install("flowWorkspace")
-BiocManager::install("CytoML")
 install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 library(fcexpr)
 ```
 
-Let's create a folder for our latest flow cytometry experiment. Mac-user: To copy the path of a directory use CMD+Alt+C in the Finder. Please don't be puzzled by the strange dir that is shown here. Just use a 'normal' directory on your disk.
-```{r}
-dir <- base::system.file("extdata", package = "fcexpr")
-fcexpr::new_exp(path = dir, name = "my_experiment")
-```
+### Please follow the steps of the vignette and observe what happens on your disk.
 
-A respective folder appears in "path". It is prefixed with todays date as date_prefix = TRUE by default in fcexpr::new_exp (see ?fcexpr::new_exp). It has a default structure and contains a few template folders and files.
+## Initiate
+
+Pick a directory on your disk and have a new template folder created using fcexpr::new_exp(). A respective folder appears in "path". It is prefixed with todays date as date_prefix = TRUE by default. It has a default structure and contains a few template folders and files.  
 ```{r}
+dir <- "/Users/vonskopnik/Documents"
+fcexpr::new_exp(path = dir, name = "my_experiment")
 wd <- file.path(dir, paste0(base::gsub("-", "", base::Sys.Date()), "_my_experiment"))
 print(wd)
-list.files(wd)
-list.files(wd, recursive = T)
 ```
 
-Next we add FCS files from our first samples in this experiment to FCS_files folder.
-```{r, echo=F}
+Next, add FCS files to the FCS_files folder. You can use your own files, or use example files that come with this package.
+```{r}
+# this command uses example files from the fcexpr package
 utils::untar(base::system.file("extdata", "Part_1.tgz", package = "fcexpr"), exdir = file.path(wd, "FCS_files"))
 ```
 ```{r}
-list.files(file.path(wd, "FCS_files", "Part_1"))
+list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
 ```
 
-To initiate an xlsx-file that allows to document meta data of the FCS files we call the sync_sampledescription function. The xlsx-file will always be written to the parent folder of FCS.file.folder.
+To initiate a sampledescription file call the sync_sampledescription function. The xlsx-file is always written to the parent folder of FCS.file.folder. By default it is named 'sampledescription.xlsx'.
 ```{r}
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), init.columns = c())
 ```
-
-Now we have the xlsx file, by default named 'sampledescription.xlsx':
-```{r}
-list.files(file.path(wd))
-```
-
-And it looks like this. The FileNames are prefixed with a continuous number.
+All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously.  
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-This is now also true for the actual FCS files. **The names of the FCS files and the entries in the xlsx-file have been synchronized.**
+Also the actual FCS files have a prefix now. **The names of the FCS files and the entries in the xlsx-file have been synchronized.**
 ```{r}
-list.files(file.path(wd, "FCS_files", "Part_1"))
+list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
 ```
 
-When we change the names in the FileName column and run sync_sampledescription synchronization takes place.
-```{r, echo=F,include=F}
-sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
-sd[2,1] <- "File_2"
-sd[5,1] <- "File_5"
-openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
-```
-```{r, echo=F}
-knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
-```
-```{r}
-fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
-```
 
-The prefixed continuous number is added automatically as well as the .fcs-suffix.
-```{r, echo=F}
-knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
-```
-```{r}
-list.files(file.path(wd, "FCS_files", "Part_1"))
-```
+## Add meta data
 
-Various columns can be added to describe the content (meta data) of the FCS files. **These columns serve to document our experiment and as a side-effect we can use them later on to plot our data.**
+Additonal columns with meta data can be added. **These columns serve to document the content of FCS files and one can use them group the data when plotting.** They may also be used by another function to hard-code them into the FCS files if this is desired.
 ```{r, echo=F,include=F}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 sd$Patient_ID <- sort(rep(1:5, 2))
@@ -100,17 +73,49 @@ sd$Staining <- rep(c("FMO", "full"), 5)
 sd$Patient_sex <- c(rep("M",4),rep("F",6))
 openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
 ```
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-The FCS files have been added in chronological order of acquisition. If we are not happy with that, we can change the order in the xlsx-file and the prefix-number will be adjusted. **NOTE: Never change the content of the identity column and never mix up rows of FileName and identity!!!**
+## Rename FCS files
+
+When the names in the FileName column are altered and sync_sampledescription is run synchronization takes place.
+```{r, echo=F,include=F}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+sd[2,1] <- "File_2"
+sd[5,1] <- "File_5"
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+sampledescription.xlsx:
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+```{r}
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
+```
+
+The prefixed continuous number is added automatically as well as the .fcs-suffix.  
+sampledescription.xlsx:
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+FCS files have been renamed accordingly.
+```{r}
+list.files(file.path(wd, "FCS_files", "Part_1"))
+```
+** Note: When files are renamed, respective FlowJo Workspaces have to be opened once in order to adopt the changes in file names in the wsp-file. FlowJo recognizes FCS by other parameters than the file name.**
+
+## Reorder
+
+The FCS files have been added in chronological order of acquisition (see the date in identity column). If one is not happy with that, the row-order in the xlsx-file can be changed. When running sync_sampledescription the prefix-number will be adjusted. **NOTE: Never change the content of the identity column and never mix up rows of FileName and identity!!!**
 
 ```{r, echo=F,include=F}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 sd <- sd[c(1,2,9,10,5,6,3,4,7,8),]
 openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
 ```
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
@@ -121,57 +126,49 @@ fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), wri
 list.files(file.path(wd, "FCS_files", "Part_1"))
 ```
 
-When we add files of our next samples to the FCS_files folder, the xlsx-file will be appended accordingly by the new files (~synchronized).
-```{r, echo=F}
+## Addition of new FCS files to the cohort or the experiment.
+
+When FCS files are added to the FCS_files folder and sync_sampledescription is run, the xlsx-file will be appended by the new files (~synchronized).
+```{r}
+# this command uses example files from the fcexpr package
 utils::untar(base::system.file("extdata", "Part_2.tgz", package = "fcexpr"), exdir = file.path(wd, "FCS_files"))
 ```
 ```{r}
 list.files(file.path(wd, "FCS_files"))
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
 ```
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, **but only the FileName** from the xlsx-file.
+## Exclude or remove samples
+
+The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar - in general, files which do not contain biological information. If, by accident, one or more of these files end up in our xlsx-file since one forgot to copy them to a respective folder one can have them removed by deleting the FileName, **but only the FileName**, from the xlsx-file.
 
 ```{r, echo=F,include=F}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 sd$FileName <- ifelse(grepl("comp", sd$FileName), NA, sd$FileName)
 openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
 ```
-
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 ```{r}
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
 ```
+
+The prefixed numbers are made continuous by renaming files accordingly.
+sampledescription.xlsx:
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-We can use the meta data columns to paste together the FileNames systematically. Not all information may fit into a FileName though. Hence, additional columns in the xlsx-file allow us to coherently and conveniently document our flow cytometry experiment.
-```{r, echo=F,include=F}
-sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
-sd$Patient_ID[11:14] <- sort(rep(6:7, 2))
-sd$Staining[11:14] <- rep(c("FMO", "full"), 2)
-sd$Patient_sex[11:14] <- c(rep("M",2),rep("F",2))
-sd$FileName <- paste0("Pat", sd$Patient_ID, "_", sd$Staining)
-openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
-```
-```{r, echo=F}
-knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
-```
-```{r}
-fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
-```
-```{r, echo=F}
-knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
-```
-```{r}
-list.files(file.path(wd, "FCS_files"), recursive = T)
-```
+## The log file
+
+By default a log file is written (write.log = T) which documents all changes to sampledescription.xlsx. On Mac/linux it is hidden, on Windows it is not.
+
 ```{r, echo=F}
 unlink(wd, recursive = T)
 ```

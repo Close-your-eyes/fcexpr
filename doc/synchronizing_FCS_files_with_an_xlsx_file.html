@@ -145,45 +145,33 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <p>Install necessary packages in RStudio:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;BiocManager&quot;</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">&quot;flowCore&quot;</span>)</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">&quot;flowWorkspace&quot;</span>)</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>BiocManager<span class="sc">::</span><span class="fu">install</span>(<span class="st">&quot;CytoML&quot;</span>)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;Close-your-eyes/fcexpr&quot;</span>)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fcexpr)</span></code></pre></div>
-<p>Let’s create a folder for our latest flow cytometry experiment. Mac-user: To copy the path of a directory use CMD+Alt+C in the Finder. Please don’t be puzzled by the strange dir that is shown here. Just use a ‘normal’ directory on your disk.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dir <span class="ot">&lt;-</span> base<span class="sc">::</span><span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="at">package =</span> <span class="st">&quot;fcexpr&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;Close-your-eyes/fcexpr&quot;</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(fcexpr)</span></code></pre></div>
+<div id="please-follow-the-steps-of-the-vignette-and-observe-what-happens-on-your-disk." class="section level3">
+<h3>Please follow the steps of the vignette and observe what happens on your disk.</h3>
+</div>
+<div id="initiate" class="section level2">
+<h2>Initiate</h2>
+<p>Pick a directory on your disk and have a new template folder created using fcexpr::new_exp(). A respective folder appears in “path”. It is prefixed with todays date as date_prefix = TRUE by default. It has a default structure and contains a few template folders and files.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>dir <span class="ot">&lt;-</span> <span class="st">&quot;/Users/vonskopnik/Documents&quot;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">new_exp</span>(<span class="at">path =</span> dir, <span class="at">name =</span> <span class="st">&quot;my_experiment&quot;</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/Rtmp7vHHHx/temp_libpath7c4316eb38/fcexpr/extdata/20211006_my_experiment created.&quot;</span></span></code></pre></div>
-<p>A respective folder appears in “path”. It is prefixed with todays date as date_prefix = TRUE by default in fcexpr::new_exp (see ?fcexpr::new_exp). It has a default structure and contains a few template folders and files.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>wd <span class="ot">&lt;-</span> <span class="fu">file.path</span>(dir, <span class="fu">paste0</span>(base<span class="sc">::</span><span class="fu">gsub</span>(<span class="st">&quot;-&quot;</span>, <span class="st">&quot;&quot;</span>, base<span class="sc">::</span><span class="fu">Sys.Date</span>()), <span class="st">&quot;_my_experiment&quot;</span>))</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(wd)</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;FCS_files&quot;     &quot;FJ_workspaces&quot; &quot;Protocols&quot;    </span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4] &quot;R_scripts&quot;     &quot;Results&quot;</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(wd, <span class="at">recursive =</span> T)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Protocols/Panel_template.xlsx&quot;   </span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;Protocols/Protocol_template.docx&quot;</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;R_scripts/R_Template.R&quot;</span></span></code></pre></div>
-<p>Next we add FCS files from our first samples in this experiment to FCS_files folder.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;Specimen_001_Tube_001_001.fcs&quot;</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;Specimen_001_Tube_002_002.fcs&quot;</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;Specimen_001_Tube_003_003.fcs&quot;</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;Specimen_001_Tube_004_004.fcs&quot;</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;Specimen_001_Tube_005_005.fcs&quot;</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;Specimen_001_Tube_006_006.fcs&quot;</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;Specimen_001_Tube_007_007.fcs&quot;</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;Specimen_001_Tube_008_008.fcs&quot;</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;Specimen_001_Tube_009_009.fcs&quot;</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;Specimen_001_Tube_010_010.fcs&quot;</span></span></code></pre></div>
-<p>To initiate an xlsx-file that allows to document meta data of the FCS files we call the sync_sampledescription function. The xlsx-file will always be written to the root-folder of the FCS.file.folder-path. So here that is ‘/Users/vonskopnik/Documents/experiments/20211004_my_experiment’.</p>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/Users/vonskopnik/Documents/20211017_my_experiment created.&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>wd <span class="ot">&lt;-</span> <span class="fu">file.path</span>(dir, <span class="fu">paste0</span>(base<span class="sc">::</span><span class="fu">gsub</span>(<span class="st">&quot;-&quot;</span>, <span class="st">&quot;&quot;</span>, base<span class="sc">::</span><span class="fu">Sys.Date</span>()), <span class="st">&quot;_my_experiment&quot;</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(wd)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/Users/vonskopnik/Documents/20211017_my_experiment&quot;</span></span></code></pre></div>
+<p>Next, add FCS files to the FCS_files folder. You can use your own files, or use example files that come with this package.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this command uses example files from the fcexpr package</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>utils<span class="sc">::</span><span class="fu">untar</span>(base<span class="sc">::</span><span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;Part_1.tgz&quot;</span>, <span class="at">package =</span> <span class="st">&quot;fcexpr&quot;</span>), <span class="at">exdir =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Specimen_001_Tube_001_001.fcs&quot; &quot;Specimen_001_Tube_002_002.fcs&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;Specimen_001_Tube_003_003.fcs&quot; &quot;Specimen_001_Tube_004_004.fcs&quot;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Specimen_001_Tube_005_005.fcs&quot;</span></span></code></pre></div>
+<p>To initiate a sampledescription file call the sync_sampledescription function. The xlsx-file is always written to the parent folder of FCS.file.folder. By default it is named ‘sampledescription.xlsx’.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">init.columns =</span> <span class="fu">c</span>())</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;sampledescription.xlsx initiated.&quot;</span></span></code></pre></div>
-<p>Now we have the xlsx file, by default named ‘sampledescription.xlsx’:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd))</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;FCS_files&quot;              &quot;FJ_workspaces&quot;         </span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;Protocols&quot;              &quot;R_scripts&quot;             </span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [5] &quot;Results&quot;                &quot;sampledescription.xlsx&quot;</span></span></code></pre></div>
-<p>And it looks like this. The FileNames are prefixed with a continuous number.</p>
+<p>All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously.<br />
+sampledescription.xlsx:</p>
 <table>
 <colgroup>
 <col width="39%" />
@@ -238,144 +226,209 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>This is now also true for the actual FCS files. <strong>The names of the FCS files and the entries in the xlsx-file have been synchronized.</strong></p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;0002_-_Specimen_001_Tube_002_002.fcs&quot;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;0003_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;0004_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;0005_-_Specimen_001_Tube_005_005.fcs&quot;</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;0006_-_Specimen_001_Tube_006_006.fcs&quot;</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;0007_-_Specimen_001_Tube_007_007.fcs&quot;</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;0008_-_Specimen_001_Tube_008_008.fcs&quot;</span></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;0009_-_Specimen_001_Tube_009_009.fcs&quot;</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;0010_-_Specimen_001_Tube_010_010.fcs&quot;</span></span></code></pre></div>
-<p>When we change the names in the FileName column and run sync_sampledescription synchronization takes place.</p>
-<table>
+<p>Also the actual FCS files have a prefix now. <strong>The names of the FCS files and the entries in the xlsx-file have been synchronized.</strong></p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))[<span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>]</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;0002_-_Specimen_001_Tube_002_002.fcs&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;0003_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4] &quot;0004_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [5] &quot;0005_-_Specimen_001_Tube_005_005.fcs&quot;</span></span></code></pre></div>
+</div>
+<div id="add-meta-data" class="section level2">
+<h2>Add meta data</h2>
+<p>Additonal columns with meta data can be added. <strong>These columns serve to document the content of FCS files and one can use them group the data when plotting.</strong> They may also be used by another function to hard-code them into the FCS files if this is desired.</p>
+<p>sampledescription.xlsx:</p>
+<table style="width:100%;">
 <colgroup>
-<col width="39%" />
-<col width="60%" />
+<col width="29%" />
+<col width="44%" />
+<col width="8%" />
+<col width="7%" />
+<col width="9%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th align="left">FileName</th>
 <th align="left">identity</th>
+<th align="right">Patient_ID</th>
+<th align="left">Staining</th>
+<th align="left">Patient_sex</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">0001_-_Specimen_001_Tube_001_001.fcs</td>
 <td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
+<td align="right">1</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
+</tr>
+<tr class="even">
+<td align="left">0002_-_Specimen_001_Tube_002_002.fcs</td>
+<td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
+<td align="right">1</td>
+<td align="left">full</td>
+<td align="left">M</td>
+</tr>
+<tr class="odd">
+<td align="left">0003_-_Specimen_001_Tube_003_003.fcs</td>
+<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
+<td align="right">2</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
+</tr>
+<tr class="even">
+<td align="left">0004_-_Specimen_001_Tube_004_004.fcs</td>
+<td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
+<td align="right">2</td>
+<td align="left">full</td>
+<td align="left">M</td>
+</tr>
+<tr class="odd">
+<td align="left">0005_-_Specimen_001_Tube_005_005.fcs</td>
+<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
+<td align="right">3</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+</tr>
+<tr class="even">
+<td align="left">0006_-_Specimen_001_Tube_006_006.fcs</td>
+<td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
+<td align="right">3</td>
+<td align="left">full</td>
+<td align="left">F</td>
+</tr>
+<tr class="odd">
+<td align="left">0007_-_Specimen_001_Tube_007_007.fcs</td>
+<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
+<td align="right">4</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+</tr>
+<tr class="even">
+<td align="left">0008_-_Specimen_001_Tube_008_008.fcs</td>
+<td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
+<td align="right">4</td>
+<td align="left">full</td>
+<td align="left">F</td>
+</tr>
+<tr class="odd">
+<td align="left">0009_-_Specimen_001_Tube_009_009.fcs</td>
+<td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
+<td align="right">5</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+</tr>
+<tr class="even">
+<td align="left">0010_-_Specimen_001_Tube_010_010.fcs</td>
+<td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
+<td align="right">5</td>
+<td align="left">full</td>
+<td align="left">F</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="rename-fcs-files" class="section level2">
+<h2>Rename FCS files</h2>
+<p>When the names in the FileName column are altered and sync_sampledescription is run synchronization takes place.</p>
+<p>sampledescription.xlsx:</p>
+<table style="width:100%;">
+<colgroup>
+<col width="29%" />
+<col width="44%" />
+<col width="8%" />
+<col width="7%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">FileName</th>
+<th align="left">identity</th>
+<th align="right">Patient_ID</th>
+<th align="left">Staining</th>
+<th align="left">Patient_sex</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">0001_-_Specimen_001_Tube_001_001.fcs</td>
+<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
+<td align="right">1</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
 </tr>
 <tr class="even">
 <td align="left">File_2</td>
 <td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
+<td align="right">1</td>
+<td align="left">full</td>
+<td align="left">M</td>
 </tr>
 <tr class="odd">
 <td align="left">0003_-_Specimen_001_Tube_003_003.fcs</td>
 <td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
+<td align="right">2</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
 </tr>
 <tr class="even">
 <td align="left">0004_-_Specimen_001_Tube_004_004.fcs</td>
 <td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
+<td align="right">2</td>
+<td align="left">full</td>
+<td align="left">M</td>
 </tr>
 <tr class="odd">
 <td align="left">File_5</td>
 <td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
+<td align="right">3</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
 </tr>
 <tr class="even">
 <td align="left">0006_-_Specimen_001_Tube_006_006.fcs</td>
 <td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
+<td align="right">3</td>
+<td align="left">full</td>
+<td align="left">F</td>
 </tr>
 <tr class="odd">
 <td align="left">0007_-_Specimen_001_Tube_007_007.fcs</td>
 <td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
+<td align="right">4</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
 </tr>
 <tr class="even">
 <td align="left">0008_-_Specimen_001_Tube_008_008.fcs</td>
 <td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
+<td align="right">4</td>
+<td align="left">full</td>
+<td align="left">F</td>
 </tr>
 <tr class="odd">
 <td align="left">0009_-_Specimen_001_Tube_009_009.fcs</td>
 <td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
+<td align="right">5</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
 </tr>
 <tr class="even">
 <td align="left">0010_-_Specimen_001_Tube_010_010.fcs</td>
 <td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
+<td align="right">5</td>
+<td align="left">full</td>
+<td align="left">F</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;            FileName                     PreviousFileName</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 0002_-_File_2.fcs 0002_-_Specimen_001_Tube_002_002.fcs</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 0005_-_File_5.fcs 0005_-_Specimen_001_Tube_005_005.fcs</span></span></code></pre></div>
-<p>The prefixed continuous number is added automatically as well as the .fcs-suffix.</p>
-<table>
-<colgroup>
-<col width="39%" />
-<col width="60%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th align="left">FileName</th>
-<th align="left">identity</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_Specimen_001_Tube_001_001.fcs</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_File_2.fcs</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_Specimen_001_Tube_003_003.fcs</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_Specimen_001_Tube_004_004.fcs</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
-</tr>
-<tr class="odd">
-<td align="left">0005_-_File_5.fcs</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
-</tr>
-<tr class="even">
-<td align="left">0006_-_Specimen_001_Tube_006_006.fcs</td>
-<td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
-</tr>
-<tr class="odd">
-<td align="left">0007_-_Specimen_001_Tube_007_007.fcs</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
-</tr>
-<tr class="even">
-<td align="left">0008_-_Specimen_001_Tube_008_008.fcs</td>
-<td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
-</tr>
-<tr class="odd">
-<td align="left">0009_-_Specimen_001_Tube_009_009.fcs</td>
-<td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
-</tr>
-<tr class="even">
-<td align="left">0010_-_Specimen_001_Tube_010_010.fcs</td>
-<td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;0002_-_File_2.fcs&quot;                   </span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;0003_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;0004_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;0005_-_File_5.fcs&quot;                   </span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;0006_-_Specimen_001_Tube_006_006.fcs&quot;</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;0007_-_Specimen_001_Tube_007_007.fcs&quot;</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;0008_-_Specimen_001_Tube_008_008.fcs&quot;</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;0009_-_Specimen_001_Tube_009_009.fcs&quot;</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;0010_-_Specimen_001_Tube_010_010.fcs&quot;</span></span></code></pre></div>
-<p>Various columns can be added to describe the content (meta data) of the FCS files. <strong>These columns serve to document our experiment and as a side-effect we can use them later on to plot our data.</strong></p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;            FileName                     PreviousFileName</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 0002_-_File_2.fcs 0002_-_Specimen_001_Tube_002_002.fcs</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 0005_-_File_5.fcs 0005_-_Specimen_001_Tube_005_005.fcs</span></span></code></pre></div>
+<p>The prefixed continuous number is added automatically as well as the .fcs-suffix.<br />
+sampledescription.xlsx:</p>
 <table style="width:100%;">
 <colgroup>
 <col width="29%" />
@@ -466,7 +519,24 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The FCS files have been added in chronological order of acquisition. If we are not happy with that, we can change the order in the xlsx-file and the prefix-number will be adjusted. <strong>NOTE: Never change the content of the identity column and never mix up rows of FileName and identity!!!</strong></p>
+<p>FCS files have been renamed accordingly.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;0002_-_File_2.fcs&quot;                   </span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;0003_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;0004_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;0005_-_File_5.fcs&quot;                   </span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;0006_-_Specimen_001_Tube_006_006.fcs&quot;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;0007_-_Specimen_001_Tube_007_007.fcs&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;0008_-_Specimen_001_Tube_008_008.fcs&quot;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;0009_-_Specimen_001_Tube_009_009.fcs&quot;</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;0010_-_Specimen_001_Tube_010_010.fcs&quot;</span></span></code></pre></div>
+<p>** Note: When files are renamed, respective FlowJo Workspaces have to be opened once in order to adopt the changes in file names in the wsp-file. FlowJo recognizes FCS by other parameters than the file name.**</p>
+</div>
+<div id="reorder" class="section level2">
+<h2>Reorder</h2>
+<p>The FCS files have been added in chronological order of acquisition (see the date in identity column). If one is not happy with that, the row-order in the xlsx-file can be changed. When running sync_sampledescription the prefix-number will be adjusted. <strong>NOTE: Never change the content of the identity column and never mix up rows of FileName and identity!!!</strong></p>
+<p>sampledescription.xlsx:</p>
 <table style="width:100%;">
 <colgroup>
 <col width="29%" />
@@ -557,45 +627,40 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                FileName</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1  0001_-_Specimen_001_Tube_001_001.fcs</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2                     0002_-_File_2.fcs</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3  0003_-_Specimen_001_Tube_009_009.fcs</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4  0004_-_Specimen_001_Tube_010_010.fcs</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5                     0005_-_File_5.fcs</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6  0006_-_Specimen_001_Tube_006_006.fcs</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7  0007_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8  0008_-_Specimen_001_Tube_004_004.fcs</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9  0009_-_Specimen_001_Tube_007_007.fcs</span></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10 0010_-_Specimen_001_Tube_008_008.fcs</span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                        PreviousFileName</span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1  0001_-_Specimen_001_Tube_001_001.fcs</span></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2                     0002_-_File_2.fcs</span></span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3  0009_-_Specimen_001_Tube_009_009.fcs</span></span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4  0010_-_Specimen_001_Tube_010_010.fcs</span></span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5                     0005_-_File_5.fcs</span></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6  0006_-_Specimen_001_Tube_006_006.fcs</span></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7  0003_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8  0004_-_Specimen_001_Tube_004_004.fcs</span></span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9  0007_-_Specimen_001_Tube_007_007.fcs</span></span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10 0008_-_Specimen_001_Tube_008_008.fcs</span></span></code></pre></div>
-<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;0002_-_File_2.fcs&quot;                   </span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;0003_-_Specimen_001_Tube_009_009.fcs&quot;</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;0004_-_Specimen_001_Tube_010_010.fcs&quot;</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;0005_-_File_5.fcs&quot;                   </span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;0006_-_Specimen_001_Tube_006_006.fcs&quot;</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;0007_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;0008_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;0009_-_Specimen_001_Tube_007_007.fcs&quot;</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;0010_-_Specimen_001_Tube_008_008.fcs&quot;</span></span></code></pre></div>
-<p>When we add files of our next samples to the FCS_files folder, the xlsx-file will be appended accordingly by the new files (~synchronized).</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                                FileName                     PreviousFileName</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1  0001_-_Specimen_001_Tube_001_001.fcs 0001_-_Specimen_001_Tube_001_001.fcs</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2                     0002_-_File_2.fcs                    0002_-_File_2.fcs</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3  0003_-_Specimen_001_Tube_009_009.fcs 0009_-_Specimen_001_Tube_009_009.fcs</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4  0004_-_Specimen_001_Tube_010_010.fcs 0010_-_Specimen_001_Tube_010_010.fcs</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5                     0005_-_File_5.fcs                    0005_-_File_5.fcs</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6  0006_-_Specimen_001_Tube_006_006.fcs 0006_-_Specimen_001_Tube_006_006.fcs</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7  0007_-_Specimen_001_Tube_003_003.fcs 0003_-_Specimen_001_Tube_003_003.fcs</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8  0008_-_Specimen_001_Tube_004_004.fcs 0004_-_Specimen_001_Tube_004_004.fcs</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9  0009_-_Specimen_001_Tube_007_007.fcs 0007_-_Specimen_001_Tube_007_007.fcs</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10 0010_-_Specimen_001_Tube_008_008.fcs 0008_-_Specimen_001_Tube_008_008.fcs</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>, <span class="st">&quot;Part_1&quot;</span>))</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;0001_-_Specimen_001_Tube_001_001.fcs&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;0002_-_File_2.fcs&quot;                   </span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;0003_-_Specimen_001_Tube_009_009.fcs&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;0004_-_Specimen_001_Tube_010_010.fcs&quot;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;0005_-_File_5.fcs&quot;                   </span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;0006_-_Specimen_001_Tube_006_006.fcs&quot;</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;0007_-_Specimen_001_Tube_003_003.fcs&quot;</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;0008_-_Specimen_001_Tube_004_004.fcs&quot;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;0009_-_Specimen_001_Tube_007_007.fcs&quot;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;0010_-_Specimen_001_Tube_008_008.fcs&quot;</span></span></code></pre></div>
+</div>
+<div id="addition-of-new-fcs-files-to-the-cohort-or-the-experiment." class="section level2">
+<h2>Addition of new FCS files to the cohort or the experiment.</h2>
+<p>When FCS files are added to the FCS_files folder and sync_sampledescription is run, the xlsx-file will be appended by the new files (~synchronized).</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this command uses example files from the fcexpr package</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>utils<span class="sc">::</span><span class="fu">untar</span>(base<span class="sc">::</span><span class="fu">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;Part_2.tgz&quot;</span>, <span class="at">package =</span> <span class="st">&quot;fcexpr&quot;</span>), <span class="at">exdir =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>))</span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>))</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Part_1&quot; &quot;Part_2&quot;</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;7 new files have been found and added to the sampledescription.&quot;</span></span></code></pre></div>
+<p>sampledescription.xlsx:</p>
 <table style="width:100%;">
 <colgroup>
 <col width="29%" />
@@ -735,7 +800,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar. In general files which are not be of interest for the statistical analysis of our experiment. If, by accident, these files end up in our xlsx-file since we forgot to copy them to a respective folder we can have them removed by deleting thr FileName, <strong>but the only the FileName</strong> from the xlsx-file.</p>
+</div>
+<div id="exclude-or-remove-samples" class="section level2">
+<h2>Exclude or remove samples</h2>
+<p>The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the xlsx-file. Such folders may contain controls like rainbow beads or compensation controls or similar - in general, files which do not contain biological information. If, by accident, one or more of these files end up in our xlsx-file since one forgot to copy them to a respective folder one can have them removed by deleting the FileName, <strong>but only the FileName</strong>, from the xlsx-file.</p>
+<p>sampledescription.xlsx:</p>
 <table style="width:100%;">
 <colgroup>
 <col width="29%" />
@@ -876,18 +945,15 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tbody>
 </table>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/Rtmp7vHHHx/temp_libpath7c4316eb38/fcexpr/extdata/20211006_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs&quot;  </span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;/private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/Rtmp7vHHHx/temp_libpath7c4316eb38/fcexpr/extdata/20211006_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs&quot;</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;/private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/Rtmp7vHHHx/temp_libpath7c4316eb38/fcexpr/extdata/20211006_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs&quot; </span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs&quot;  </span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs&quot;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs&quot; </span></span>
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;FCS files moved to deleted_FCS_files and sampledescription.xlsx updated.&quot;</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                               FileName</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 0012_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 0013_-_Specimen_001_Tube_005_005.fcs</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 0014_-_Specimen_001_Tube_007_007.fcs</span></span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                       PreviousFileName</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 0013_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 0015_-_Specimen_001_Tube_005_005.fcs</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 0017_-_Specimen_001_Tube_007_007.fcs</span></span></code></pre></div>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                               FileName                     PreviousFileName</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1 0012_-_Specimen_001_Tube_003_003.fcs 0013_-_Specimen_001_Tube_003_003.fcs</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2 0013_-_Specimen_001_Tube_005_005.fcs 0015_-_Specimen_001_Tube_005_005.fcs</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3 0014_-_Specimen_001_Tube_007_007.fcs 0017_-_Specimen_001_Tube_007_007.fcs</span></span></code></pre></div>
+<p>The prefixed numbers are made continuous by renaming files accordingly. sampledescription.xlsx:</p>
 <table style="width:100%;">
 <colgroup>
 <col width="29%" />
@@ -1006,285 +1072,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </tr>
 </tbody>
 </table>
-<p>We can use the meta data columns to paste together the FileNames systematically. Not all information may fit into a FileName though. Hence, additional columns in the xlsx-file allow us to coherently and conveniently document our flow cytometry experiment.</p>
-<table>
-<thead>
-<tr class="header">
-<th align="left">FileName</th>
-<th align="left">identity</th>
-<th align="left">Patient_ID</th>
-<th align="left">Staining</th>
-<th align="left">Patient_sex</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">Pat1_FMO</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
-<td align="left">1</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">Pat1_full</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
-<td align="left">1</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat5_FMO</td>
-<td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
-<td align="left">5</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">Pat5_full</td>
-<td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
-<td align="left">5</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat3_FMO</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
-<td align="left">3</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">Pat3_full</td>
-<td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
-<td align="left">3</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat2_FMO</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
-<td align="left">2</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">Pat2_full</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
-<td align="left">2</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat4_FMO</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
-<td align="left">4</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">Pat4_full</td>
-<td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
-<td align="left">4</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat6_FMO</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.13-10.52.35</td>
-<td align="left">6</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">Pat6_full</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.13-10.55.58</td>
-<td align="left">6</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">Pat7_FMO</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.13-10.58.34</td>
-<td align="left">7</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">Pat7_full</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.13-11.00.06</td>
-<td align="left">7</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>fcexpr<span class="sc">::</span><span class="fu">sync_sampledescription</span>(<span class="at">FCS.file.folder =</span> <span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">write.log =</span> F)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                FileName</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1   0001_-_Pat1_FMO.fcs</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2  0002_-_Pat1_full.fcs</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3   0003_-_Pat5_FMO.fcs</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4  0004_-_Pat5_full.fcs</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5   0005_-_Pat3_FMO.fcs</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6  0006_-_Pat3_full.fcs</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7   0007_-_Pat2_FMO.fcs</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8  0008_-_Pat2_full.fcs</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9   0009_-_Pat4_FMO.fcs</span></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10 0010_-_Pat4_full.fcs</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 11  0011_-_Pat6_FMO.fcs</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 12 0012_-_Pat6_full.fcs</span></span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 13  0013_-_Pat7_FMO.fcs</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 14 0014_-_Pat7_full.fcs</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                        PreviousFileName</span></span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1  0001_-_Specimen_001_Tube_001_001.fcs</span></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2                     0002_-_File_2.fcs</span></span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3  0003_-_Specimen_001_Tube_009_009.fcs</span></span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4  0004_-_Specimen_001_Tube_010_010.fcs</span></span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5                     0005_-_File_5.fcs</span></span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6  0006_-_Specimen_001_Tube_006_006.fcs</span></span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 7  0007_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 8  0008_-_Specimen_001_Tube_004_004.fcs</span></span>
-<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 9  0009_-_Specimen_001_Tube_007_007.fcs</span></span>
-<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 10 0010_-_Specimen_001_Tube_008_008.fcs</span></span>
-<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 11 0011_-_Specimen_001_Tube_001_001.fcs</span></span>
-<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 12 0012_-_Specimen_001_Tube_003_003.fcs</span></span>
-<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 13 0013_-_Specimen_001_Tube_005_005.fcs</span></span>
-<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 14 0014_-_Specimen_001_Tube_007_007.fcs</span></span></code></pre></div>
-<table>
-<colgroup>
-<col width="19%" />
-<col width="51%" />
-<col width="10%" />
-<col width="8%" />
-<col width="11%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th align="left">FileName</th>
-<th align="left">identity</th>
-<th align="left">Patient_ID</th>
-<th align="left">Staining</th>
-<th align="left">Patient_sex</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_Pat1_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
-<td align="left">1</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_Pat1_full.fcs</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
-<td align="left">1</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_Pat5_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
-<td align="left">5</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_Pat5_full.fcs</td>
-<td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
-<td align="left">5</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">0005_-_Pat3_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
-<td align="left">3</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">0006_-_Pat3_full.fcs</td>
-<td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
-<td align="left">3</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">0007_-_Pat2_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
-<td align="left">2</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">0008_-_Pat2_full.fcs</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
-<td align="left">2</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">0009_-_Pat4_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
-<td align="left">4</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">0010_-_Pat4_full.fcs</td>
-<td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
-<td align="left">4</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-<tr class="odd">
-<td align="left">0011_-_Pat6_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.13-10.52.35</td>
-<td align="left">6</td>
-<td align="left">FMO</td>
-<td align="left">M</td>
-</tr>
-<tr class="even">
-<td align="left">0012_-_Pat6_full.fcs</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.13-10.55.58</td>
-<td align="left">6</td>
-<td align="left">full</td>
-<td align="left">M</td>
-</tr>
-<tr class="odd">
-<td align="left">0013_-_Pat7_FMO.fcs</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.13-10.58.34</td>
-<td align="left">7</td>
-<td align="left">FMO</td>
-<td align="left">F</td>
-</tr>
-<tr class="even">
-<td align="left">0014_-_Pat7_full.fcs</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.13-11.00.06</td>
-<td align="left">7</td>
-<td align="left">full</td>
-<td align="left">F</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">list.files</span>(<span class="fu">file.path</span>(wd, <span class="st">&quot;FCS_files&quot;</span>), <span class="at">recursive =</span> T)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [1] &quot;deleted_FCS_files/0012_-_PE_comp.fcs&quot;  </span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [2] &quot;deleted_FCS_files/0014_-_FITC_comp.fcs&quot;</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [3] &quot;deleted_FCS_files/0016_-_APC_comp.fcs&quot; </span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [4] &quot;Part_1/0001_-_Pat1_FMO.fcs&quot;            </span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [5] &quot;Part_1/0002_-_Pat1_full.fcs&quot;           </span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [6] &quot;Part_1/0003_-_Pat5_FMO.fcs&quot;            </span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [7] &quot;Part_1/0004_-_Pat5_full.fcs&quot;           </span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [8] &quot;Part_1/0005_-_Pat3_FMO.fcs&quot;            </span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;  [9] &quot;Part_1/0006_-_Pat3_full.fcs&quot;           </span></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [10] &quot;Part_1/0007_-_Pat2_FMO.fcs&quot;            </span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [11] &quot;Part_1/0008_-_Pat2_full.fcs&quot;           </span></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [12] &quot;Part_1/0009_-_Pat4_FMO.fcs&quot;            </span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [13] &quot;Part_1/0010_-_Pat4_full.fcs&quot;           </span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [14] &quot;Part_2/0011_-_Pat6_FMO.fcs&quot;            </span></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [15] &quot;Part_2/0012_-_Pat6_full.fcs&quot;           </span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [16] &quot;Part_2/0013_-_Pat7_FMO.fcs&quot;            </span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [17] &quot;Part_2/0014_-_Pat7_full.fcs&quot;</span></span></code></pre></div>
+</div>
+<div id="the-log-file" class="section level2">
+<h2>The log file</h2>
+<p>By default a log file is written (write.log = T) which documents all changes to sampledescription.xlsx. On Mac/linux it is hidden, on Windows it is not.</p>
+</div>
 
 
 
