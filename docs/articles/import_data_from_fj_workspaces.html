@@ -87,76 +87,24 @@
     
 <p>Install necessary packages in RStudio:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowCore"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowWorkspace"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"CytoML"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
 <span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"tidyverse"</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></code></pre></div>
-<p>The actual work for importing the data from flowjo workspaces is done by functions from CytoML and flowWorkspace. The function that I wrote, ws_get_popstats, is rather a wrapper around them. On the other hand ws_get_popstats handles the necessary loops for multiple workspaces (ws) and or multiple groups (gr) internally. So, it is beginner friendly. Moreover, a problem of mine with the subset argument of CytoML::flowjo_to_gatingset is handled by modifying the function. But these are only details from the backend.</p>
-<p>We start with a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.<br>
+<p>Pick a directory to run the example on your disk.</p>
+<p>This is a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.<br>
 A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. Cells have then analyzed by flow cytometry. Factors have been varied (see below) that may or may not impact the transduction rate. Which and how? - This is what we want to know.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">wd</span><span class="op">)</span>
-<span class="co">#&gt; [1] "FCS_files"              "FJ_workspace"          </span>
-<span class="co">#&gt; [3] "R_scripts"              "sampledescription.xlsx"</span>
-<span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">wd</span>, recursive <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
-<span class="co">#&gt;  [1] "FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs"  </span>
-<span class="co">#&gt;  [2] "FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs"   </span>
-<span class="co">#&gt;  [3] "FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs"   </span>
-<span class="co">#&gt;  [4] "FCS_files/Exp_part_3/0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs"   </span>
-<span class="co">#&gt;  [5] "FCS_files/Exp_part_3/0005_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs"  </span>
-<span class="co">#&gt;  [6] "FCS_files/Exp_part_3/0006_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.8.fcs"   </span>
-<span class="co">#&gt;  [7] "FCS_files/Exp_part_3/0007_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.4.fcs"   </span>
-<span class="co">#&gt;  [8] "FCS_files/Exp_part_3/0008_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.2.fcs"   </span>
-<span class="co">#&gt;  [9] "FCS_files/Exp_part_3/0009_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.16.fcs" </span>
-<span class="co">#&gt; [10] "FCS_files/Exp_part_3/0010_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.8.fcs"  </span>
-<span class="co">#&gt; [11] "FCS_files/Exp_part_3/0011_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.4.fcs"  </span>
-<span class="co">#&gt; [12] "FCS_files/Exp_part_3/0012_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.2.fcs"  </span>
-<span class="co">#&gt; [13] "FCS_files/Exp_part_3/0013_-_vol.50_time.24_polybrene.10_EGF.50_FCS.5_density.16.fcs" </span>
-<span class="co">#&gt; [14] "FCS_files/Exp_part_3/0014_-_vol.50_time.24_polybrene.10_EGF.50_FCS.5_density.8.fcs"  </span>
-<span class="co">#&gt; [15] "FCS_files/Exp_part_3/0015_-_vol.50_time.24_polybrene.10_EGF.50_FCS.5_density.4.fcs"  </span>
-<span class="co">#&gt; [16] "FCS_files/Exp_part_3/0016_-_vol.50_time.24_polybrene.10_EGF.50_FCS.5_density.2.fcs"  </span>
-<span class="co">#&gt; [17] "FCS_files/Exp_part_3/0017_-_vol.50_time.48_polybrene.10_EGF.50_FCS.2_density.16.fcs" </span>
-<span class="co">#&gt; [18] "FCS_files/Exp_part_3/0018_-_vol.50_time.48_polybrene.10_EGF.50_FCS.2_density.8.fcs"  </span>
-<span class="co">#&gt; [19] "FCS_files/Exp_part_3/0019_-_vol.50_time.48_polybrene.10_EGF.50_FCS.2_density.4.fcs"  </span>
-<span class="co">#&gt; [20] "FCS_files/Exp_part_3/0020_-_vol.50_time.48_polybrene.10_EGF.50_FCS.2_density.2.fcs"  </span>
-<span class="co">#&gt; [21] "FCS_files/Exp_part_3/0021_-_vol.50_time.48_polybrene.10_EGF.50_FCS.5_density.16.fcs" </span>
-<span class="co">#&gt; [22] "FCS_files/Exp_part_3/0022_-_vol.50_time.48_polybrene.10_EGF.50_FCS.5_density.8.fcs"  </span>
-<span class="co">#&gt; [23] "FCS_files/Exp_part_3/0023_-_vol.50_time.48_polybrene.10_EGF.50_FCS.5_density.4.fcs"  </span>
-<span class="co">#&gt; [24] "FCS_files/Exp_part_3/0024_-_vol.50_time.48_polybrene.10_EGF.50_FCS.5_density.2.fcs"  </span>
-<span class="co">#&gt; [25] "FCS_files/Exp_part_3/0025_-_vol.150_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs" </span>
-<span class="co">#&gt; [26] "FCS_files/Exp_part_3/0026_-_vol.150_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs"  </span>
-<span class="co">#&gt; [27] "FCS_files/Exp_part_3/0027_-_vol.150_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs"  </span>
-<span class="co">#&gt; [28] "FCS_files/Exp_part_3/0028_-_vol.150_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs"  </span>
-<span class="co">#&gt; [29] "FCS_files/Exp_part_3/0029_-_vol.150_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs" </span>
-<span class="co">#&gt; [30] "FCS_files/Exp_part_3/0030_-_vol.150_time.2_polybrene.10_EGF.50_FCS.5_density.8.fcs"  </span>
-<span class="co">#&gt; [31] "FCS_files/Exp_part_3/0031_-_vol.150_time.2_polybrene.10_EGF.50_FCS.5_density.4.fcs"  </span>
-<span class="co">#&gt; [32] "FCS_files/Exp_part_3/0032_-_vol.150_time.2_polybrene.10_EGF.50_FCS.5_density.2.fcs"  </span>
-<span class="co">#&gt; [33] "FCS_files/Exp_part_3/0033_-_vol.150_time.24_polybrene.10_EGF.50_FCS.2_density.16.fcs"</span>
-<span class="co">#&gt; [34] "FCS_files/Exp_part_3/0034_-_vol.150_time.24_polybrene.10_EGF.50_FCS.2_density.8.fcs" </span>
-<span class="co">#&gt; [35] "FCS_files/Exp_part_3/0035_-_vol.150_time.24_polybrene.10_EGF.50_FCS.2_density.4.fcs" </span>
-<span class="co">#&gt; [36] "FCS_files/Exp_part_3/0036_-_vol.150_time.24_polybrene.10_EGF.50_FCS.2_density.2.fcs" </span>
-<span class="co">#&gt; [37] "FCS_files/Exp_part_3/0037_-_vol.150_time.24_polybrene.10_EGF.50_FCS.5_density.16.fcs"</span>
-<span class="co">#&gt; [38] "FCS_files/Exp_part_3/0038_-_vol.150_time.24_polybrene.10_EGF.50_FCS.5_density.8.fcs" </span>
-<span class="co">#&gt; [39] "FCS_files/Exp_part_3/0039_-_vol.150_time.24_polybrene.10_EGF.50_FCS.5_density.4.fcs" </span>
-<span class="co">#&gt; [40] "FCS_files/Exp_part_3/0040_-_vol.150_time.24_polybrene.10_EGF.50_FCS.5_density.2.fcs" </span>
-<span class="co">#&gt; [41] "FCS_files/Exp_part_3/0041_-_vol.150_time.48_polybrene.10_EGF.50_FCS.2_density.16.fcs"</span>
-<span class="co">#&gt; [42] "FCS_files/Exp_part_3/0042_-_vol.150_time.48_polybrene.10_EGF.50_FCS.2_density.8.fcs" </span>
-<span class="co">#&gt; [43] "FCS_files/Exp_part_3/0043_-_vol.150_time.48_polybrene.10_EGF.50_FCS.2_density.4.fcs" </span>
-<span class="co">#&gt; [44] "FCS_files/Exp_part_3/0044_-_vol.150_time.48_polybrene.10_EGF.50_FCS.2_density.2.fcs" </span>
-<span class="co">#&gt; [45] "FCS_files/Exp_part_3/0045_-_vol.150_time.48_polybrene.10_EGF.50_FCS.5_density.16.fcs"</span>
-<span class="co">#&gt; [46] "FCS_files/Exp_part_3/0046_-_vol.150_time.48_polybrene.10_EGF.50_FCS.5_density.8.fcs" </span>
-<span class="co">#&gt; [47] "FCS_files/Exp_part_3/0047_-_vol.150_time.48_polybrene.10_EGF.50_FCS.5_density.4.fcs" </span>
-<span class="co">#&gt; [48] "FCS_files/Exp_part_3/0048_-_vol.150_time.48_polybrene.10_EGF.50_FCS.5_density.2.fcs" </span>
-<span class="co">#&gt; [49] "FJ_workspace/07-Oct-2021.wsp"                                                        </span>
-<span class="co">#&gt; [50] "R_scripts/script.R"                                                                  </span>
-<span class="co">#&gt; [51] "sampledescription.xlsx"</span></code></pre></div>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">wd</span>, recursive <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span>
+<span class="co">#&gt; [1] "FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs"</span>
+<span class="co">#&gt; [2] "FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs" </span>
+<span class="co">#&gt; [3] "FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs" </span>
+<span class="co">#&gt; [4] "FCS_files/Exp_part_3/0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs" </span>
+<span class="co">#&gt; [5] "FCS_files/Exp_part_3/0005_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs"</span></code></pre></div>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <colgroup>
 <col width="27%">
@@ -167,7 +115,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <col width="7%">
 <col width="4%">
 <col width="5%">
-<col width="10%">
+<col width="11%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">FileName</th>
@@ -236,224 +184,208 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <td align="left">5</td>
 <td align="left">16</td>
 </tr>
-<tr class="even">
-<td align="left">0006_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_006_006.fcs_-<em>100</em>-_2021.02.18-11.26.38</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0007_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.4.fcs</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>100</em>-_2021.02.18-11.28.01</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0008_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.2.fcs</td>
-<td align="left">Specimen_001_Tube_008_008.fcs_-<em>100</em>-_2021.02.18-11.29.00</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">2</td>
-</tr>
-<tr class="odd">
-<td align="left">0009_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_009_009.fcs_-<em>100</em>-_2021.02.18-11.29.50</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">24</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0010_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_010_010.fcs_-<em>100</em>-_2021.02.18-11.31.05</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">24</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
 </tbody>
 </table>
-<p>When we run an R-script which is saved in the R_script folder we can have our directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).</p>
+<p>When running an R-script which is saved in the R_script folder on can have its directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># wd &lt;- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))</span></code></pre></div>
-<p>Then we find all the flowjo workspaces in our folder and the groups in these workspaces.</p>
+<p>Find all the flowjo workspaces in the folder.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># the pattern indicates that .wsp has to appear at the end of the file name (this is btw called a regular expression)</span>
 <span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">wd</span>, pattern <span class="op">=</span> <span class="st">"\\.wsp$"</span>, recursive <span class="op">=</span> <span class="cn">T</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/basename.html">basename</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span>
-<span class="co">#&gt; [1] "07-Oct-2021.wsp"</span>
-<span class="co"># to get the group names elegantly we can use functions from the CytoML package</span>
-<span class="co"># of course you can also enter the names by hand</span>
-<span class="va">gr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html">as.character</a></span><span class="op">(</span><span class="fu">CytoML</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/CytoML/man/fj_ws_get_sample_groups.html">fj_ws_get_sample_groups</a></span><span class="op">(</span><span class="fu">CytoML</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/CytoML/man/open_flowjo_xml.html">open_flowjo_xml</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">groupName</span><span class="op">)</span><span class="op">)</span>
-<span class="va">gr</span>
-<span class="co">#&gt; [1] "All Samples" "Exp_part_3"</span>
-<span class="co"># as we dont want the All Samples group we can remove it from gr</span>
-<span class="va">gr</span> <span class="op">&lt;-</span> <span class="va">gr</span><span class="op">[</span><span class="op">-</span><span class="fl">1</span><span class="op">]</span>
-<span class="va">gr</span>
-<span class="co">#&gt; [1] "Exp_part_3"</span></code></pre></div>
+<span class="va">ws</span>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/Part_3/FJ_workspace/07-Oct-2021.wsp"</span></code></pre></div>
 <p>The gating for GFP positive events is straight forward.</p>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-7-1.png" width="700"></p>
-<p>Now we want to import the number of events in the gates. In this simple example we only have one workspace in ws and only one group in gr. But the procedure can also handle multiple ws and multiple gr.</p>
+<p>Under the hood, the .wsp file is an XML file with all population counts and statistics stored independently of FCS files. <img src="../../../../../../private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/Rtmp8SQer9/temp_libpath15327ea20266/fcexpr/extdata/5qdab0.jpg" width="250"></p>
+<p>Import the aggregated values from a workspace file. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps.raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/ws_get_popstats.html">ws_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="va">ws</span>, gr <span class="op">=</span> <span class="va">gr</span>, FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span><span class="op">)</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">ps.raw</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="va">ps.raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>
+<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">ps.raw</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="36%">
-<col width="11%">
-<col width="6%">
-<col width="8%">
+<col width="17%">
+<col width="5%">
 <col width="3%">
-<col width="7%">
-<col width="10%">
-<col width="6%">
-<col width="9%">
+<col width="3%">
+<col width="1%">
+<col width="3%">
+<col width="4%">
+<col width="1%">
+<col width="5%">
+<col width="3%">
+<col width="42%">
+<col width="3%">
+<col width="4%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">FileName</th>
 <th align="left">PopulationFullPath</th>
-<th align="left">Population</th>
 <th align="left">Parent</th>
-<th align="right">Count</th>
+<th align="left">Population</th>
+<th align="left">Count</th>
 <th align="right">ParentCount</th>
 <th align="right">FractionOfParent</th>
+<th align="left">xDim</th>
+<th align="left">yDim</th>
+<th align="left">eventsInside</th>
+<th align="left">FilePath</th>
 <th align="left">group</th>
 <th align="left">ws</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">475</td>
-<td align="right">500</td>
-<td align="right">95.00000</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="even">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">422</td>
-<td align="right">475</td>
-<td align="right">88.84211</td>
+<td align="left">RPTECs</td>
+<td align="left">root</td>
+<td align="left">RPTECs</td>
+<td align="left">475</td>
+<td align="right">500</td>
+<td align="right">0.9500000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="odd">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-</td>
+<td align="left">RPTECs</td>
+<td align="left">DAPI-</td>
+<td align="left">422</td>
+<td align="right">475</td>
+<td align="right">0.8884211</td>
+<td align="left">FSC-A</td>
+<td align="left">v-450_50-B-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+</tr>
+<tr class="even">
+<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
+<td align="left">RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-</td>
 <td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">212</td>
+<td align="left">212</td>
 <td align="right">422</td>
-<td align="right">50.23697</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="right">474</td>
-<td align="right">500</td>
-<td align="right">94.80000</td>
+<td align="right">0.5023697</td>
+<td align="left">FSC-A</td>
+<td align="left">b-LP502 530_30-E-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="odd">
 <td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
+<td align="left">root</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+</tr>
+<tr class="even">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">RPTECs</td>
+<td align="left">root</td>
+<td align="left">RPTECs</td>
+<td align="left">474</td>
+<td align="right">500</td>
+<td align="right">0.9480000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+</tr>
+<tr class="odd">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">RPTECs/DAPI-</td>
+<td align="left">RPTECs</td>
 <td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">379</td>
+<td align="left">379</td>
 <td align="right">474</td>
-<td align="right">79.95781</td>
+<td align="right">0.7995781</td>
+<td align="left">FSC-A</td>
+<td align="left">v-450_50-B-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="even">
 <td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-</td>
 <td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">166</td>
+<td align="left">166</td>
 <td align="right">379</td>
-<td align="right">43.79947</td>
+<td align="right">0.4379947</td>
+<td align="left">FSC-A</td>
+<td align="left">b-LP502 530_30-E-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="odd">
 <td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">475</td>
-<td align="right">500</td>
-<td align="right">95.00000</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 <tr class="even">
 <td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">369</td>
-<td align="right">475</td>
-<td align="right">77.68421</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
-<td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">148</td>
-<td align="right">369</td>
-<td align="right">40.10840</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs</td>
-<td align="left">/RPTECs</td>
 <td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">460</td>
+<td align="left">RPTECs</td>
+<td align="left">475</td>
 <td align="right">500</td>
-<td align="right">92.00000</td>
+<td align="right">0.9500000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 </tr>
 </tbody>
 </table>
-<p>Then we want to join these counts with the meta data which are documented excellently in the sampledescription.xlsx. For that we use a function from the dplyr package. As we have previously synchronized the FCS file names and the FileName column in our sampledescription.xlsx, we can use this column to match (join) the meta data and the counts from flowjo (~phenotype data).</p>
+<p>Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>
 <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">sd</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
@@ -595,37 +527,45 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </table>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span>
-  <span class="va">ps.raw</span> <span class="op">%&gt;%</span>
+  <span class="va">ps.raw</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, by <span class="op">=</span> <span class="st">"FileName"</span><span class="op">)</span>
 <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">ps</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="18%">
-<col width="5%">
+<col width="11%">
 <col width="3%">
-<col width="4%">
+<col width="2%">
+<col width="2%">
+<col width="1%">
+<col width="2%">
+<col width="3%">
 <col width="1%">
 <col width="3%">
-<col width="5%">
-<col width="3%">
-<col width="4%">
-<col width="17%">
 <col width="2%">
-<col width="5%">
-<col width="5%">
+<col width="28%">
+<col width="2%">
+<col width="3%">
+<col width="11%">
+<col width="1%">
+<col width="3%">
+<col width="3%">
+<col width="3%">
+<col width="1%">
+<col width="2%">
 <col width="4%">
-<col width="3%">
-<col width="3%">
-<col width="7%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">FileName</th>
 <th align="left">PopulationFullPath</th>
-<th align="left">Population</th>
 <th align="left">Parent</th>
-<th align="right">Count</th>
+<th align="left">Population</th>
+<th align="left">Count</th>
 <th align="right">ParentCount</th>
 <th align="right">FractionOfParent</th>
+<th align="left">xDim</th>
+<th align="left">yDim</th>
+<th align="left">eventsInside</th>
+<th align="left">FilePath</th>
 <th align="left">group</th>
 <th align="left">ws</th>
 <th align="left">identity</th>
@@ -640,12 +580,16 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <tbody>
 <tr class="odd">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">475</td>
-<td align="right">500</td>
-<td align="right">95.00000</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 <td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
@@ -659,12 +603,16 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 <tr class="even">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">422</td>
-<td align="right">475</td>
-<td align="right">88.84211</td>
+<td align="left">RPTECs</td>
+<td align="left">root</td>
+<td align="left">RPTECs</td>
+<td align="left">475</td>
+<td align="right">500</td>
+<td align="right">0.9500000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 <td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
@@ -678,12 +626,16 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 <tr class="odd">
 <td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
-<td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">212</td>
-<td align="right">422</td>
-<td align="right">50.23697</td>
+<td align="left">RPTECs/DAPI-</td>
+<td align="left">RPTECs</td>
+<td align="left">DAPI-</td>
+<td align="left">422</td>
+<td align="right">475</td>
+<td align="right">0.8884211</td>
+<td align="left">FSC-A</td>
+<td align="left">v-450_50-B-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 <td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
@@ -696,51 +648,109 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <td align="left">16</td>
 </tr>
 <tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="right">474</td>
-<td align="right">500</td>
-<td align="right">94.80000</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">379</td>
-<td align="right">474</td>
-<td align="right">79.95781</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
+<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
+<td align="left">RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-</td>
 <td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">166</td>
+<td align="left">212</td>
+<td align="right">422</td>
+<td align="right">0.5023697</td>
+<td align="left">FSC-A</td>
+<td align="left">b-LP502 530_30-E-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
+<td align="left">3</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">10</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">16</td>
+</tr>
+<tr class="odd">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">root</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
+<td align="left">3</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">10</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">8</td>
+</tr>
+<tr class="even">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">RPTECs</td>
+<td align="left">root</td>
+<td align="left">RPTECs</td>
+<td align="left">474</td>
+<td align="right">500</td>
+<td align="right">0.9480000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
+<td align="left">3</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">10</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">8</td>
+</tr>
+<tr class="odd">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">RPTECs/DAPI-</td>
+<td align="left">RPTECs</td>
+<td align="left">DAPI-</td>
+<td align="left">379</td>
+<td align="right">474</td>
+<td align="right">0.7995781</td>
+<td align="left">FSC-A</td>
+<td align="left">v-450_50-B-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">Exp_part_3</td>
+<td align="left">07-Oct-2021.wsp</td>
+<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
+<td align="left">3</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">10</td>
+<td align="left">50</td>
+<td align="left">2</td>
+<td align="left">8</td>
+</tr>
+<tr class="even">
+<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
+<td align="left">RPTECs/DAPI-/GFP+</td>
+<td align="left">RPTECs/DAPI-</td>
+<td align="left">GFP+</td>
+<td align="left">166</td>
 <td align="right">379</td>
-<td align="right">43.79947</td>
+<td align="right">0.4379947</td>
+<td align="left">FSC-A</td>
+<td align="left">b-LP502 530_30-E-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 <td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
@@ -754,12 +764,16 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 <tr class="odd">
 <td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs</td>
-<td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">475</td>
-<td align="right">500</td>
-<td align="right">95.00000</td>
+<td align="left"></td>
+<td align="left">root</td>
+<td align="left">500</td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
 <td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
@@ -773,67 +787,33 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 <tr class="even">
 <td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="left">DAPI-</td>
-<td align="left">/RPTECs</td>
-<td align="right">369</td>
-<td align="right">475</td>
-<td align="right">77.68421</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">/RPTECs/DAPI-/GFP+</td>
-<td align="left">GFP+</td>
-<td align="left">/RPTECs/DAPI-</td>
-<td align="right">148</td>
-<td align="right">369</td>
-<td align="right">40.10840</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs</td>
-<td align="left">/RPTECs</td>
 <td align="left">RPTECs</td>
 <td align="left">root</td>
-<td align="right">460</td>
+<td align="left">RPTECs</td>
+<td align="left">475</td>
 <td align="right">500</td>
-<td align="right">92.00000</td>
+<td align="right">0.9500000</td>
+<td align="left">FSC-A</td>
+<td align="left">SSC-A</td>
+<td align="left">1</td>
+<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
 <td align="left">Exp_part_3</td>
 <td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>100</em>-_2021.02.18-11.24.29</td>
+<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
 <td align="left">3</td>
 <td align="left">50</td>
 <td align="left">2</td>
 <td align="left">10</td>
 <td align="left">50</td>
 <td align="left">2</td>
-<td align="left">2</td>
+<td align="left">4</td>
 </tr>
 </tbody>
 </table>
 <p>This table can be saved as xlsx if needed.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"pop_counts.xlsx"</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p>But actually we can continue to plot the data in R with ggplot2. We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.</p>
+<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"pop_counts.xlsx"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></code></pre></div>
+<p>But actually plotting the data should be done in R with ggplot2. We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps_sub</span> <span class="op">&lt;-</span>
   <span class="va">ps</span> <span class="op">%&gt;%</span>
@@ -854,7 +834,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_wrap</span><span class="op">(</span><span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-1.png" width="768"></p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-13-1.png" width="768"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># actually we have ignored a fifth variable, (v) the amount FCS used (FCS.percent)</span>
 <span class="co"># adding this one to the plot is also not complicated (boxes to the right)</span>
@@ -863,110 +843,37 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-2.png" width="768"></p>
-<p>Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are altered due to the random sampling.</p>
-<p>Another relevant read-out are MFIs. Importing these takes a bit longer as the whole FCS files have to be read into memory (actually they are saved to a temporary folder on our hard disk by a function from CytoML). Selecting a population decreases the computational time needed. If no population is provided MFIs for all gated populations will be returned. If we have a simple gating tree like in this case calling the population of interest “GFP+” is sufficient. Though, if we had two gating trees that end up in a “GFP+” gate, then we would have to specify the gate of interest unambiguously, something like that: preGate/DAPI-/GFP+.<br>
-If you don’t want to type or guess the appropriate population by hand, you can also pull the necessary strings (characters) from the workspaces.</p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-13-2.png" width="768"></p>
+<p>Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.</p>
+<p>Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[[“stats”]] is NULL.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">wsp</span> <span class="op">&lt;-</span> <span class="fu">CytoML</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/CytoML/man/open_flowjo_xml.html">open_flowjo_xml</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span>
-<span class="va">gs</span> <span class="op">&lt;-</span> <span class="fu">CytoML</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/CytoML/man/flowjo_to_gatingset.html">flowjo_to_gatingset</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="va">wsp</span>, name <span class="op">=</span> <span class="va">gr</span>, path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, execute <span class="op">=</span> <span class="cn">F</span><span class="op">)</span>
-<span class="fu">flowWorkspace</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/flowWorkspace/man/gs_get_pop_paths.html">gs_get_pop_paths</a></span><span class="op">(</span><span class="va">gs</span>, path <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span>
-<span class="co">#&gt; [1] "root"   "RPTECs" "DAPI-"  "GFP+"</span></code></pre></div>
+<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span> <span class="va">ps.raw</span><span class="op">[[</span><span class="st">"stats"</span><span class="op">]</span><span class="op">]</span></code></pre></div>
+<p>This table may be appended with additional columns from the data.frame with event counts additional meta data from sampledescription.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mfi_raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/ws_get_MFIs.html">ws_get_MFIs</a></span><span class="op">(</span><span class="va">ws</span>, <span class="va">gr</span>, population <span class="op">=</span> <span class="st">"GFP+"</span>, FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span><span class="op">)</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">mfi_raw</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="41%">
-<col width="7%">
-<col width="12%">
-<col width="8%">
-<col width="6%">
-<col width="5%">
-<col width="7%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">FileName</th>
-<th align="left">Population</th>
-<th align="left">channel</th>
-<th align="left">channel.desc</th>
-<th align="right">median</th>
-<th align="right">sd</th>
-<th align="left">group</th>
-<th align="left">ws</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">GFP+</td>
-<td align="left">FSC-A</td>
-<td align="left"></td>
-<td align="right">118298.88</td>
-<td align="right">17951.51</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">GFP+</td>
-<td align="left">FSC-W</td>
-<td align="left"></td>
-<td align="right">118806.92</td>
-<td align="right">10562.84</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">GFP+</td>
-<td align="left">SSC-A</td>
-<td align="left"></td>
-<td align="right">55300.74</td>
-<td align="right">19164.36</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">GFP+</td>
-<td align="left">SSC-W</td>
-<td align="left"></td>
-<td align="right">146471.02</td>
-<td align="right">14647.44</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">GFP+</td>
-<td align="left">b-LP502 530_30-E-A</td>
-<td align="left"></td>
-<td align="right">13257.42</td>
-<td align="right">26206.45</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-</tbody>
-</table>
-<p>This table can, like above, be joined with the meta data and be used for plotting. GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.</p>
+<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span>
+  <span class="va">stats</span> <span class="op">%&gt;%</span>
+  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps.raw</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">%&gt;%</span>
+  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, by <span class="op">=</span> <span class="st">"FileName"</span><span class="op">)</span>
+<span class="co">#&gt; Joining, by = c("FileName", "PopulationFullPath", "FilePath")</span></code></pre></div>
+<p>GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">mfi</span> <span class="op">&lt;-</span>
-  <span class="va">mfi_raw</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, by <span class="op">=</span> <span class="st">"FileName"</span><span class="op">)</span> <span class="op">%&gt;%</span>
+<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span>
+  <span class="va">stats</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">channel</span> <span class="op">==</span> <span class="st">"b-LP502 530_30-E-A"</span><span class="op">)</span> <span class="op">%&gt;%</span>
+  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">statistic</span> <span class="op">==</span> <span class="st">"Median"</span><span class="op">)</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>incubation.time.h <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">incubation.time.h</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>EGF.ng.ml <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">EGF.ng.ml</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">EGF.ng.ml</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>seeding.density.dilution <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">seeding.density.dilution</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">seeding.density.dilution</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>viral.sup.vol.µl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">viral.sup.vol.µl</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">viral.sup.vol.µl</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
   
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">mfi</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">median</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+<span class="fu">ggplot</span><span class="op">(</span><span class="va">stats</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">geom_tile</span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-15-1.png" width="768"></p>
-<p>There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.</p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-16-1.png" width="768"></p>
+<p>There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.<br>
+To do so, whole FCS files have to be imported though. So one needs the information about gated events from a .wsp-file and the FCS files. That will be part of another vignette.</p>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

@@ -12,91 +12,84 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-options(knitr.kable.NA = '', width = 60)
+options(knitr.kable.NA = '', width = 80)
+library(flowWorkspace)
+library(CytoML)
 ```
 
 Install necessary packages in RStudio:
-```{r setup, eval=F}
-install.packages("BiocManager")
-BiocManager::install("flowCore")
-BiocManager::install("flowWorkspace")
-BiocManager::install("CytoML")
+```{r setup, eval=F,message=F}
 install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
+install.packages("tidyverse")
 library(fcexpr)
-
 ```
+
 ```{r setup2, message=F}
 library(tidyverse)
 ```
 
-The actual work for importing the data from flowjo workspaces is done by functions from CytoML and flowWorkspace. The function that I wrote, ws_get_popstats, is rather a wrapper around them. On the other hand ws_get_popstats handles the necessary loops for multiple workspaces (ws) and or multiple groups (gr) internally. So, it is beginner friendly. Moreover, a problem of mine with the subset argument of CytoML::flowjo_to_gatingset is handled by modifying the function. But these are only details from the backend.   
-
+Pick a directory to run the example on your disk.
 ```{r, echo=F}
-dir <- base::system.file("extdata", package = "fcexpr")
+dir <- "/Users/vonskopnik/Documents"
 utils::untar(base::system.file("extdata", "Part_3.tgz", package = "fcexpr"), exdir = dir)
 wd <- file.path(dir, "Part_3")
 ```
 
-We start with a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.  
+This is a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.  
 A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. Cells have then analyzed by flow cytometry. Factors have been varied (see below) that may or may not impact the transduction rate. Which and how? - This is what we want to know.
 ```{r}
-list.files(wd)
-list.files(wd, recursive = T)
+list.files(wd, recursive = T)[1:5]
 ```
 
 ```{r}
-knitr::kable(head(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")), 10))
+knitr::kable(head(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")), 5))
 ```
 
-When we run an R-script which is saved in the R_script folder we can have our directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
+When running an R-script which is saved in the R_script folder on can have its directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
 ```{r}
 # wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 ```
 
-Then we find all the flowjo workspaces in our folder and the groups in these workspaces.
+Find all the flowjo workspaces in the folder.
 ```{r}
-# the pattern indicates that .wsp has to appear at the end of the file name (this is btw called a regular expression)
+# the pattern indicates that .wsp has to appear at the end of the file name
 ws <- list.files(path = wd, pattern = "\\.wsp$", recursive = T, full.names = T)
-basename(ws)
-# to get the group names elegantly we can use functions from the CytoML package
-# of course you can also enter the names by hand
-gr <- unique(as.character(CytoML::fj_ws_get_sample_groups(CytoML::open_flowjo_xml(ws))$groupName))
-gr
-# as we dont want the All Samples group we can remove it from gr
-gr <- gr[-1]
-gr
+ws
 ```
 
 The gating for GFP positive events is straight forward.
+![alt text](inst/extdata/gating.png)
 
-```{r, echo=F}
-flowWorkspace::plot(CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(ws), name = gr, path = file.path(wd, "FCS_files")))
+
+Under the hood, the .wsp file is an XML file with all population counts and statistics stored independently of FCS files.
+``` {r, echo=F}
+knitr::include_graphics(path = base::system.file("extdata", "5qdab0.jpg", package = "fcexpr"))
 ```
 
-Now we want to import the number of events in the gates. In this simple example we only have one workspace in ws and only one group in gr. But the procedure can also handle multiple ws and multiple gr.
+Import the aggregated values from a workspace file. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
 ```{r}
-ps.raw <- fcexpr::ws_get_popstats(ws = ws, gr = gr, FCS.file.folder = file.path(wd, "FCS_files"))
-knitr::kable(head(ps.raw, 10))
+ps.raw <- fcexpr::wsx_get_popstats(ws[1])
+knitr::kable(head(ps.raw[[1]], 10))
 ```
 
-Then we want to join these counts with the meta data which are documented excellently in the sampledescription.xlsx. For that we use a function from the dplyr package. As we have previously synchronized the FCS file names and the FileName column in our sampledescription.xlsx, we can use this column to match (join) the meta data and the counts from flowjo (~phenotype data).
+Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.
 ```{r}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 knitr::kable(head(sd, 10))
 
 ps <-
-  ps.raw %>%
+  ps.raw[[1]] %>%
   dplyr::left_join(sd, by = "FileName")
 knitr::kable(head(ps, 10))
 ```
 
 This table can be saved as xlsx if needed.
 ```{r}
-openxlsx::write.xlsx(ps, file.path(wd, "pop_counts.xlsx"))
+openxlsx::write.xlsx(ps, file.path(wd, "pop_counts.xlsx"), overwrite = T)
 ```
 
-But actually we can continue to plot the data in R with ggplot2.
+But actually plotting the data should be done in R with ggplot2.
 We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.
 ```{r}
 ps_sub <-
@@ -132,44 +125,43 @@ ggplot(ps_sub, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = Fract
 ```
 
 
-Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are altered due to the random sampling.
+Even though statistics are missing, we can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.
 
-Another relevant read-out are MFIs. Importing these takes a bit longer as the whole FCS files have to be read into memory (actually they are saved to a temporary folder on our hard disk by a function from CytoML). Selecting a population decreases the computational time needed. If no population is provided MFIs for all gated populations will be returned. If we have a simple gating tree like in this case calling the population of interest "GFP+" is sufficient. Though, if we had two gating trees that end up in a "GFP+" gate, then we would have to specify the gate of interest unambiguously, something like that: preGate/DAPI-/GFP+.  
-If you don't want to type or guess the appropriate population by hand, you can also pull the necessary strings (characters) from the workspaces.
-
-```{r}
-wsp <- CytoML::open_flowjo_xml(ws)
-gs <- CytoML::flowjo_to_gatingset(ws = wsp, name = gr, path = file.path(wd, "FCS_files"), execute = F)
-flowWorkspace::gs_get_pop_paths(gs, path = "auto")
-```
+Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[["stats"]] is NULL.
 
 ```{r}
-mfi_raw <- fcexpr::ws_get_MFIs(ws, gr, population = "GFP+", FCS.file.folder = file.path(wd, "FCS_files"))
-knitr::kable(head(mfi_raw, 5))
+stats <- ps.raw[["stats"]]
 ```
 
-This table can, like above, be joined with the meta data and be used for plotting. GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.
+This table may be appended with additional columns from the data.frame with event counts additional meta data from sampledescription.
+
+```{r}
+stats <-
+  stats %>%
+  dplyr::left_join(ps.raw[["counts"]]) %>%
+  dplyr::left_join(sd, by = "FileName")
+```
+
+GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.
 ```{r, fig.width=8}
-mfi <-
-  mfi_raw %>%
-  dplyr::left_join(sd, by = "FileName") %>%
+stats <-
+  stats %>%
   dplyr::filter(channel == "b-LP502 530_30-E-A") %>%
+  dplyr::filter(statistic == "Median") %>%
   dplyr::mutate(incubation.time.h = factor(incubation.time.h, levels = sort(as.numeric(unique(incubation.time.h))))) %>%
   dplyr::mutate(EGF.ng.ml = factor(EGF.ng.ml, levels = sort(as.numeric(unique(EGF.ng.ml))))) %>%
   dplyr::mutate(seeding.density.dilution = factor(seeding.density.dilution, levels = sort(as.numeric(unique(seeding.density.dilution))))) %>%
   dplyr::mutate(viral.sup.vol.µl = factor(viral.sup.vol.µl, levels = sort(as.numeric(unique(viral.sup.vol.µl)))))
   
-ggplot(mfi, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = median)) +
+ggplot(stats, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = value)) +
   geom_tile(color = "black") +
   theme_classic() +
   scale_fill_viridis_c() +
   facet_grid(cols = vars(incubation.time.h), rows = vars(FCS.percent))
 ```
 
-There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.
-
-
-
+There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.  
+To do so, whole FCS files have to be imported though. So one needs the information about gated events from a .wsp-file and the FCS files. That will be part of another vignette.
 
 
 ```{r, echo=F}

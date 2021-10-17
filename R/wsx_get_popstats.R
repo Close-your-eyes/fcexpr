@@ -86,8 +86,9 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                       PopulationFullPath = PopulationFullPath,
                       Parent = Parent,
                       Population = Population,
-                      Count = Count,
-                      ParentCount = ParentCount,
+                      Count = as.numeric(Count),
+                      ParentCount = as.numeric(ParentCount),
+                      FractionOfParent = as.numeric(Count)/as.numeric(ParentCount),
                       xDim = xDim,
                       yDim = yDim,
                       gate_id = gate_id,
@@ -108,6 +109,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                Population = "root",
                Count = xml2::xml_attr(xml2::xml_child(y, "SampleNode"), "count"),
                ParentCount = NA,
+               FractionOfParent = NA,
                xDim = NA,
                yDim = NA,
                gate_id = NA,
@@ -155,7 +157,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
 
   gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
 
-
   if (return_stats) {
     stats_out <- do.call(rbind, lapply(seq_along(xml2::xml_children(xml2::xml_child(ws, "SampleList"))), function(n) {
 
@@ -169,7 +170,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
         sampleID <- xml2::xml_attr(xml2::xml_child(x, "DataSet"), "sampleID")
         FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(node, "DataSet"), "uri"))
         FileName <- basename(FilePath)
-        PopulationFullPath <- if (xml2::xml_length(p_nodes) == 0) {"root"} else {paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")}
+        PopulationFullPath <- if (length(p_nodes) == 0) {"root"} else {paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")}
 
 
         data.frame(FileName = FileName,
