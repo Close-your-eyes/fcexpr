@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manage and analyze flow cytometry experiments • fcexpr</title>
+<title>Manage and Analzye flow cytometry experiments, beginner-friendly • fcexpr</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
 <script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
-<script src="pkgdown.js"></script><meta property="og:title" content="Manage and analyze flow cytometry experiments">
+<script src="pkgdown.js"></script><meta property="og:title" content="Manage and Analzye flow cytometry experiments, beginner-friendly">
 <meta property="og:description" content="Largely based on functions from well-known bioconductor packages flowCore, CytoML and flowWorkspace. Solves some issues I had with these packages to reduce the effort for beginners to start working with R to analyze flow cytometry data. ">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9000</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
       </span>
     </div>
 
@@ -79,24 +79,41 @@
 <a href="#fcexpr" class="anchor"></a>fcexpr</h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
-<p>A set of functions to organize and analyze flow cytometry experiments.</p>
+<p>A set of functions to organize and analyze flow cytometry experiments in R and to overcome a few limitations from FlowJo.</p>
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
-<p>Please install the necessary packages from bioconductor first:</p>
+<p>Please install optional packages from bioconductor. Some functions can be used without them though.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowCore"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowWorkspace"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"CytoML"</span><span class="op">)</span></code></pre></div>
-<p>Please install the development version of fcexpr from GitHub. This requires devtools to be installed first.</p>
+<p>Please install fcexpr from GitHub. This requires devtools.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org//reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
-<p>If you want you can start by creating a default folder for your experiment:</p>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
+</div>
+<div id="the-idea" class="section level2">
+<h2 class="hasAnchor">
+<a href="#the-idea" class="anchor"></a>The idea</h2>
+<p>FlowJo is, to my mind, still the best tool to explore and gate flow cytometric data. I am not aware of a purely R-based procedure which is as convenient and elaborated and which hence could replace this commercial software. Other commercial software may also be convenient though. When it comes to statistical analysis of gated data scientists usually export aggregated values from FlowJo (MFIs or cell counts) to other software (see workflow (i) below). Not only that the subsequent software is commercial as well, it is also<br>
+1) often inconvenient to manually copy and arrange the data<br>
+2) hence inefficient with respect to labor time<br>
+3) problematic with respect to reproducibility (unambiguous links between meta-data and the phenotypic data may be lost in the process of clicking, dragging and dropping)<br>
+4) not scalable to many samples and to problems where the exact read-out parameter is unknown yet.<br>
+So, I want to make a plea for workflow (ii) and provide tools to easily accomplish it. Once you have a data.frame with aggregated values from your cytometric experiment you can apply common procedures to tidy and plot the data with tools from the <a href="https://www.tidyverse.org">tidyverse</a>.</p>
+<p><img src="inst/extdata/workflows.png" alt="alt text"></p>
+</div>
+<div id="how-to-start" class="section level2">
+<h2 class="hasAnchor">
+<a href="#how-to-start" class="anchor"></a>How to start</h2>
+<p>You may adopt the whole concept of organizing your flow cytrometric experiment by creating a folder as follows. Then paste your fcs files and see the vignette below of how to synchronize and document them with a sampledescription file.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcecpr</span><span class="fu">::</span><span class="fu">new_exp</span><span class="op">(</span>path <span class="op">=</span> <span class="st">'your system directory'</span>, name <span class="op">=</span> <span class="st">'your folder name'</span><span class="op">)</span></code></pre></div>
-<p>Please see vignette(s) for further workflows:</p>
+<p>Alternatively, you may only be interested in pulling out the aggregated data from your flowjo workspace (cell counts and/or MFIs), then use:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="vignettes-tutorials" class="section level2">
 <h2 class="hasAnchor">
