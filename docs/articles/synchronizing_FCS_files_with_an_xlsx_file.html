@@ -104,10 +104,10 @@
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">dir</span> <span class="op">&lt;-</span> <span class="st">"/Users/vonskopnik/Documents"</span>
 <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">dir</span>, name <span class="op">=</span> <span class="st">"my_experiment"</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211017_my_experiment created."</span>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211018_my_experiment created."</span>
 <span class="va">wd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">""</span>, <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.Date</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="st">"_my_experiment"</span><span class="op">)</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">wd</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211017_my_experiment"</span></code></pre></div>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211018_my_experiment"</span></code></pre></div>
 <p>Next, add FCS files to the FCS_files folder. You can use your own files, or use example files that come with this package.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># this command uses example files from the fcexpr package</span>
@@ -895,9 +895,9 @@ sampledescription.xlsx:</p>
 </table>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/sync_sampledescription.html">sync_sampledescription</a></span><span class="op">(</span>FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, write.log <span class="op">=</span> <span class="cn">F</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
-<span class="co">#&gt; [2] "/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
-<span class="co">#&gt; [3] "/Users/vonskopnik/Documents/20211017_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211018_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
+<span class="co">#&gt; [2] "/Users/vonskopnik/Documents/20211018_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
+<span class="co">#&gt; [3] "/Users/vonskopnik/Documents/20211018_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
 <span class="co">#&gt; [1] "FCS files moved to deleted_FCS_files and sampledescription.xlsx updated."</span>
 <span class="co">#&gt;                               FileName                     PreviousFileName</span>
 <span class="co">#&gt; 1 0012_-_Specimen_001_Tube_003_003.fcs 0013_-_Specimen_001_Tube_003_003.fcs</span>

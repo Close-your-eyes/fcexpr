@@ -195,7 +195,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">wd</span>, pattern <span class="op">=</span> <span class="st">"\\.wsp$"</span>, recursive <span class="op">=</span> <span class="cn">T</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 <span class="va">ws</span>
 <span class="co">#&gt; [1] "/Users/vonskopnik/Documents/Part_3/FJ_workspace/07-Oct-2021.wsp"</span></code></pre></div>
-<p>Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files) <img src="inst/extdata/5qdab0.jpg" alt="alt text"></p>
+<p>Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files) <img src="vignettes/5qdab0.jpg" alt="alt text"></p>
 <p>Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps.raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>
@@ -384,7 +384,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 </tbody>
 </table>
-<p>The gating for GFP positive events is straight forward. <img src="../../../../../../private/var/folders/qm/23fzktj168dg2xrv5zgkhwhh0000gn/T/RtmpV7Rhgh/temp_libpath188e6ede2382/fcexpr/extdata/gating.png" width="700"></p>
+<p>The gating for GFP positive events is straight forward. <img src="vignettes/gating.png" alt="alt text"></p>
 <p>Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>
@@ -834,7 +834,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_wrap</span><span class="op">(</span><span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-1.png" width="768"></p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-11-1.png" width="768"></p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># actually we have ignored a fifth variable, (v) the amount FCS used (FCS.percent)</span>
 <span class="co"># adding this one to the plot is also not complicated (boxes to the right)</span>
@@ -843,7 +843,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-2.png" width="768"></p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-11-2.png" width="768"></p>
 <p>We can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.</p>
 <p>Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[[“stats”]] is NULL.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -871,7 +871,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-15-1.png" width="768"></p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-14-1.png" width="768"></p>
 <p>There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.<br>
 To do so, whole FCS files have to be imported though. So one needs the information about gated events from a .wsp-file and the FCS files. That will be part of another vignette.</p>
   </div>
