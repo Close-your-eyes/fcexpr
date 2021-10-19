@@ -29,14 +29,14 @@ No return value. Instead sampledescription.xlsx and FCS files are synced.
 }
 \description{
 Five cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
-in wd a xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
+an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
 When new FCS files are added to FCS.file.folder and the function is called
 they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are changed and the function is called
+in the FileName column of the xlsx-file are altered and the function is called
 the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed the entry in the FileName column has to be left
+are to be excluded or removed, the entry in the FileName column has to be left
 blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed FCS files will be re-numbered by the prefix.
+is changed prefixes will be re-numbered.
 }
 \details{
 The xlsx-file will always be written to the root of the FCS.file.folder.

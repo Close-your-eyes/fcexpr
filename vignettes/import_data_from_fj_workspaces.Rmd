@@ -58,8 +58,7 @@ ws <- list.files(path = wd, pattern = "\\.wsp$", recursive = T, full.names = T)
 ws
 ```
 
-Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files)
-![alt text](man/figures/5qdab0.jpg)
+**Under the hood, the .wsp file is an XML file with all population counts and statistics stored.**
 
 Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
 ```{r}
@@ -68,7 +67,7 @@ knitr::kable(head(ps.raw[[1]], 10))
 ```
 
 The gating for GFP positive events is straight forward.
-![alt text](man/figures//gating.png)
+RPTECs (renal tubular epithelial cells; scatter gate) --> DAPI-negatives --> GFP-positives
 
 Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.
 ```{r}

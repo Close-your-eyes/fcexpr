@@ -4,7 +4,7 @@
 #' have been acquired with the same settings this functions helps to pull out the
 #' voltage of PMTs.
 #'
-#' @param file_path character of path to the fcs file
+#' @param file_path path to the fcs file
 #'
 #' @return a data.frame with different columns depending on the machine the fcs was acquired with; usually the 'V'-column indicates PMT voltages
 #' @export

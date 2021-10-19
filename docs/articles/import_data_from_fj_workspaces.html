@@ -195,7 +195,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 <span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">wd</span>, pattern <span class="op">=</span> <span class="st">"\\.wsp$"</span>, recursive <span class="op">=</span> <span class="cn">T</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
 <span class="va">ws</span>
 <span class="co">#&gt; [1] "/Users/vonskopnik/Documents/Part_3/FJ_workspace/07-Oct-2021.wsp"</span></code></pre></div>
-<p>Under the hood, the .wsp file is an XML file with all population counts and statistics stored. (independently of FCS files) <img src="man/figures/5qdab0.jpg" alt="alt text"></p>
+<p><strong>Under the hood, the .wsp file is an XML file with all population counts and statistics stored.</strong></p>
 <p>Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps.raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>
@@ -384,7 +384,7 @@ A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. 
 </tr>
 </tbody>
 </table>
-<p>The gating for GFP positive events is straight forward. <img src="man/figures//gating.png" alt="alt text"></p>
+<p>The gating for GFP positive events is straight forward. RPTECs (renal tubular epithelial cells; scatter gate) –&gt; DAPI-negatives –&gt; GFP-positives</p>
 <p>Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>

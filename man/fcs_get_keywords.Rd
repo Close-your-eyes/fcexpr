@@ -4,10 +4,10 @@
 \alias{fcs_get_keywords}
 \title{Get keywords from all FCS files in a folder or subfolder}
 \usage{
-fcs_get_keywords(FCS.file.folder = file.path(getwd(), "FCS_files"))
+fcs_get_keywords(file_path)
 }
 \arguments{
-\item{FCS.file.folder}{path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed}
+\item{file_path}{path to the fcs file}
 }
 \value{
 a data frame of keywords as columns and FCS files as rows
@@ -18,10 +18,13 @@ Note that if you have defined your keywords in flowjo you have to export the FCS
 }
 \examples{
 \dontrun{
-key_df <- fcs_get_keywords()
-key_df <- key_df[,c("FileName", "$OP")]
-# sd is data frame of sampledescription
-sd <- dplyr::left_join(sd, key_df, by = "FileName")
-# save sd
+# get FCS files in a folder
+files <- list.files(FCS.files.folder, recursive = T, full.names = T)
+# loop through files and extract keywords; only SPILL is
+keys <- lapply(files, function(x) {
+fcs_get_keywords(x)
+})
+# convert the lists of data frames to one wide data frame
+keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
 }
 }

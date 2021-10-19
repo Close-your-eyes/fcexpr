@@ -3,36 +3,38 @@
 #' The returned data frame can be used to filter for relevant keywords which may then be joined to the sampledescription.
 #' Note that if you have defined your keywords in flowjo you have to export the FCS files in order to hard-code the keyword into the FCS file. Otherwise it only exists in the flowjo workspace. In order to pull out keywords from there another function exists.
 #'
-#' @param FCS.file.folder path to root folder which contains FCS files; if missing file.path(getwd(), 'FCS_files') is assumed
+#' @param file_path path to the fcs file
 #'
 #' @return a data frame of keywords as columns and FCS files as rows
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' key_df <- fcs_get_keywords()
-#' key_df <- key_df[,c("FileName", "$OP")]
-#' # sd is data frame of sampledescription
-#' sd <- dplyr::left_join(sd, key_df, by = "FileName")
-#' # save sd
+#' # get FCS files in a folder
+#' files <- list.files(FCS.files.folder, recursive = T, full.names = T)
+#' # loop through files and extract keywords; only SPILL is
+#' keys <- lapply(files, function(x) {
+#' fcs_get_keywords(x)
+#' })
+#' # convert the lists of data frames to one wide data frame
+#' keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
 #' }
-fcs_get_keywords <- function(FCS.file.folder = file.path(getwd(), "FCS_files")) {
+fcs_get_keywords <- function(file_path) {
 
-  if (!file.exists(FCS.file.folder)) {
-    stop(paste0(FCS.file.folder, " not found."))
+  if (!file.exists(file_path)) {
+    stop(paste0(file_path, " not found."))
   }
 
-  keys <- lapply(list.files(FCS.file.folder, "\\.fcs$", ignore.case = T, recursive = T, full.names = T), function(x) {
-    k <- flowCore::keyword(flowCore::read.FCS(x, which.lines = 1, emptyValue = T, truncate_max_range = F))
-    kdf <- suppressWarnings(utils::stack(k[which(!names(k) == "SPILL")]))
-    names(kdf) <- c("value", "keyword")
-    kdf[,"FileName"] <- basename(x)
-    kdf[,"FilePath"] <- dirname(x)
-    return(kdf)
-  })
-  keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
+  k <- flowCore::keyword(flowCore::read.FCS(file_path, which.lines = 1, emptyValue = T, truncate_max_range = F))
+  if ("SPILL" %in% names(k)) {
+    k[["SPILL"]] <- paste(as.character(k[["SPILL"]]), collapse = ",")
+  }
+  kdf <- suppressWarnings(utils::stack(k))
+  names(kdf) <- c("value", "keyword")
+  kdf[,"FileName"] <- basename(file_path)
+  kdf[,"FilePath"] <- dirname(file_path)
 
-  return(as.data.frame(keys))
+  return(kdf)
 }
 
 

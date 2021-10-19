@@ -7,7 +7,7 @@
 fcs_get_voltages(file_path)
 }
 \arguments{
-\item{file_path}{character of path to the fcs file}
+\item{file_path}{path to the fcs file}
 }
 \value{
 a data.frame with different columns depending on the machine the fcs was acquired with; usually the 'V'-column indicates PMT voltages
