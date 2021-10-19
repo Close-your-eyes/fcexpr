@@ -23,7 +23,6 @@
 #' }
 wsx_get_popstats <- function(ws, return_stats = T) {
 
-  ## graph in xml refers to the current (or last) channels looked at in FJ; not where the Gate is set
   if (is.character(ws)) {
     if (!file.exists(ws)) {
       stop("ws file not found.")
@@ -37,7 +36,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
     stop("x must be a xml-document or a character path to its location on disk")
   }
 
-  ## check FJ version
   if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
     warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
   }
@@ -150,7 +148,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
   }
   gates_out <- do.call(rbind, gates_list)
 
-  gates_out <- dplyr::left_join(gates_out, wsp_xml_get_groups(ws), by = "sampleID")
+  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws), by = "sampleID")
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
@@ -188,9 +186,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
   return(gates_out)
 }
 
-
-
-
 wsp_xml_get_samples <- function(x) {
   if (is.character(x)) {
     x <- xml2::read_xml(x)
@@ -205,34 +200,6 @@ wsp_xml_get_samples <- function(x) {
   s$FilePath <- gsub("file:", "", s$FilePath)
   s$FileName <- basename(s$FilePath)
   return(s)
-}
-
-wsp_xml_get_groups <- function(x) {
-  if (is.character(x)) {
-    x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-
-  g <- sapply(xml2::xml_children(xml2::xml_child(x, "Groups")), function(y) {
-    xml2::xml_attrs(y)[["name"]]
-  })
-  gs <- lapply(xml2::xml_children(xml2::xml_child(x, "Groups")), function(y) {
-    unlist(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(xml2::xml_child(y, "Group"), "SampleRefs"))))
-  })
-  gr <- data.frame(group = rep(g, lengths(gs)),  sampleID = unlist(gs))
-  gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-    g <- if (length(gr[which(gr$sampleID == y),"group"]) > 1) {
-      gr[base::intersect(which(gr$sampleID == y), which(gr$group != "All Samples")), ]
-    } else if (gr[which(gr$sampleID == y),"group"] == "All Samples") {
-      gr[which(gr$sampleID == y), ]
-    } else {
-      stop("group error occured.")
-    }
-    g <- data.frame(group = paste(g$group, collapse = ", "), sampleID = g$sampleID)
-  }))
-  return(gr)
 }
 
 shortest_unique_path <- function(p) {
