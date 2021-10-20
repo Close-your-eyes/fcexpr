@@ -43,6 +43,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply(seq_along(gg), function(n) {
 
+
     prnts <- xml2::xml_parents(gg[n])
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
@@ -58,13 +59,17 @@ wsx_get_popstats <- function(ws, return_stats = T) {
     ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {xml2::xml_attr(xml2::xml_child(s_node, "SampleNode"), "count")}
     gate_level <- length(p_nodes)
 
-    if (xml2::xml_name(gg[n]) == "Dependents") {
-      xDim <- NA
-      yDim <- NA
-    } else {
-      xDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
-      yDim <- xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
-    }
+    xDim <- tryCatch({
+      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
+    }, error = function(e) {
+      NA
+    })
+
+    yDim <- tryCatch({
+      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
+    }, error = function(e) {
+      NA
+    })
 
     if (xml2::xml_name(gg[n]) == "Dependents") {
       origin <- "Dependents"
