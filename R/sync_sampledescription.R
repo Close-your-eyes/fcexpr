@@ -220,9 +220,11 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
     })
 }
 
-.check.FCS.files <- function(FCS.file.folder, exclude.folders) {
+.check.FCS.files <- function(FCS.file.folder, exclude.folders = NULL) {
     fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = T, recursive = T, ignore.case = T)
-    fcs.file.paths <- fcs.file.paths[which(!grepl(paste0(tolower(exclude.folders), collapse = "|"), tolower(fcs.file.paths)))]
+    if (!is.null(exclude.folders)) {
+        fcs.file.paths <- fcs.file.paths[which(!grepl(paste0(tolower(exclude.folders), collapse = "|"), tolower(fcs.file.paths)))]
+    }
 
     if (length(fcs.file.paths) == 0) {
         stop("No FCS files found or left over after filtering for exclusion folders.")
