@@ -15,6 +15,7 @@
 #' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 #' setwd(wd)
 #' sd <- openxlsx::read.xlsx(sampledescription.xlsx)
+#' # if only a subset of files should be considered, select respective rows
 #' sampledescription_to_fcs_keywords(sampledescription = sd,
 #' columns = c("Patient", "ExpPart"),
 #' FCS.file.folder = "FCS_files)
@@ -27,37 +28,36 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
 
   fcs_files <- .check.FCS.files(FCS.file.folder)
   fcs_files <- stats::setNames(names(fcs_files), fcs_files)
-  sampledescription <- as.data.frame(sampledescription)
-  if (!"identity" %in% names(sampledescription)) {
-    stop("identity column not found in sampledescription.")
+  sd <- as.data.frame(sampledescription)
+  if (!"identity" %in% names(sd)) {
+    stop("identity column not found in sd.")
   }
-  fcs_files <- fcs_files[sampledescription$identity]
+  fcs_files <- fcs_files[sd$identity]
   if (length(fcs_files) == 0) {
     stop("No matching FCS files found.")
   }
 
-  if (length(columns[which(columns %in% names(sampledescription))]) == 0) {
-    stop("No matching column names found in sampledescription.")
+  if (length(columns[which(columns %in% names(sd))]) == 0) {
+    stop("No matching column names found in sd.")
   }
-  print(paste0(length(columns[which(columns %in% names(sampledescription))]), " of ", length(columns), " columns found in sampledescription: " ))
-  print(columns[which(columns %in% names(sampledescription))])
-  columns <- columns[which(columns %in% names(sampledescription))]
+  print(paste0(length(columns[which(columns %in% names(sd))]), " of ", length(columns), " columns found in sd: " ))
+  print(columns[which(columns %in% names(sd))])
+  columns <- columns[which(columns %in% names(sd))]
 
-  lapply(fcs_files, function(x) {
-    if (any(!is.na(sampledescription[which(sampledescription$identity == names(x)),columns]))) {
-      f <- flowCore::read.FCS(x, truncate_max_range = F, emptyValue = F)
+  for (x in seq_along(fcs_files)) {
+    if (any(!is.na(sd[which(sd$identity == names(fcs_files[x])),columns]))) {
+      f <- flowCore::read.FCS(fcs_files[x], truncate_max_range = F, emptyValue = F)
       for (k in columns) {
-        if (!is.na(is.na(sampledescription[which(sampledescription$identity == names(x)),k]))) {
-          flowCore::keyword(f)[[k]] <- sampledescription[which(sampledescription$identity == names(x)),k]
+        if (!is.na(is.na(sd[which(sd$identity == names(fcs_files[x])),k]))) {
+          flowCore::keyword(f)[[k]] <- sd[which(sd$identity == names(fcs_files[x])),k]
         }
       }
-      flowCore::write.FCS(f, x)
+      flowCore::write.FCS(f, fcs_files[x])
     }
-  })
+  }
+
 
 }
-
-
 
 
 
