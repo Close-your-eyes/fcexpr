@@ -72,10 +72,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
       origin <- "Gate"
     }
 
-    # handle different gatetpyes??
-    #xGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 1)))
-    #yGateLim <- as.numeric(xml2::xml_attrs(xml2::xml_child(xml2::xml_child(g), 2)))
-
     gate_id <- xml2::xml_attr(gg[n], "id")
     parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
     eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
