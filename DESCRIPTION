@@ -7,7 +7,7 @@ Authors@R:
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
            comment = c(ORCID = "0000-0002-6089-4769"))
-Description: Largely based on functions from well-known bioconductor packages flowCore, CytoML and flowWorkspace. Solves some issues I had with these packages to reduce the effort for beginners to start working with R to analyze flow cytometry data. 
+Description: Tackles issues I had during my PhD when it came to analyzing large flow cytometry experiments. Either many channels, or many samples with much variation in the meta data, or both. 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
