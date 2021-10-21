@@ -97,7 +97,8 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                       FilePath = FilePath,
                       gate_level = gate_level,
                       origin = origin,
-                      n = n)
+                      n = n,
+                      stringsAsFactors = F)
     )
   })
 
@@ -118,7 +119,8 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                gate_level = 0,
                origin = "root",
-               n = 0)
+               n = 0,
+               stringsAsFactors = F)
   }))
 
 
