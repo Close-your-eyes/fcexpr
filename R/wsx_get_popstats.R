@@ -178,7 +178,8 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                    statistic = xml2::xml_attr(x, "name"),
                    channel = xml2::xml_attr(x, "id"),
                    value = as.numeric(xml2::xml_attr(x, "value")),
-                   FilePath = FilePath)
+                   FilePath = FilePath,
+                   stringsAsFactors = F)
       }))
 
       return(stats_df)

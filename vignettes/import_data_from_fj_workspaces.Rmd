@@ -44,8 +44,8 @@ ps <- fcexpr::wsx_get_popstats(ws)
 ```
 
 ws is the file path (url) to the wsp on your disk (e.g. "/Users/vonskopnik/Documents/07-Oct-2021.wsp"). On a Mac you can copy this path with CMD+ALT+C. The prefix (fcexpr::) indicates the package a function comes from. This is important to avoid ambiguities in case there are two functions with equal names from different packages.  
-If there are calculated statistics we get a list of length 2. Index 1 hold a table (data.frame) with gated event counts, index 2 table with statistics.  
-The column names are very descriptive. eventsInside indicates if the events inside (1) or outside (0) were relevant for subsequent gates.
+If there are calculated statistics we get a list of length 2. Index 1 hold a table (data.frame) with gated event counts, index 2 a table with statistics.  
+The column names are very descriptive so I will not explain them, except for one: eventsInside indicates if the events inside (1) or outside (0) were relevant for subsequent gates. Please check the content of those data frames by yourself.
 ```{r}
 length(ps)
 names(ps)
@@ -64,7 +64,7 @@ Most likely additional information (meta data) are necessary to plot the data or
 keys <- fcexpr::wsx_get_keywords(ws)
 ```
 
-This returns a list of data frames. One list entry for every FCS file in the wsp. In this example there are 48 FCS files. The data.frame at index 1 (first FCS file) has 211 rows, one row for each keyword, and 2 columns, providing the name of the keyword and its value.
+This returns a list of data frames. One index for every FCS file in the wsp. In this example there are 48 FCS files. The data.frame at index 1 (first FCS file) has 211 rows, one for each keyword, and 2 columns, providing the name of the keyword and its value.
 ```{r}
 length(keys)
 nrow(keys[[1]])
@@ -82,7 +82,7 @@ keys_df$FileName <- rep(names(keys), sapply(keys,nrow))
 # example: Cytometer name ($CYT) and Operator ($OP)
 keys_df <- keys_df[which(keys_df$name %in% c("$CYT", "$OP")),] # base R
 keys_df <- dplyr::filter(keys_df, name %in% c("$CYT", "$OP")) # dplyr-style
-# make it wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)
+# make it a wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)
 keys_df <- tidyr::pivot_wider(keys_df, names_from = name, values_from = value)
 nrow(keys_df)
 names(keys_df)
@@ -102,7 +102,7 @@ ps_counts2 which now holds meta data and phenotype data may be saved to excel fo
 openxlsx::write.xlsx(ps_counts2, "/Users/vonskopnik/Documents/7-Oct-2021.xlsx")
 ```
 
-It is preferable though to continue in R. This can be done with base R or with functions from the [tidyverse](https://www.tidyverse.org). The possible operations and sometimes necessary steps to tidy up a data frame for plotting are too exhaustive to cover them here. Also, it requires a little bit of practice. Hence, arbitrary operations and plots are shown below.
+It is preferable though to tidy up, filter, select and plot in R. This can be done with base R or with functions from the [tidyverse](https://www.tidyverse.org). The possible operations and sometimes necessary steps to process a data frame for plotting are too exhaustive to cover them here. Also, it requires a little bit of practice. For a number of cases there are a few standard procedures that you may learn. A few arbitrary operations and plots are shown below.
 
 ```{r,fig.width=8}
 # filter for the GFP+ population only
@@ -129,7 +129,7 @@ ps_counts2_plot$viral.sup.vol.µl <- factor(ps_counts2_plot$viral.sup.vol.µl, l
 
 
 ```{r,fig.width=8}
-ggplot(ps_counts2_plot, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = FractionOfParent)) +
+ggplot(ps_counts2_plot, aes(x = viral.sup.vol.µl, y = seeding.density.dilution, fill = FractionOfParent)) +
   geom_tile(color = "black") +
   theme_classic() +
   scale_fill_viridis_c() +
