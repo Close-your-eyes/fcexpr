@@ -26,6 +26,9 @@ devtools::install_github("Close-your-eyes/fcexpr")
 library(fcexpr)
 ```
 
+In order to plot the data from a flowjo workspace (event counts or MFI) meta data to the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment and to make the process time-efficient the sync_sampledescription function may be used. Annotating FCS file within the workspace is another common procedure which is not convenient to me though. (i) The link of keyword and FCS file only exists in the workspace which does not allow to use it for plotting easily, (ii) if the workspace gets corrupted for any reason the keyword-annotation is lost and has to be redone, (iii) flowjo is an expensive commercial software that you may not want to be dependent on, (iv) I do not like the responsiveness when typing keywords in flowjo.  
+That's why I prefer to save meta data in more common format (xlsx convert-able to csv) which (i) can also be used for plotting, (ii) is easier to read, (iii) is stable on the long run, (iv) has convenient autofill options and copy-paste functions.
+
 ### Please follow the steps of the vignette and observe what happens on your disk.
 
 ## Initiate
