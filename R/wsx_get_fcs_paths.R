@@ -1,4 +1,7 @@
-#' Title
+#' Get file paths to the fcs files in a workspace
+#'
+#' If one has a large experiment with many fcs files and many workspaces with various
+#' gatings finding out which fcs files are used in which workspace may be helpful.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #'
