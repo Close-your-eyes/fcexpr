@@ -31,8 +31,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # read the FCS file while the spill keyword is fixed
-#' # (wrong comma replaced by dots)
+#' # read the FCS file while the spill keyword is fixed (wrong comma replaced by dots)
 #' ff <- read.FCS_spill.comma.sensitive(filename = "123.fcs")
 #' # save the correct version as new file or overwrite the old one
 #' # NOTE: the meta data reveal that the file was read and saved with flowCore

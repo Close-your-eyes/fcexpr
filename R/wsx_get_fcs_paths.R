@@ -21,7 +21,7 @@ wsx_get_fcs_paths <- function(ws) {
     ws <- xml2::read_xml(ws)
   }
   if (!any(class(ws) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
+    stop("ws must be a xml-document or a character path to its location on disk")
   }
 
   if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {

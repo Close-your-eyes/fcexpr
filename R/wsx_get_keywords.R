@@ -32,13 +32,18 @@
 #' }
 wsx_get_keywords <- function(ws) {
 
+
   if (is.character(ws)) {
     if (!file.exists(ws)) {
-      stop("wsp file not found.")
+      stop("ws file not found.")
+    }
+    if (length(ws) > 1) {
+      stop("Only one ws at a time.")
     }
     ws <- xml2::read_xml(ws)
-  } else if (!any(class(ws) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
+  }
+  if (!any(class(ws) == "xml_document")) {
+    stop("ws must be a xml-document or a character path to its location on disk")
   }
 
   keywords <- lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
@@ -47,7 +52,5 @@ wsx_get_keywords <- function(ws) {
   })
 
   names(keywords) <- fcexpr:::wsp_xml_get_samples(ws)[,"FileName"]
-
-
   return(keywords)
 }
