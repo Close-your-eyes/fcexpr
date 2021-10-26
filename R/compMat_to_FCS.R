@@ -1,6 +1,6 @@
 compMat_to_FCS <- function(fcs.file.paths, compMat) {
 
-  comp.mat <- read.csv(comp.mat.csv.path, header = T, row.names = 1)
+  comp.mat <- utils::read.csv(comp.mat.csv.path, header = T, row.names = 1)
   rownames(comp.mat) <- gsub("_", "/", rownames(comp.mat))
   colnames(comp.mat) <- rownames(comp.mat)
 

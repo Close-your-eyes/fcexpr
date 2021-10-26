@@ -93,787 +93,99 @@
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></code></pre></div>
-<p>Pick a directory to run the example on your disk.</p>
-<p>This is a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.<br>
-A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. Cells have then analyzed by flow cytometry. Factors have been varied (see below) that may or may not impact the transduction rate. Which and how? - This is what we want to know.</p>
+<p>Many information are stored in flowjos wsp file which actually is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. <a href="https://www.barebones.com/products/bbedit/index.html">BB Edit</a> on a Mac) or read it with the XML2 package in R.<br>
+Based on the latter I wrote functions that extract relevant data from a flowjo 10 wsp (more precise 10.7.1). Let me know of conflicts with other versions. It is very simple and works as follows. After you gated your populations, save the wsp and run:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="va">wd</span>, recursive <span class="op">=</span> <span class="cn">T</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span>
-<span class="co">#&gt; [1] "FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs"</span>
-<span class="co">#&gt; [2] "FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs" </span>
-<span class="co">#&gt; [3] "FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs" </span>
-<span class="co">#&gt; [4] "FCS_files/Exp_part_3/0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs" </span>
-<span class="co">#&gt; [5] "FCS_files/Exp_part_3/0005_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs"</span></code></pre></div>
+<code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
+<p>ws is the file path (url) to the wsp on your disk (e.g. “/Users/vonskopnik/Documents/07-Oct-2021.wsp”). On a Mac you can copy this path with CMD+ALT+C. The prefix (fcexpr::) indicates the package a function comes from. This is important to avoid ambiguities in case there are two functions with equal names from different packages.<br>
+If there are calculated statistics we get a list of length 2. Index 1 hold a table (data.frame) with gated event counts, index 2 table with statistics.<br>
+The column names are very descriptive. eventsInside indicates if the events inside (1) or outside (0) were relevant for subsequent gates.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="27%">
-<col width="25%">
-<col width="3%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="4%">
-<col width="5%">
-<col width="11%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">FileName</th>
-<th align="left">identity</th>
-<th align="left">Exp.part</th>
-<th align="left">viral.sup.vol.µl</th>
-<th align="left">incubation.time.h</th>
-<th align="left">polybrene.ug.ml</th>
-<th align="left">EGF.ng.ml</th>
-<th align="left">FCS.percent</th>
-<th align="left">seeding.density.dilution</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>100</em>-_2021.02.18-11.24.29</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">2</td>
-</tr>
-<tr class="odd">
-<td align="left">0005_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>100</em>-_2021.02.18-11.25.11</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">16</td>
-</tr>
-</tbody>
-</table>
-<p>When running an R-script which is saved in the R_script folder on can have its directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).</p>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
+<span class="co">#&gt; [1] 2</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
+<span class="co">#&gt; [1] "counts" "stats"</span>
+<span class="co"># columns names</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="co">#&gt;  [1] "FileName"           "PopulationFullPath" "Parent"            </span>
+<span class="co">#&gt;  [4] "Population"         "Count"              "ParentCount"       </span>
+<span class="co">#&gt;  [7] "FractionOfParent"   "xDim"               "yDim"              </span>
+<span class="co">#&gt; [10] "eventsInside"       "FilePath"           "group"             </span>
+<span class="co">#&gt; [13] "ws"</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="co">#&gt; [1] "FileName"           "PopulationFullPath" "statistic"         </span>
+<span class="co">#&gt; [4] "channel"            "value"              "FilePath"</span>
+<span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span>
+<span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></code></pre></div>
+<p>Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized way with <strong>fcexpr::sync_sampldescription</strong> (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># wd &lt;- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))</span></code></pre></div>
-<p>Find all the flowjo workspaces in the folder.</p>
+<code class="sourceCode R"><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_keywords.html">wsx_get_keywords</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
+<p>This returns a list of data frames. One list entry for every FCS file in the wsp. In this example there are 48 FCS files. The data.frame at index 1 (first FCS file) has 211 rows, one row for each keyword, and 2 columns, providing the name of the keyword and its value.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># the pattern indicates that .wsp has to appear at the end of the file name</span>
-<span class="va">ws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">wd</span>, pattern <span class="op">=</span> <span class="st">"\\.wsp$"</span>, recursive <span class="op">=</span> <span class="cn">T</span>, full.names <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
-<span class="va">ws</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/Part_3/FJ_workspace/07-Oct-2021.wsp"</span></code></pre></div>
-<p><strong>Under the hood, the .wsp file is an XML file with all population counts and statistics stored.</strong></p>
-<p>Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.</p>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>
+<span class="co">#&gt; [1] 48</span>
+<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="co">#&gt; [1] 211</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
+<span class="co">#&gt; [1] "name"  "value"</span></code></pre></div>
+<p>To join the keywords to ps_counts or ps_stats we have to make it a data.frame first.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps.raw</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">ps.raw</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="17%">
-<col width="5%">
-<col width="3%">
-<col width="3%">
-<col width="1%">
-<col width="3%">
-<col width="4%">
-<col width="1%">
-<col width="5%">
-<col width="3%">
-<col width="42%">
-<col width="3%">
-<col width="4%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">FileName</th>
-<th align="left">PopulationFullPath</th>
-<th align="left">Parent</th>
-<th align="left">Population</th>
-<th align="left">Count</th>
-<th align="right">ParentCount</th>
-<th align="right">FractionOfParent</th>
-<th align="left">xDim</th>
-<th align="left">yDim</th>
-<th align="left">eventsInside</th>
-<th align="left">FilePath</th>
-<th align="left">group</th>
-<th align="left">ws</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">475</td>
-<td align="right">500</td>
-<td align="right">0.9500000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">RPTECs</td>
-<td align="left">DAPI-</td>
-<td align="left">422</td>
-<td align="right">475</td>
-<td align="right">0.8884211</td>
-<td align="left">FSC-A</td>
-<td align="left">v-450_50-B-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs/DAPI-/GFP+</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">GFP+</td>
-<td align="left">212</td>
-<td align="right">422</td>
-<td align="right">0.5023697</td>
-<td align="left">FSC-A</td>
-<td align="left">b-LP502 530_30-E-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">474</td>
-<td align="right">500</td>
-<td align="right">0.9480000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">RPTECs</td>
-<td align="left">DAPI-</td>
-<td align="left">379</td>
-<td align="right">474</td>
-<td align="right">0.7995781</td>
-<td align="left">FSC-A</td>
-<td align="left">v-450_50-B-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs/DAPI-/GFP+</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">GFP+</td>
-<td align="left">166</td>
-<td align="right">379</td>
-<td align="right">0.4379947</td>
-<td align="left">FSC-A</td>
-<td align="left">b-LP502 530_30-E-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-<tr class="even">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">475</td>
-<td align="right">500</td>
-<td align="right">0.9500000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-</tr>
-</tbody>
-</table>
-<p>The gating for GFP positive events is straight forward. RPTECs (renal tubular epithelial cells; scatter gate) –&gt; DAPI-negatives –&gt; GFP-positives</p>
-<p>Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.</p>
+<code class="sourceCode R"><span class="co"># make it a data.frame</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">keys</span><span class="op">)</span> <span class="co"># base R</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/bind.html">bind_rows</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="co"># create a FileName-column</span>
+<span class="va">keys_df</span><span class="op">$</span><span class="va">FileName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">keys</span>,<span class="va">nrow</span><span class="op">)</span><span class="op">)</span>
+<span class="co"># select relevant keywords</span>
+<span class="co"># example: Cytometer name ($CYT) and Operator ($OP)</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="va">keys_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">$</span><span class="va">name</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span>,<span class="op">]</span> <span class="co"># base R</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">keys_df</span>, <span class="va">name</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="co"># make it wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tidyr/man/pivot_wider.html">pivot_wider</a></span><span class="op">(</span><span class="va">keys_df</span>, names_from <span class="op">=</span> <span class="va">name</span>, values_from <span class="op">=</span> <span class="va">value</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
+<span class="co">#&gt; [1] 48</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
+<span class="co">#&gt; [1] "FileName" "$CYT"     "$OP"</span></code></pre></div>
+<p>Now we have one data.frame of two keywords for every FCS file. Join the meta data to phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join a sampledescription with more relevant meta data</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">sd</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="27%">
-<col width="25%">
-<col width="3%">
-<col width="7%">
-<col width="7%">
-<col width="7%">
-<col width="4%">
-<col width="5%">
-<col width="10%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">FileName</th>
-<th align="left">identity</th>
-<th align="left">Exp.part</th>
-<th align="left">viral.sup.vol.µl</th>
-<th align="left">incubation.time.h</th>
-<th align="left">polybrene.ug.ml</th>
-<th align="left">EGF.ng.ml</th>
-<th align="left">FCS.percent</th>
-<th align="left">seeding.density.dilution</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0004_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.2.fcs</td>
-<td align="left">Specimen_001_Tube_004_004.fcs_-<em>100</em>-_2021.02.18-11.24.29</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">2</td>
-</tr>
-<tr class="odd">
-<td align="left">0005_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_005_005.fcs_-<em>100</em>-_2021.02.18-11.25.11</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0006_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_006_006.fcs_-<em>100</em>-_2021.02.18-11.26.38</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0007_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.4.fcs</td>
-<td align="left">Specimen_001_Tube_007_007.fcs_-<em>100</em>-_2021.02.18-11.28.01</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0008_-_vol.50_time.2_polybrene.10_EGF.50_FCS.5_density.2.fcs</td>
-<td align="left">Specimen_001_Tube_008_008.fcs_-<em>100</em>-_2021.02.18-11.29.00</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">5</td>
-<td align="left">2</td>
-</tr>
-<tr class="odd">
-<td align="left">0009_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Specimen_001_Tube_009_009.fcs_-<em>100</em>-_2021.02.18-11.29.50</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">24</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0010_-_vol.50_time.24_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Specimen_001_Tube_010_010.fcs_-<em>100</em>-_2021.02.18-11.31.05</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">24</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-</tbody>
-</table>
+<code class="sourceCode R"><span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html">merge</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># base R</span>
+<span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="co">#&gt; Joining, by = "FileName"</span>
+<span class="co"># sd is a sampledescription data.frame</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">sd</span><span class="op">)</span>
+<span class="co">#&gt; [1] "FileName"                 "identity"                </span>
+<span class="co">#&gt; [3] "Exp.part"                 "viral.sup.vol.µl"        </span>
+<span class="co">#&gt; [5] "incubation.time.h"        "polybrene.ug.ml"         </span>
+<span class="co">#&gt; [7] "EGF.ng.ml"                "FCS.percent"             </span>
+<span class="co">#&gt; [9] "seeding.density.dilution"</span>
+<span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="va">sd</span><span class="op">)</span>
+<span class="co">#&gt; Joining, by = "FileName"</span></code></pre></div>
+<p>ps_counts2 which now holds meta data and phenotype data may be saved to excel for further processing.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span>
-  <span class="va">ps.raw</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, by <span class="op">=</span> <span class="st">"FileName"</span><span class="op">)</span>
-<span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html">head</a></span><span class="op">(</span><span class="va">ps</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<table class="table">
-<colgroup>
-<col width="11%">
-<col width="3%">
-<col width="2%">
-<col width="2%">
-<col width="1%">
-<col width="2%">
-<col width="3%">
-<col width="1%">
-<col width="3%">
-<col width="2%">
-<col width="28%">
-<col width="2%">
-<col width="3%">
-<col width="11%">
-<col width="1%">
-<col width="3%">
-<col width="3%">
-<col width="3%">
-<col width="1%">
-<col width="2%">
-<col width="4%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">FileName</th>
-<th align="left">PopulationFullPath</th>
-<th align="left">Parent</th>
-<th align="left">Population</th>
-<th align="left">Count</th>
-<th align="right">ParentCount</th>
-<th align="right">FractionOfParent</th>
-<th align="left">xDim</th>
-<th align="left">yDim</th>
-<th align="left">eventsInside</th>
-<th align="left">FilePath</th>
-<th align="left">group</th>
-<th align="left">ws</th>
-<th align="left">identity</th>
-<th align="left">Exp.part</th>
-<th align="left">viral.sup.vol.µl</th>
-<th align="left">incubation.time.h</th>
-<th align="left">polybrene.ug.ml</th>
-<th align="left">EGF.ng.ml</th>
-<th align="left">FCS.percent</th>
-<th align="left">seeding.density.dilution</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">475</td>
-<td align="right">500</td>
-<td align="right">0.9500000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="odd">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">RPTECs</td>
-<td align="left">DAPI-</td>
-<td align="left">422</td>
-<td align="right">475</td>
-<td align="right">0.8884211</td>
-<td align="left">FSC-A</td>
-<td align="left">v-450_50-B-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="even">
-<td align="left">0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">RPTECs/DAPI-/GFP+</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">GFP+</td>
-<td align="left">212</td>
-<td align="right">422</td>
-<td align="right">0.5023697</td>
-<td align="left">FSC-A</td>
-<td align="left">b-LP502 530_30-E-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0001_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.16.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_001_001.fcs_-<em>100</em>-_2021.02.18-11.20.06</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">16</td>
-</tr>
-<tr class="odd">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">474</td>
-<td align="right">500</td>
-<td align="right">0.9480000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">RPTECs</td>
-<td align="left">DAPI-</td>
-<td align="left">379</td>
-<td align="right">474</td>
-<td align="right">0.7995781</td>
-<td align="left">FSC-A</td>
-<td align="left">v-450_50-B-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="even">
-<td align="left">0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">RPTECs/DAPI-/GFP+</td>
-<td align="left">RPTECs/DAPI-</td>
-<td align="left">GFP+</td>
-<td align="left">166</td>
-<td align="right">379</td>
-<td align="right">0.4379947</td>
-<td align="left">FSC-A</td>
-<td align="left">b-LP502 530_30-E-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0002_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.8.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_002_002.fcs_-<em>100</em>-_2021.02.18-11.21.31</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">8</td>
-</tr>
-<tr class="odd">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">root</td>
-<td align="left"></td>
-<td align="left">root</td>
-<td align="left">500</td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left"></td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-<tr class="even">
-<td align="left">0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">RPTECs</td>
-<td align="left">root</td>
-<td align="left">RPTECs</td>
-<td align="left">475</td>
-<td align="right">500</td>
-<td align="right">0.9500000</td>
-<td align="left">FSC-A</td>
-<td align="left">SSC-A</td>
-<td align="left">1</td>
-<td align="left">////datastor.drfz.de/umleitungen/Christopher.Skopnik/Desktop/Part_3/FCS_files/Exp_part_3/0003_-_vol.50_time.2_polybrene.10_EGF.50_FCS.2_density.4.fcs</td>
-<td align="left">Exp_part_3</td>
-<td align="left">07-Oct-2021.wsp</td>
-<td align="left">Specimen_001_Tube_003_003.fcs_-<em>100</em>-_2021.02.18-11.23.08</td>
-<td align="left">3</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">10</td>
-<td align="left">50</td>
-<td align="left">2</td>
-<td align="left">4</td>
-</tr>
-</tbody>
-</table>
-<p>This table can be saved as xlsx if needed.</p>
+<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="st">"/Users/vonskopnik/Documents/7-Oct-2021.xlsx"</span><span class="op">)</span></code></pre></div>
+<p>It is preferable though to continue in R. This can be done with base R or with functions from the <a href="https://www.tidyverse.org">tidyverse</a>. The possible operations and sometimes necessary steps to tidy up a data frame for plotting are too exhaustive to cover them here. Also, it requires a little bit of practice. Hence, arbitrary operations and plots are shown below.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"pop_counts.xlsx"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></code></pre></div>
-<p>But actually plotting the data should be done in R with ggplot2. We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.</p>
+<code class="sourceCode R"><span class="co"># filter for the GFP+ population only</span>
+<span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
+<span class="co">#&gt; [1] "root"   "RPTECs" "DAPI-"  "GFP+"</span>
+<span class="va">ps_counts2_plot</span> <span class="op">&lt;-</span>
+  <span class="va">ps_counts2</span> <span class="op">%&gt;%</span>
+  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">Population</span> <span class="op">==</span> <span class="st">"GFP+"</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
+<span class="co">#&gt; [1] "GFP+"</span>
+<span class="co"># plot the frequency of GFP+ events with respect to the parent gate</span>
+<span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">incubation.time.h</span>, y <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu">geom_jitter</span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu">ylab</span><span class="op">(</span><span class="st">"% GFP+ in DAPI-"</span><span class="op">)</span></code></pre></div>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-10-1.png" width="768"></p>
+<p>The incubation time of viral supernatant (x) seems to play a role for the transduction rate (y). But there are more factors which may visualized in one plot.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps_sub</span> <span class="op">&lt;-</span>
-  <span class="va">ps</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">Population</span> <span class="op">==</span> <span class="st">"GFP+"</span><span class="op">)</span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps_sub</span><span class="op">$</span><span class="va">incubation.time.h</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">incubation.time.h</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-<span class="va">ps_sub</span><span class="op">$</span><span class="va">EGF.ng.ml</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">EGF.ng.ml</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">EGF.ng.ml</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-<span class="va">ps_sub</span><span class="op">$</span><span class="va">seeding.density.dilution</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">seeding.density.dilution</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">seeding.density.dilution</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-<span class="va">ps_sub</span><span class="op">$</span><span class="va">viral.sup.vol.µl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">viral.sup.vol.µl</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_sub</span><span class="op">$</span><span class="va">viral.sup.vol.µl</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-
-<span class="co"># note how we are visualizing 4 dimension at once (4 columns in the data.frame):</span>
-<span class="co"># (i) viral.sup.vol.µl (x)</span>
-<span class="co"># (ii) seeding.density.dilution (y)</span>
-<span class="co"># (iii) incubation.time.h (panels or facets, the boxes on top)</span>
-<span class="co"># (iv) FractionOfParent (colour, or z)</span>
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_sub</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_tile</span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_wrap</span><span class="op">(</span><span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-11-1.png" width="768"></p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="co"># actually we have ignored a fifth variable, (v) the amount FCS used (FCS.percent)</span>
-<span class="co"># adding this one to the plot is also not complicated (boxes to the right)</span>
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_sub</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+<code class="sourceCode R"><span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">geom_tile</span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-11-2.png" width="768"></p>
-<p>We can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.</p>
-<p>Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[[“stats”]] is NULL.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span> <span class="va">ps.raw</span><span class="op">[[</span><span class="st">"stats"</span><span class="op">]</span><span class="op">]</span></code></pre></div>
-<p>This table may be appended with additional columns from the data.frame with event counts additional meta data from sampledescription.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span>
-  <span class="va">stats</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps.raw</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, by <span class="op">=</span> <span class="st">"FileName"</span><span class="op">)</span>
-<span class="co">#&gt; Joining, by = c("FileName", "PopulationFullPath", "FilePath")</span></code></pre></div>
-<p>GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">stats</span> <span class="op">&lt;-</span>
-  <span class="va">stats</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">channel</span> <span class="op">==</span> <span class="st">"b-LP502 530_30-E-A"</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">statistic</span> <span class="op">==</span> <span class="st">"Median"</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>incubation.time.h <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">incubation.time.h</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>EGF.ng.ml <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">EGF.ng.ml</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">EGF.ng.ml</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>seeding.density.dilution <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">seeding.density.dilution</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">seeding.density.dilution</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate.html">mutate</a></span><span class="op">(</span>viral.sup.vol.µl <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html">factor</a></span><span class="op">(</span><span class="va">viral.sup.vol.µl</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sort.html">sort</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">viral.sup.vol.µl</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>
-  
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">stats</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_tile</span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-14-1.png" width="768"></p>
-<p>There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.<br>
-To do so, whole FCS files have to be imported though. So one needs the information about gated events from a .wsp-file and the FCS files. That will be part of another vignette.</p>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-1.png" width="768"></p>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

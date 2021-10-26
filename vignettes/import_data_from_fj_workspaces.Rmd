@@ -24,140 +24,117 @@ devtools::install_github("Close-your-eyes/fcexpr")
 install.packages("tidyverse")
 library(fcexpr)
 ```
-
 ```{r setup2, message=F}
 library(tidyverse)
 ```
 
-Pick a directory to run the example on your disk.
-```{r, echo=F}
-dir <- "/Users/vonskopnik/Documents"
+Many information are stored in flowjos wsp file which actually is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. [BB Edit](https://www.barebones.com/products/bbedit/index.html) on a Mac) or read it with the XML2 package in R.   
+Based on the latter I wrote functions that extract relevant data from a flowjo 10 wsp (more precise 10.7.1). Let me know of conflicts with other versions. It is very simple and works as follows. After you gated your populations, save the wsp and run:
+
+```{r,include=F}
+dir <- base::system.file("extdata", package = "fcexpr")
 utils::untar(base::system.file("extdata", "Part_3.tgz", package = "fcexpr"), exdir = dir)
 wd <- file.path(dir, "Part_3")
-```
-
-This is a minimal experiment folder. FCS files and a sampledescription.xlsx have already been synchronized.  
-A renal epithelial cell line (RPTEC) has been retrovirally transduced with GFP. Cells have then analyzed by flow cytometry. Factors have been varied (see below) that may or may not impact the transduction rate. Which and how? - This is what we want to know.
-```{r}
-list.files(wd, recursive = T)[1:5]
+ws <- list.files(file.path(wd, "FJ_workspace"), full.names = T)
+sd <- openxlsx::read.xlsx(file.path(dir, "Part_3", "sampledescription.xlsx"))
 ```
 
 ```{r}
-knitr::kable(head(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")), 5))
+ps <- fcexpr::wsx_get_popstats(ws)
 ```
 
-When running an R-script which is saved in the R_script folder on can have its directory determined with an R command (only from RStudio). This command does not work in this tutorial, so it is commented (#).
+ws is the file path (url) to the wsp on your disk (e.g. "/Users/vonskopnik/Documents/07-Oct-2021.wsp"). On a Mac you can copy this path with CMD+ALT+C. The prefix (fcexpr::) indicates the package a function comes from. This is important to avoid ambiguities in case there are two functions with equal names from different packages.  
+If there are calculated statistics we get a list of length 2. Index 1 hold a table (data.frame) with gated event counts, index 2 table with statistics.  
+The column names are very descriptive. eventsInside indicates if the events inside (1) or outside (0) were relevant for subsequent gates.
 ```{r}
-# wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+length(ps)
+names(ps)
+
+# columns names
+names(ps[[1]])
+names(ps[[2]])
+
+ps_counts <- ps[["counts"]]
+ps_stats <- ps[[2]]
 ```
 
-Find all the flowjo workspaces in the folder.
+Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized way with **fcexpr::sync_sampldescription** (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:
+
 ```{r}
-# the pattern indicates that .wsp has to appear at the end of the file name
-ws <- list.files(path = wd, pattern = "\\.wsp$", recursive = T, full.names = T)
-ws
+keys <- fcexpr::wsx_get_keywords(ws)
 ```
 
-**Under the hood, the .wsp file is an XML file with all population counts and statistics stored.**
-
-Import the aggregated values from a workspace file with wsx_get_popstats. When return_stats = T (default) a list is returned. Index 1 has a data.frame with event counts, index 2 has a data.frame with statistics like MFI or standard deviation calculated in FlowJo.
+This returns a list of data frames. One list entry for every FCS file in the wsp. In this example there are 48 FCS files. The data.frame at index 1 (first FCS file) has 211 rows, one row for each keyword, and 2 columns, providing the name of the keyword and its value.
 ```{r}
-ps.raw <- fcexpr::wsx_get_popstats(ws[1])
-knitr::kable(head(ps.raw[[1]], 10))
+length(keys)
+nrow(keys[[1]])
+names(keys[[1]])
 ```
 
-The gating for GFP positive events is straight forward.
-RPTECs (renal tubular epithelial cells; scatter gate) --> DAPI-negatives --> GFP-positives
-
-Join and organize the data with the meta data which are documented in the sampledescription.xlsx with functions from the dplyr package. As FCS file names and the FileName column in our sampledescription.xlsx have been synchronized before, we can use this column for joining.
+To join the keywords to ps_counts or ps_stats we have to make it a data.frame first.
 ```{r}
-sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
-knitr::kable(head(sd, 10))
-
-ps <-
-  ps.raw[[1]] %>%
-  dplyr::left_join(sd, by = "FileName")
-knitr::kable(head(ps, 10))
+# make it a data.frame
+keys_df <- do.call(rbind, keys) # base R
+keys_df <- dplyr::bind_rows(keys) # dplyr-style
+# create a FileName-column
+keys_df$FileName <- rep(names(keys), sapply(keys,nrow))
+# select relevant keywords
+# example: Cytometer name ($CYT) and Operator ($OP)
+keys_df <- keys_df[which(keys_df$name %in% c("$CYT", "$OP")),] # base R
+keys_df <- dplyr::filter(keys_df, name %in% c("$CYT", "$OP")) # dplyr-style
+# make it wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)
+keys_df <- tidyr::pivot_wider(keys_df, names_from = name, values_from = value)
+nrow(keys_df)
+names(keys_df)
 ```
 
-This table can be saved as xlsx if needed.
+Now we have one data.frame of two keywords for every FCS file. Join the meta data to phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join a sampledescription with more relevant meta data
 ```{r}
-openxlsx::write.xlsx(ps, file.path(wd, "pop_counts.xlsx"), overwrite = T)
+ps_counts2 <- merge(ps_counts, keys_df) # base R
+ps_counts2 <- dplyr::left_join(ps_counts, keys_df) # dplyr-style
+# sd is a sampledescription data.frame
+names(sd)
+ps_counts2 <- dplyr::left_join(ps_counts2, sd)
 ```
 
-But actually plotting the data should be done in R with ggplot2.
-We are most interested in the GFP+ frequency. But also the frequency of DAPI- events can be plotted with almost the same commands.
-```{r}
-ps_sub <-
-  ps %>%
+ps_counts2 which now holds meta data and phenotype data may be saved to excel for further processing.
+```{r, eval=F}
+openxlsx::write.xlsx(ps_counts2, "/Users/vonskopnik/Documents/7-Oct-2021.xlsx")
+```
+
+It is preferable though to continue in R. This can be done with base R or with functions from the [tidyverse](https://www.tidyverse.org). The possible operations and sometimes necessary steps to tidy up a data frame for plotting are too exhaustive to cover them here. Also, it requires a little bit of practice. Hence, arbitrary operations and plots are shown below.
+
+```{r,fig.width=8}
+# filter for the GFP+ population only
+unique(ps_counts2$Population)
+ps_counts2_plot <-
+  ps_counts2 %>%
   dplyr::filter(Population == "GFP+")
+unique(ps_counts2_plot$Population)
+# plot the frequency of GFP+ events with respect to the parent gate
+ggplot(ps_counts2_plot, aes(x = incubation.time.h, y = FractionOfParent)) +
+  geom_jitter(width = 0.1) +
+  theme_bw() +
+  ylab("% GFP+ in DAPI-")
 ```
 
-```{r, fig.width=8}
-ps_sub$incubation.time.h <- factor(ps_sub$incubation.time.h, levels = sort(as.numeric(unique(ps_sub$incubation.time.h))))
-ps_sub$EGF.ng.ml <- factor(ps_sub$EGF.ng.ml, levels = sort(as.numeric(unique(ps_sub$EGF.ng.ml))))
-ps_sub$seeding.density.dilution <- factor(ps_sub$seeding.density.dilution, levels = sort(as.numeric(unique(ps_sub$seeding.density.dilution))))
-ps_sub$viral.sup.vol.µl <- factor(ps_sub$viral.sup.vol.µl, levels = sort(as.numeric(unique(ps_sub$viral.sup.vol.µl))))
+The incubation time of viral supernatant (x) seems to play a role for the transduction rate (y). But there are more factors which may visualized in one plot.
 
-# note how we are visualizing 4 dimension at once (4 columns in the data.frame):
-# (i) viral.sup.vol.µl (x)
-# (ii) seeding.density.dilution (y)
-# (iii) incubation.time.h (panels or facets, the boxes on top)
-# (iv) FractionOfParent (colour, or z)
-ggplot(ps_sub, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = FractionOfParent)) +
-  geom_tile(color = "black") +
-  theme_classic() +
-  scale_fill_viridis_c() +
-  facet_wrap(vars(incubation.time.h))
-
-# actually we have ignored a fifth variable, (v) the amount FCS used (FCS.percent)
-# adding this one to the plot is also not complicated (boxes to the right)
-ggplot(ps_sub, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = FractionOfParent)) +
-  geom_tile(color = "black") +
-  theme_classic() +
-  scale_fill_viridis_c() +
-  facet_grid(cols = vars(incubation.time.h), rows = vars(FCS.percent))
-
+```{r, include=F}
+ps_counts2_plot$incubation.time.h <- factor(ps_counts2_plot$incubation.time.h, levels = sort(as.numeric(unique(ps_counts2_plot$incubation.time.h))))
+ps_counts2_plot$EGF.ng.ml <- factor(ps_counts2_plot$EGF.ng.ml, levels = sort(as.numeric(unique(ps_counts2_plot$EGF.ng.ml))))
+ps_counts2_plot$seeding.density.dilution <- factor(ps_counts2_plot$seeding.density.dilution, levels = sort(as.numeric(unique(ps_counts2_plot$seeding.density.dilution))))
+ps_counts2_plot$viral.sup.vol.µl <- factor(ps_counts2_plot$viral.sup.vol.µl, levels = sort(as.numeric(unique(ps_counts2_plot$viral.sup.vol.µl))))
 ```
 
 
-We can assume that the seeding density plays a role in terms of GFP transduction rate. Low seeding density (~high seeding density dilution) means that epithelial cells have space to proliferate. (Gamma-)Retrovirusses require proliferating cells to infect them. So, this observation can be explained. More viral sup increases the transduction rate in some cases. Longer incubation times of viral sup and target cells also seem to have a positive effect. As the FCS files used here have been downsampled to keep the fcexpr-package small results are skewed due to the random sampling.
-
-Another relevant read-out are MFIs. All statistics calculated in FlowJo are saved in the .wsp (~XML) file and hence, can be extracted easily even without the underlying FCS files. If there are none, ps.raw[["stats"]] is NULL.
-
-```{r}
-stats <- ps.raw[["stats"]]
-```
-
-This table may be appended with additional columns from the data.frame with event counts additional meta data from sampledescription.
-
-```{r}
-stats <-
-  stats %>%
-  dplyr::left_join(ps.raw[["counts"]]) %>%
-  dplyr::left_join(sd, by = "FileName")
-```
-
-GFP emits into the FITC channel (b-LP502 530_30-E-A), so this is the one we are interested in.
-```{r, fig.width=8}
-stats <-
-  stats %>%
-  dplyr::filter(channel == "b-LP502 530_30-E-A") %>%
-  dplyr::filter(statistic == "Median") %>%
-  dplyr::mutate(incubation.time.h = factor(incubation.time.h, levels = sort(as.numeric(unique(incubation.time.h))))) %>%
-  dplyr::mutate(EGF.ng.ml = factor(EGF.ng.ml, levels = sort(as.numeric(unique(EGF.ng.ml))))) %>%
-  dplyr::mutate(seeding.density.dilution = factor(seeding.density.dilution, levels = sort(as.numeric(unique(seeding.density.dilution))))) %>%
-  dplyr::mutate(viral.sup.vol.µl = factor(viral.sup.vol.µl, levels = sort(as.numeric(unique(viral.sup.vol.µl)))))
-  
-ggplot(stats, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = value)) +
+```{r,fig.width=8}
+ggplot(ps_counts2_plot, aes(x = viral.sup.vol.µl, seeding.density.dilution, fill = FractionOfParent)) +
   geom_tile(color = "black") +
   theme_classic() +
   scale_fill_viridis_c() +
   facet_grid(cols = vars(incubation.time.h), rows = vars(FCS.percent))
 ```
-
-There seems to be a significant higher GFP-MFI for RPTECs that have been incubated with the high-level of viral sup (150 µl) and for 48 hours. On the other hand, according to the legend, it is only a 2- to 3-fold difference to other conditions which is not so much in flow cytometry. In order to better judge this, looking at histograms may be helpful.  
-To do so, whole FCS files have to be imported though. So one needs the information about gated events from a .wsp-file and the FCS files. That will be part of another vignette.
 
 
 ```{r, echo=F}

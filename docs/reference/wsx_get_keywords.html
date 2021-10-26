@@ -40,9 +40,9 @@
 
 
 <meta property="og:title" content="Get keywords from a flowjo workspace — wsx_get_keywords" />
-<meta property="og:description" content="Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export the FCS files.
+<meta property="og:description" content="Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export them.
 This behavior is part of flowjos philosophy not to alter the FCS files. So, the keywords that you add in workspace are like a mask on top of entries in the FCS files.
-When the workspace is lost though or the connection of samples in the workspace and FCS files get corrupted your keyword-annotation is lost.
+When the workspace is lost though or the connection of samples in the workspace and FCS files gets corrupted your keyword-annotation is lost.
 Also, when you decide to put the same FCS files into another workspace the keywords will not be transferred." />
 
 
@@ -127,9 +127,9 @@ Also, when you decide to put the same FCS files into another workspace the keywo
     </div>
 
     <div class="ref-description">
-    <p>Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export the FCS files.
+    <p>Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export them.
 This behavior is part of flowjos philosophy not to alter the FCS files. So, the keywords that you add in workspace are like a mask on top of entries in the FCS files.
-When the workspace is lost though or the connection of samples in the workspace and FCS files get corrupted your keyword-annotation is lost.
+When the workspace is lost though or the connection of samples in the workspace and FCS files gets corrupted your keyword-annotation is lost.
 Also, when you decide to put the same FCS files into another workspace the keywords will not be transferred.</p>
     </div>
 
@@ -156,7 +156,7 @@ Also, when you decide to put the same FCS files into another workspace the keywo
 <span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/do.call.html'>do.call</a></span><span class='op'>(</span><span class='va'>rbind</span>, <span class='va'>k</span><span class='op'>)</span>
 <span class='co'># create a FileName-column</span>
 <span class='va'>kk</span><span class='op'>$</span><span class='va'>FileName</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/rep.html'>rep</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>k</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/lapply.html'>sapply</a></span><span class='op'>(</span><span class='va'>k</span>,<span class='va'>nrow</span><span class='op'>)</span><span class='op'>)</span>
-<span class='co'># do not use kk$FileName &lt;- rownames(kk) as rownames have been received a suffix to make them unique</span>
+<span class='co'># do not use kk$FileName &lt;- rownames(kk) as rownames have a suffix to make them unique</span>
 <span class='co'># select keywords and make it a wider data.frame for subsequent joining with the sampledescription</span>
 <span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='va'>kk</span><span class='op'>[</span><span class='fu'><a href='https://rdrr.io/r/base/which.html'>which</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>$</span><span class='va'>name</span> <span class='op'>%in%</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"$CYT"</span>, <span class='st'>"$OP"</span><span class='op'>)</span><span class='op'>)</span>,<span class='op'>]</span>
 <span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/tidyr/man/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='va'>kk</span>, names_from <span class='op'>=</span> <span class='va'>name</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span>

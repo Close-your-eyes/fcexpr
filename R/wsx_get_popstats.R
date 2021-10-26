@@ -1,9 +1,8 @@
-#' Convenient function to import population counts from a flowjo workspace
+#' Import data from a wsp file
 #'
-#' In comparison to ws_get_popstats another backend (xml2) is used to read data from a flowjo .wsp-file (under the hood an .xml-file).
-#' No groups or similar have to be selected - filtering has to be conducted afterwards.
-#' Also, no restriction with respect to inconsistent gating trees are made. Every sample in handled individually.
-#' All information are gathered from the .wsp file, no FCS files are touched or required.
+#' Flowjo wsp files contain many information like gated event counts, statistics and keywords
+#' from FCS files. These may be accessed without a dongle and can be read completely independent of
+#' the respective FCS files once the gating has been conducted.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
@@ -19,7 +18,7 @@
 #' # find workspaces
 #' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
 #' # import the population counts:
-#' wsx_get_popstats(ws = ws[1])
+#' wsx_get_popstats(ws = ws[[1]])
 #' }
 wsx_get_popstats <- function(ws, return_stats = T) {
 
@@ -184,7 +183,11 @@ wsx_get_popstats <- function(ws, return_stats = T) {
 
       return(stats_df)
     }))
-    return(list(counts = gates_out, stats = stats_out))
+    if (is.null(stats_out)) {
+      return(gates_out)
+    } else {
+      return(list(counts = gates_out, stats = stats_out))
+    }
   }
   return(gates_out)
 }

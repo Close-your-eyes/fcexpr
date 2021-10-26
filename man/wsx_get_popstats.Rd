@@ -2,7 +2,7 @@
 % Please edit documentation in R/wsx_get_popstats.R
 \name{wsx_get_popstats}
 \alias{wsx_get_popstats}
-\title{Convenient function to import population counts from a flowjo workspace}
+\title{Import data from a wsp file}
 \usage{
 wsx_get_popstats(ws, return_stats = T)
 }
@@ -15,10 +15,9 @@ wsx_get_popstats(ws, return_stats = T)
 returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
 }
 \description{
-In comparison to ws_get_popstats another backend (xml2) is used to read data from a flowjo .wsp-file (under the hood an .xml-file).
-No groups or similar have to be selected - filtering has to be conducted afterwards.
-Also, no restriction with respect to inconsistent gating trees are made. Every sample in handled individually.
-All information are gathered from the .wsp file, no FCS files are touched or required.
+Flowjo wsp files contain many information like gated event counts, statistics and keywords
+from FCS files. These may be accessed without a dongle and can be read completely independent of
+the respective FCS files once the gating has been conducted.
 }
 \examples{
 \dontrun{
@@ -28,6 +27,6 @@ wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 # find workspaces
 ws <- list.files(path = wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # import the population counts:
-wsx_get_popstats(ws = ws[1])
+wsx_get_popstats(ws = ws[[1]])
 }
 }

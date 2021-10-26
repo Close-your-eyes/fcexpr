@@ -62,6 +62,7 @@ a sampledescription file.
 
 ``` r
 fcecpr::new_exp(path = 'your system directory', name = 'your folder name')
+# see the vignette of how to set up a sampledescription
 ```
 
 Alternatively, you may only be interested in pulling out the aggregated
@@ -69,6 +70,7 @@ data from your flowjo workspace (cell counts and/or MFIs), then use:
 
 ``` r
 fcexpr::wsx_get_popstats(ws)
+# see the vignette of how to import data from flowjo workspaces
 ```
 
 ## Vignettes (tutorials)

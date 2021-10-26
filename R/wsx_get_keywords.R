@@ -1,8 +1,8 @@
 #' Get keywords from a flowjo workspace
 #'
-#' Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export the FCS files.
+#' Keywords that are annotated in a flowjo workspace only exist in that very workspace. They are not hard-coded into the respective FCS files, as long as you do not re-export them.
 #' This behavior is part of flowjos philosophy not to alter the FCS files. So, the keywords that you add in workspace are like a mask on top of entries in the FCS files.
-#' When the workspace is lost though or the connection of samples in the workspace and FCS files get corrupted your keyword-annotation is lost.
+#' When the workspace is lost though or the connection of samples in the workspace and FCS files gets corrupted your keyword-annotation is lost.
 #' Also, when you decide to put the same FCS files into another workspace the keywords will not be transferred.
 #'
 #'
@@ -19,7 +19,7 @@
 #' kk <- do.call(rbind, k)
 #' # create a FileName-column
 #' kk$FileName <- rep(names(k), sapply(k,nrow))
-#' # do not use kk$FileName <- rownames(kk) as rownames have been received a suffix to make them unique
+#' # do not use kk$FileName <- rownames(kk) as rownames have a suffix to make them unique
 #' # select keywords and make it a wider data.frame for subsequent joining with the sampledescription
 #' kk <- kk[which(kk$name %in% c("$CYT", "$OP")),]
 #' kk <- tidyr::pivot_wider(kk, names_from = name, values_from = value)

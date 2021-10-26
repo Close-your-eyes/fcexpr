@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Function reference • fcexpr</title>
+<title>Retrieve groups within a flowjo workspace and associated samples (sampleID) — wsx_get_groups • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,7 +39,8 @@
 
 
 
-<meta property="og:title" content="Function reference" />
+<meta property="og:title" content="Retrieve groups within a flowjo workspace and associated samples (sampleID) — wsx_get_groups" />
+<meta property="og:description" content="Retrieve groups within a flowjo workspace and associated samples (sampleID)" />
 
 
 
@@ -58,7 +59,7 @@
   </head>
 
   <body data-spy="scroll" data-target="#toc">
-    <div class="container template-reference-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -115,102 +116,37 @@
       </header>
 
 <div class="row">
-  <div class="contents col-md-9">
+  <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Reference</h1>
+    <h1>Retrieve groups within a flowjo workspace and associated samples (sampleID)</h1>
+    
+    <div class="hidden name"><code>wsx_get_groups.Rd</code></div>
     </div>
 
-    <table class="ref-index">
+    <div class="ref-description">
+    <p>Retrieve groups within a flowjo workspace and associated samples (sampleID)</p>
+    </div>
 
-    <colgroup>
-      
-      <col class="alias" />
-      <col class="title" />
-    </colgroup>
+    <pre class="usage"><span class='fu'>wsx_get_groups</span><span class='op'>(</span><span class='va'>ws</span>, filter_AllSamples <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
 
-    <tbody>
-      <tr>
-        <th colspan="2">
-          <h2 id="section-all-functions" class="hasAnchor"><a href="#section-all-functions" class="anchor"></a>All functions</h2>
-          <p class="section-desc"></p>
-        </th>
-      </tr>
-      
-      
-    </tbody><tbody>
-      
-      
-      <tr>
-        
-        <td>
-          <p><code><a href="fcs_get_keywords.html">fcs_get_keywords()</a></code> </p>
-        </td>
-        <td><p>Get keywords from all FCS files in a folder or subfolder</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="fcs_get_voltages.html">fcs_get_voltages()</a></code> </p>
-        </td>
-        <td><p>Get voltages of PMTs from a fcs file</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="geo_mean.html">geo_mean()</a></code> </p>
-        </td>
-        <td><p>Geometric mean</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="new_exp.html">new_exp()</a></code> </p>
-        </td>
-        <td><p>Create a template folder for flow cytometry experiments</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="read.FCS_comma.html">read.FCS_comma()</a></code> </p>
-        </td>
-        <td><p>A modified version of flowCores read.FCS</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="sampledescription_to_fcs_keywords.html">sampledescription_to_fcs_keywords()</a></code> </p>
-        </td>
-        <td><p>Write columns from a sampledescription as keyword into FCS files</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="sync_sampledescription.html">sync_sampledescription()</a></code> </p>
-        </td>
-        <td><p>Synchronize an excel file (sampledescription.xlsx) with FCS files</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="wsx_get_fcs_paths.html">wsx_get_fcs_paths()</a></code> </p>
-        </td>
-        <td><p>Title</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="wsx_get_groups.html">wsx_get_groups()</a></code> </p>
-        </td>
-        <td><p>Retrieve groups within a flowjo workspace and associated samples (sampleID)</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="wsx_get_keywords.html">wsx_get_keywords()</a></code> </p>
-        </td>
-        <td><p>Get keywords from a flowjo workspace</p></td>
-      </tr><tr>
-        
-        <td>
-          <p><code><a href="wsx_get_popstats.html">wsx_get_popstats()</a></code> </p>
-        </td>
-        <td><p>Import data from a wsp file</p></td>
-      </tr>
-    </tbody>
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
+    <table class="ref-arguments">
+    <colgroup><col class="name" /><col class="desc" /></colgroup>
+    <tr>
+      <th>ws</th>
+      <td><p>path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))</p></td>
+    </tr>
+    <tr>
+      <th>filter_AllSamples</th>
+      <td><p>filter the All Samples Group if the fcs file is also part of another group</p></td>
+    </tr>
     </table>
-  </div>
 
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>a data frame</p>
+
+  </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
       <h2 data-toc-skip>Contents</h2>

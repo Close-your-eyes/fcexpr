@@ -55,11 +55,13 @@ So, I want to make a plea for workflow (ii) and provide tools to easily accompli
 You may adopt the whole concept of organizing your flow cytrometric experiment by creating a folder as follows. Then paste your fcs files and see the vignette below of how to synchronize and document them with a sampledescription file.
 ``` r
 fcecpr::new_exp(path = 'your system directory', name = 'your folder name')
+# see the vignette of how to set up a sampledescription
 ```
 
 Alternatively, you may only be interested in pulling out the aggregated data from your flowjo workspace (cell counts and/or MFIs), then use:
 ``` r
 fcexpr::wsx_get_popstats(ws)
+# see the vignette of how to import data from flowjo workspaces
 ```
 
 ## Vignettes (tutorials)
