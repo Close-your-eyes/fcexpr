@@ -191,7 +191,7 @@ wsp_xml_get_samples <- function(x) {
   }
   s <- as.data.frame(t(sapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
     xml2::xml_attrs(xml2::xml_child(y, "DataSet"))
-  })))
+  })), stringsAsFactors = F)
   names(s) <- c("FilePath", "sampleID")
   s$FilePath <- gsub("file:", "", s$FilePath)
   s$FileName <- basename(s$FilePath)

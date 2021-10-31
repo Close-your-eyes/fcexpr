@@ -124,7 +124,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
         sd[, "FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[, "FileName"])), paste0(sd[, "FileName"], ".fcs"), sd[, "FileName"])
         sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
 
-        print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind])))
+        print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind]), stringsAsFactors = F))
         if (interactive()) {
             choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
         } else {
@@ -254,7 +254,7 @@ sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledesc
 }
 
 .read.and.check.sd <- function(wd, xlsx.file.name, fcs.files) {
-    sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, xlsx.file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = f)
+    sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, xlsx.file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
     sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
     if (any(!c("FileName", "identity") %in% names(sd))) {
         stop("Columns FileName and identity have to exist is the sampledescription file.")

@@ -2,7 +2,7 @@
 % Please edit documentation in R/wsx_get_fcs_paths.R
 \name{wsx_get_fcs_paths}
 \alias{wsx_get_fcs_paths}
-\title{Title}
+\title{Get file paths to the fcs files in a workspace}
 \usage{
 wsx_get_fcs_paths(ws)
 }
@@ -13,7 +13,8 @@ wsx_get_fcs_paths(ws)
 a list of paths to fcs files grouped by groups in the ws
 }
 \description{
-Title
+If one has a large experiment with many fcs files and many workspaces with various
+gatings finding out which fcs files are used in which workspace may be helpful.
 }
 \examples{
 \dontrun{

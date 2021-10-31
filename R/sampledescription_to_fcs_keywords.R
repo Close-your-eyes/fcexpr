@@ -28,7 +28,7 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
 
   fcs_files <- .check.FCS.files(FCS.file.folder)
   fcs_files <- stats::setNames(names(fcs_files), fcs_files)
-  sd <- as.data.frame(sampledescription)
+  sd <- as.data.frame(sampledescription, stringsAsFactors = F)
   if (!"identity" %in% names(sd)) {
     stop("identity column not found in sd.")
   }
