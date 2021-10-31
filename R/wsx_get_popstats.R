@@ -22,18 +22,7 @@
 #' }
 wsx_get_popstats <- function(ws, return_stats = T) {
 
-  if (is.character(ws)) {
-    if (!file.exists(ws)) {
-      stop("ws file not found.")
-    }
-    if (length(ws) > 1) {
-      stop("Only one ws at a time.")
-    }
-    ws <- xml2::read_xml(ws)
-  }
-  if (!any(class(ws) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
+  ws <- check_ws(ws)
 
   if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
     warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
@@ -222,4 +211,26 @@ shortest_unique_path <- function(p) {
   })
   p <- sapply(sapply(p_rev, rev), function(x) paste(x, collapse = "/"))
   return(p)
+}
+
+check_ws <- function(ws) {
+  if (is.character(ws)) {
+    if (!file.exists(ws)) {
+      stop("ws not found.")
+    }
+    if (length(ws) > 1) {
+      stop("Only one ws at a time.")
+    }
+    if (!grepl("\\.", basename(ws))) {
+      stop("Did you pass a directory as ws? Please pass the path the wsp-file.")
+    }
+    if (rev(strsplit(ws, "\\.")[[1]])[1] != "wsp") {
+      stop("ws has to be a file path that ends with .wsp.")
+    }
+    ws <- xml2::read_xml(ws)
+  }
+  if (!any(class(ws) == "xml_document")) {
+    stop("x must be a xml-document or a character path to its location on disk")
+  }
+  return(ws)
 }

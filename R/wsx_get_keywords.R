@@ -32,16 +32,7 @@
 #' }
 wsx_get_keywords <- function(ws) {
 
-
-  if (is.character(ws)) {
-    if (!file.exists(ws)) {
-      stop("ws file not found.")
-    }
-    if (length(ws) > 1) {
-      stop("Only one ws at a time.")
-    }
-    ws <- xml2::read_xml(ws)
-  }
+  ws <- check_ws(ws)
   if (!any(class(ws) == "xml_document")) {
     stop("ws must be a xml-document or a character path to its location on disk")
   }

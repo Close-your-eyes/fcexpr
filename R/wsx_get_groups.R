@@ -11,15 +11,7 @@
 #' }
 wsx_get_groups <- function(ws, filter_AllSamples = T) {
 
-  if (is.character(ws)) {
-    if (!file.exists(ws)) {
-      stop("ws file not found.")
-    }
-    if (length(ws) > 1) {
-      stop("Only one ws at a time.")
-    }
-    ws <- xml2::read_xml(ws)
-  }
+  ws <- check_ws(ws)
   if (!any(class(ws) == "xml_document")) {
     stop("ws must be a xml-document or a character path to its location on disk")
   }
@@ -38,16 +30,18 @@ wsx_get_groups <- function(ws, filter_AllSamples = T) {
 
   if (filter_AllSamples) {
     gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-      g <- if (length(gr[which(gr$sampleID == y),"group"]) > 1) {
+      if (length(gr[which(gr$sampleID == y),"group"]) > 1) {
         gr[base::intersect(which(gr$sampleID == y), which(gr$group != "All Samples")), ]
       } else if (gr[which(gr$sampleID == y),"group"] == "All Samples") {
         gr[which(gr$sampleID == y), ]
       } else {
         stop("group error occured.")
       }
-      g <- data.frame(group = paste(g$group, collapse = ", "), sampleID = g$sampleID)
     }))
   }
+  gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
+    data.frame(group = paste(gr[which(gr$sampleID == y),"group"], collapse = ", "), sampleID = y)
+  }))
 
   return(gr)
 }
