@@ -12,7 +12,7 @@
 #' @param fcs_file_path, character, file path to the fcs file
 #' @param compMat_file_path character, file path to the csv file of the compensation matrix
 #' @param max_match_dist numeric, maximum string distance for matching channel names
-#' @param skip_check logicle, whether to ask for confirmation by the user if channel names were matched correctly
+#' @param skip_check logical, whether to ask for confirmation by the user if channel names were matched correctly
 #'
 #' @return no return; instead the fcs file at fcs_file_path is overwritten with an updated version containing a new compensation matrix as SPILL keyword
 #' @export

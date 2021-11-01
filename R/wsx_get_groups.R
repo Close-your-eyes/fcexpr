@@ -1,7 +1,7 @@
 #' Retrieve groups within a flowjo workspace and associated samples (sampleID)
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
-#' @param filter_AllSamples filter the All Samples Group if the fcs file is also part of another group
+#' @param filter_AllSamples logical wether to filter the All Samples Group in case the fcs file is also part of another group
 #'
 #' @return a data frame
 #' @export
