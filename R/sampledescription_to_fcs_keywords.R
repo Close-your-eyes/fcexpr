@@ -16,9 +16,7 @@
 #' setwd(wd)
 #' sd <- openxlsx::read.xlsx(sampledescription.xlsx)
 #' # if only a subset of files should be considered, select respective rows
-#' sampledescription_to_fcs_keywords(sampledescription = sd,
-#' columns = c("Patient", "ExpPart"),
-#' FCS.file.folder = "FCS_files)
+#' sampledescription_to_fcs_keywords(sampledescription = sd, columns = c("Patient", "ExpPart"),FCS.file.folder = "FCS_files)
 #' }
 sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,

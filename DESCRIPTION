@@ -26,10 +26,13 @@ Imports:
     utils,
     rstudioapi,
     xml2,
-    dplyr
+    dplyr,
+    stringr
 Suggests: 
     rmarkdown,
     knitr,
     ggplot2,
-    tidyverse
+    tidyverse,
+    officer,
+    magick
 VignetteBuilder: knitr

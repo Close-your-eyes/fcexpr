@@ -7,6 +7,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' wsx_get_groups(ws)
 #' }
 wsx_get_groups <- function(ws, filter_AllSamples = T) {

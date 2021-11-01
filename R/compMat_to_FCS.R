@@ -43,10 +43,10 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
   if (!all(colnames(compMat) %in% colnames(sp))) {
     print("Not all colnames of compMat found in those of the SPILLOVER keyword matrix from the FCS file.")
     # match channel names
-    if (any(apply(adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist)) {
+    if (any(apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist)) {
       stop("Too big string distances between channel names of compMat and FCS file. Please, check the column names or make sure you provide the correct compensation matrix.")
     }
-    match_ind <- apply(adist(colnames(compMat), colnames(sp)), 1, which.min)
+    match_ind <- apply(utils::adist(colnames(compMat), colnames(sp)), 1, which.min)
     if (any(duplicated(match_ind))) {
       stop("Channel names from compMat not uniquely matched to channel names from FCS file.")
     }

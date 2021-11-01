@@ -17,3 +17,8 @@ a data frame
 \description{
 Retrieve groups within a flowjo workspace and associated samples (sampleID)
 }
+\examples{
+\dontrun{
+wsx_get_groups(ws)
+}
+}
