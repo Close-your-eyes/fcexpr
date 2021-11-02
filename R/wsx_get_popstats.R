@@ -111,7 +111,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                stringsAsFactors = F)
   }))
 
-str(gates_df)
   gates_df <- do.call(rbind, gates)
   gates_df <- rbind(roots,gates_df)
   gates_list <- split(gates_df, gates_df$sampleID)
