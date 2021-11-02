@@ -18,7 +18,7 @@ compMat_to_fcs(
 
 \item{max_match_dist}{numeric, maximum string distance for matching channel names}
 
-\item{skip_check}{logicle, whether to ask for confirmation by the user if channel names were matched correctly}
+\item{skip_check}{logical, whether to ask for confirmation by the user if channel names were matched correctly}
 }
 \value{
 no return; instead the fcs file at fcs_file_path is overwritten with an updated version containing a new compensation matrix as SPILL keyword

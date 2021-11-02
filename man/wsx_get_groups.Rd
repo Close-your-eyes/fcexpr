@@ -9,7 +9,7 @@ wsx_get_groups(ws, filter_AllSamples = T)
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
 
-\item{filter_AllSamples}{filter the All Samples Group if the fcs file is also part of another group}
+\item{filter_AllSamples}{logical wether to filter the All Samples Group in case the fcs file is also part of another group}
 }
 \value{
 a data frame
