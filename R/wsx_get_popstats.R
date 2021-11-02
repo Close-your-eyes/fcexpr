@@ -95,7 +95,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                PopulationFullPath = "root",
                Parent = NA,
                Population = "root",
-               Count = xml2::xml_attr(xml2::xml_child(y, "SampleNode"), "count"),
+               Count = as.numeric(xml2::xml_attr(xml2::xml_child(y, "SampleNode"), "count")),
                ParentCount = NA,
                FractionOfParent = NA,
                xDim = NA,
@@ -111,7 +111,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
                stringsAsFactors = F)
   }))
 
-
+str(gates_df)
   gates_df <- do.call(rbind, gates)
   gates_df <- rbind(roots,gates_df)
   gates_list <- split(gates_df, gates_df$sampleID)
