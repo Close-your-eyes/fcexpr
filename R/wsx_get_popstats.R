@@ -173,11 +173,7 @@ wsx_get_popstats <- function(ws, return_stats = T) {
 
       return(stats_df)
     }))
-    if (is.null(stats_out)) {
-      return(gates_out)
-    } else {
-      return(list(counts = gates_out, stats = stats_out))
-    }
+    return(list(counts = gates_out, stats = stats_out))
   }
   return(gates_out)
 }
