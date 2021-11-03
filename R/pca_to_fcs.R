@@ -1,6 +1,6 @@
-pca.to.FSC <- function(fcs.path,
-                       channels.select = NA,
-                       do.compensate = T,
+pca.to.FSC <- function(file_path,
+                       channels = NA,
+                       compensate = T,
                        time.channel.name = "time",
                        n.dims.to.fcs = NA,
                        remove.extreme.outliers = F,
@@ -10,18 +10,18 @@ pca.to.FSC <- function(fcs.path,
   library(Biobase)
 
   ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F)
-  if (do.compensate) {
-    ff <- compensate(ff, flowCore::keyword(ff)[["SPILL"]])
+  if (compensate) {
+    ff <- flowCore::compensate(ff, flowCore::keyword(ff)[["SPILL"]])
   }
 
-  if (missing(channels.select)) {
+  if (missing(channels)) {
     print("No channels selected. Only excluding putative time-channel.")
-    channels.select <- colnames(as.matrix(flowCore::exprs(ff)))[which(tolower(colnames(as.matrix(flowCore::exprs(ff)))) != time.channel.name)]
+    channels <- colnames(as.matrix(flowCore::exprs(ff)))[which(tolower(colnames(as.matrix(flowCore::exprs(ff)))) != time.channel.name)]
   }
-  print(paste0("Channels selected for PCA: ", paste(colnames(as.matrix(flowCore::exprs(ff)))[grepl(paste(c(channels.select), collapse = "|"), colnames(as.matrix(flowCore::exprs(ff))))], collapse = ", ")))
+  print(paste0("Channels selected for PCA: ", paste(colnames(as.matrix(flowCore::exprs(ff)))[grepl(paste(c(channels), collapse = "|"), colnames(as.matrix(flowCore::exprs(ff))))], collapse = ", ")))
 
   # calc pca
-  expr.data <- log10(apply(as.matrix(flowCore::exprs(ff))[,which(colnames(as.matrix(flowCore::exprs(ff))) %in% colnames(as.matrix(flowCore::exprs(ff)))[grepl(paste(c(channels.select), collapse = "|"), colnames(as.matrix(flowCore::exprs(ff))))])], 2, shift.to.positive))
+  expr.data <- log10(apply(as.matrix(flowCore::exprs(ff))[,which(colnames(as.matrix(flowCore::exprs(ff))) %in% colnames(as.matrix(flowCore::exprs(ff)))[grepl(paste(c(channels), collapse = "|"), colnames(as.matrix(flowCore::exprs(ff))))])], 2, shift.to.positive))
 
   # remove outliers
   if (remove.extreme.outliers) {
@@ -59,7 +59,7 @@ pca.to.FSC <- function(fcs.path,
   metadata$minRange <- apply(flowCore::exprs(ff),2,min)
   metadata$maxRange <- apply(flowCore::exprs(ff),2,max)
 
-  ff <- new("flowFrame", exprs = flowCore::exprs(ff), parameters = AnnotatedDataFrame(metadata), description = c(flowCore::keyword(ff), list(channels.for.pca = channels.select)))
+  ff <- new("flowFrame", exprs = flowCore::exprs(ff), parameters = AnnotatedDataFrame(metadata), description = c(flowCore::keyword(ff), list(channels.for.pca = channels)))
 
   write.FCS(ff, paste0(export.folder.path, str_replace(basename(fcs.path), ".fcs", ""), "_pca.fcs"))
 
