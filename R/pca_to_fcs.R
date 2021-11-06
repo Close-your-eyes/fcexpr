@@ -1,18 +1,43 @@
-pca.to.FSC <- function(file_path,
+#' Add principle components (PCs) to FCS file
+#'
+#' A PCA is calculated on selected events and selected channels with stats::prcomp.
+#' Resulting PCs are added as channels to a newly generated FCS file.
+#'
+#' @param file_path character, path to a fcs file
+#' @param which_lines numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
+#' if you know lines of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.
+#' @param channels character vector, which channels to use for PC calculation. Either channels names or descriptions may be provided. Also a mixture is possible. If not provided all channels (scatter and fluorescence) except for the Time channel are used.
+#' @param compensate logical, should compensation be applied before PC calculation
+#' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used.
+#' @param timeChannel character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.
+#' @param logicle_trans logical, should the logical transformation be applied be for PCA
+#' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation / logicle transformation) be saved to the newly generated fcs file?
+#' Respective channels are suffixed by _comp and or _lgcl.
+#' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file.
+#' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
+#' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _pca.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pca_to_FSC <- function(file_path,
+                       which_lines = NULL,
                        channels = NULL,
                        compensate = T,
                        compMat,
                        timeChannel,
                        logicle_trans = T,
+                       processed_channels_to_FCS = T,
                        n_pca_dims = NULL,
-                       remove_outliers = F,
-                       outlier_limit = 10,
-                       output_folder = NULL) {
+                       output_folder = NULL,
+                       new_file_suffix = "pca") {
 
-  library(factoextra)
-  library(Biobase)
+  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
+  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+  if (!"BiocGenerics" %in% rownames(utils::installed.packages())) {BiocManager::install("BiocGenerics")}
 
-  ff_orig <- flowCore::read.FCS(file_path, truncate_max_range = F, emptyValue = F)
+  ff_orig <- flowCore::read.FCS(file_path, which.lines = which_lines, truncate_max_range = F, emptyValue = F)
 
   if (compensate) {
     if (missing(compMat)) {
@@ -38,29 +63,33 @@ pca.to.FSC <- function(file_path,
     channels <- colnames(flowCore::exprs(ff))
     channels <- channels[which(channels != timeChannel)]
   } else {
-    # print warning if channels not found
-    # allow desc for selection as well
-    #flowCore::pData(flowCore::parameters(ff))
-    channels <- channels[which(channels %in% colnames(flowCore::exprs(ff)))]
+    inds <- unique(which(flowCore::pData(flowCore::parameters(ff))$name %in% channels),
+                   which(flowCore::pData(flowCore::parameters(ff))$desc %in% channels))
+    notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
+                                   which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
+    if (length(notfound) > 0) {
+     print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
+    }
+    channels <- flowCore::pData(flowCore::parameters(ff))$name[inds]
   }
   if (length(channels) == 0) {
     stop("no channels matched to those in the flowFrame.")
   }
 
   if (logicle_trans) {
-    ff <- lgcl_trfm_ff(ff, channels = channels)
+    ff <- lgcl_trsfrm_ff(ff, channels = channels)
   }
 
   exprs <- flowCore::exprs(ff)
   exprs <- exprs[,which(colnames(exprs) %in% channels)]
 
-  # remove outliers
-  if (remove_outliers) {
+
+  'if (remove_outliers) {
     ind.outlier <- unique(unlist(apply(exprs, 2, function(x) which(abs((abs(x - median(x)) / mad(x))) > outlier_limit))))
     exprs <- exprs[-c(ind.outlier),]
     flowCore::exprs(ff_orig) <- flowCore::exprs(ff_orig)[-ind.outlier,]
     print(paste0(length(ind.outlier), " outliers are removed."))
-  }
+  }'
 
   pca <- stats::prcomp(exprs, center = T, scale. = T)
   if (is.null(n_pca_dims)) {
@@ -68,18 +97,17 @@ pca.to.FSC <- function(file_path,
   }
   n_pca_dims <- min(n_pca_dims, ncol(pca[["x"]]))
 
-  ## make ff
-  new_p <- flowCore::parameters(ff)[1,]
-  new_kw <- flowCore::keyword(ff)
-  new_pars <- flowCore::parameters(ff)
-  for (z in seq_along(ref.ffs)) {
-    new_p_number <- as.integer(dim(ff)[2]+z)
+  new_p <- flowCore::parameters(ff_orig)[1,]
+  new_kw <- flowCore::keyword(ff_orig)
+  new_pars <- flowCore::parameters(ff_orig)
+  for (z in 1:n_pca_dims) {
+    new_p_number <- as.integer(dim(ff_orig)[2]+z)
     rownames(new_p) <- c(paste0("$P", new_p_number))
     new_pars <- BiocGenerics::combine(new_pars, new_p)
-    new_p_name <- paste0("cluster.id_", names(ref.ffs)[z])
-    new_p_desc <- "signal.correction"
-    new_pars@data$name[new_p_number] <- new_p_name
-    new_pars@data$desc[new_p_number] <- new_p_desc
+    new_p_name <- paste0("PC", z)
+    new_p_desc <- paste0("PCA_dim", z)
+    flowCore::pData(new_pars)$name[new_p_number] <- new_p_name
+    flowCore::pData(new_pars)$desc[new_p_number] <- new_p_desc
 
     new_kw["$PAR"] <- as.character(new_p_number)
     new_kw[paste0("$P",as.character(new_p_number),"N")] <- new_p_name
@@ -87,41 +115,63 @@ pca.to.FSC <- function(file_path,
     new_kw[paste0("$P",as.character(new_p_number),"E")] <- "0,0"
     new_kw[paste0("$P",as.character(new_p_number),"G")] <- "1"
     new_kw[paste0("$P",as.character(new_p_number),"B")] <- new_kw["$P1B"]
-    new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(tarExprs[,new_p_name])
+    new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(pca[["x"]][,z])
     new_kw[paste0("$P",as.character(new_p_number),"DISPLAY")] <- "LIN"
-    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(tarExprs[,new_p_name])
-    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(tarExprs[,new_p_name])
+    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(pca[["x"]][,z])
+    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(pca[["x"]][,z])
   }
-  ff <- new("flowFrame", exprs = tarExprs, parameters = new_pars, description = new_kw)
+  ff_new <- methods::new("flowFrame", exprs = cbind(flowCore::exprs(ff_orig), pca[["x"]][,1:n_pca_dims]), parameters = new_pars, description = new_kw)
 
+  if (processed_channels_to_FCS && (compensate || logicle_trans)) {
+    if (compensate && logicle_trans) {
+      ext <- "comp_lgcl"
+    } else if (logicle_trans) {
+      ext <- "lgcl"
+    } else if (compensate) {
+      ext <- "comp"
+    }
+    new_p <- flowCore::parameters(ff_new)[1,]
+    new_kw <- flowCore::keyword(ff_new)
+    new_pars <- flowCore::parameters(ff_new)
+    for (z in 1:ncol(exprs)) {
+      new_p_number <- as.integer(dim(ff_new)[2]+z)
+      rownames(new_p) <- c(paste0("$P", new_p_number))
+      new_pars <- BiocGenerics::combine(new_pars, new_p)
+      new_p_name <- paste0(colnames(exprs)[z], ext)
+      ppp <- flowCore::pData(flowCore::parameters(ff))
+      new_p_desc <- ppp[which(ppp$name == colnames(exprs)[z]), "desc"]
+      if (is.na(new_p_desc)) {
+        new_p_desc <- ""
+      }
+      flowCore::pData(new_pars)$name[new_p_number] <- new_p_name
+      flowCore::pData(new_pars)$desc[new_p_number] <- new_p_desc
 
-  flowCore::parameters(ff_orig)
-  flowCore::exprs(ff_orig) <- cbind(flowCore::exprs(ff_orig), pca[["x"]][,1:n_pca_dims])
+      new_kw["$PAR"] <- as.character(new_p_number)
+      new_kw[paste0("$P",as.character(new_p_number),"N")] <- new_p_name
+      new_kw[paste0("$P",as.character(new_p_number),"S")] <- new_p_desc
+      new_kw[paste0("$P",as.character(new_p_number),"E")] <- "0,0"
+      new_kw[paste0("$P",as.character(new_p_number),"G")] <- "1"
+      new_kw[paste0("$P",as.character(new_p_number),"B")] <- new_kw["$P1B"]
+      new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(exprs[,z])
+      new_kw[paste0("$P",as.character(new_p_number),"DISPLAY")] <- "LIN"
+      new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(exprs[,z])
+      new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(exprs[,z])
+    }
+    colnames(exprs) <- paste0(colnames(exprs), ext)
+    ff_new <- methods::new("flowFrame", exprs = cbind(flowCore::exprs(ff_new), exprs), parameters = new_pars, description = new_kw)
+  }
 
-
-  desc <- c(flowCore::parameters(ff_orig)@data[["desc"]], rep(NA, n_pca_dims))
-  names(desc)[which(names(desc) == "")] <- NA
-  desc <- desc[which(is.na(desc))] <- ""
-
-  metadata <- data.frame(name = colnames(flowCore::exprs(ff_orig)), desc = desc)
-  metadata$minRange <- apply(flowCore::exprs(ff),2,min)
-  metadata$maxRange <- apply(flowCore::exprs(ff),2,max)
-
-  ff <- new("flowFrame", exprs = flowCore::exprs(ff), parameters = AnnotatedDataFrame(metadata), description = c(flowCore::keyword(ff), list(channels.for.pca = channels)))
-
-  write.FCS(ff, paste0(export.folder.path, str_replace(basename(file_path), ".fcs", ""), "_pca.fcs"))
-
-  if (is.null(output_folder)) {
+  if (!is.null(output_folder)) {
     dir.create(output_folder, recursive = T, showWarnings = F)
+  } else {
+    output_folder <- dirname(file_path)
   }
 
-  return(list(pca.data = pca.data, pca.plot = pca.plot))
+  flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file_path)), "_", new_file_suffix, ".fcs")))
+  return(list(pca = pca, ff = ff_new))
 }
 
-file_path <- "/Users/vonskopnik/Documents/20190225_CMS_Blut/Compensation_FCS_files/20190225_PBMC-comp_cd8-apc_003.fcs"
-
-
-lgcl_trfm_ff <- function(ff, channels = NULL) {
+lgcl_trsfrm_ff <- function(ff, channels = NULL) {
 
   if (is.null(channels)) {
     channels <- colnames(flowCore::exprs(ff))

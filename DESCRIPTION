@@ -27,7 +27,8 @@ Imports:
     rstudioapi,
     xml2,
     dplyr,
-    stringr
+    stringr,
+    BiocGenerics
 Suggests: 
     rmarkdown,
     knitr,
