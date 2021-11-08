@@ -60,7 +60,7 @@ ab_info_to_panel <- function(panel_file,
   panel_add <-
     panel %>%
     fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>%
-    dplyr::filter(!is.na(Antigen.y) && !is.na(Conjugate.y)) %>%
+    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>%
     dplyr::select(-c(Antigen.x, Conjugate.x)) %>%
     dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) %>%
     dplyr::filter(is.na(Box.x) | Box.x == Box.y) %>%
