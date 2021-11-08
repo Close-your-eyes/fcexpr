@@ -28,7 +28,8 @@ Imports:
     xml2,
     dplyr,
     stringr,
-    BiocGenerics
+    BiocGenerics,
+    magrittr
 Suggests: 
     rmarkdown,
     knitr,

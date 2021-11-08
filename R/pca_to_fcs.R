@@ -37,6 +37,10 @@ pca_to_FSC <- function(file_path,
   if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
   if (!"BiocGenerics" %in% rownames(utils::installed.packages())) {BiocManager::install("BiocGenerics")}
 
+  if (!file.exists(file_path)) {
+    stop(paste0(file_path, " not found."))
+  }
+
   ff_orig <- flowCore::read.FCS(file_path, which.lines = which_lines, truncate_max_range = F, emptyValue = F)
 
   if (compensate) {
