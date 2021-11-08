@@ -128,11 +128,11 @@ pca_to_FSC <- function(file_path,
 
   if (processed_channels_to_FCS && (compensate || logicle_trans)) {
     if (compensate && logicle_trans) {
-      ext <- "comp_lgcl"
+      ext <- "_comp_lgcl"
     } else if (logicle_trans) {
-      ext <- "lgcl"
+      ext <- "_lgcl"
     } else if (compensate) {
-      ext <- "comp"
+      ext <- "_comp"
     }
     new_p <- flowCore::parameters(ff_new)[1,]
     new_kw <- flowCore::keyword(ff_new)
