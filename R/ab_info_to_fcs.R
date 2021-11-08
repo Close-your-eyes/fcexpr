@@ -25,6 +25,7 @@ ab_info_to_fcs <- function (sampledescription,
                             clear_previous = T) {
 
 
+  # how to handle non-fluorochrome conjugates?
   if (!"BiocManager" %in% rownames(utils::installed.packages())) {install.packages("BiocManager")}
   if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
 
