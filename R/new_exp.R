@@ -12,7 +12,7 @@
 #' new_exp(path = '/Users/CMS/Documents/experiments', name = 'CD3_titration')
 #' }
 new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
-
+## remove mac files in case of windows - check!
     if (base::is.null(path)) {
         stop("Please provide a directory (path) to create the folder in.")
     }
