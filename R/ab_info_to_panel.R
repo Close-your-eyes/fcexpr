@@ -59,7 +59,10 @@ ab_info_to_panel <- function(panel_file,
 
   panel_add <-
     panel %>%
-    dplyr::left_join(ab.list, by = c("Antigen", "Conjugate")) %>%
+    fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>%
+    dplyr::filter(!is.na(Antigen.y) && !is.na(Conjugate.y)) %>%
+    dplyr::select(-c(Antigen.x, Conjugate.x)) %>%
+    dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) %>%
     dplyr::filter(is.na(Box.x) | Box.x == Box.y) %>%
     dplyr::mutate(Box = ifelse(!is.na(Box.x), Box.x, Box.y)) %>%
     dplyr::filter(is.na(Lot.x) | Lot.x == Lot.y) %>%
@@ -68,7 +71,7 @@ ab_info_to_panel <- function(panel_file,
     dplyr::arrange(row.num) %>%
     dplyr::distinct()
 
-  if (nrow(panel_add) > nrow(panel)) {
+  if (any(duplicated(panel_add$row.num))) {
     print(as.data.frame(panel_add))
     stop("Ambiguous entries found. Please check and make specific by providing a Box and/or Lot.")
   }

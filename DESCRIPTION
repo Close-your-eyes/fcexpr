@@ -29,7 +29,8 @@ Imports:
     dplyr,
     stringr,
     BiocGenerics,
-    magrittr
+    magrittr,
+    fuzzyjoin
 Suggests: 
     rmarkdown,
     knitr,
