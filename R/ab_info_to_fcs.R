@@ -1,12 +1,28 @@
-ab_info_to_fcs_keywords <- function (sampledescription,
-                                     fcs.file.names,
-                                     FCS.file.folder,
-                                     channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr"),
-                                     AbCalcFile_col = "AbCalcFile",
-                                     AbCalcSheet_col = "AbCalcSheet",
-                                     conjugate_to_desc = T,
-                                     other_keywords = c("Isotype", "Clone", "total.df", "Vendor", "Cat.no", "Lot.number", "Expiry.date"),
-                                     clear_previous = T) {
+#' Title
+#'
+#' @param sampledescription
+#' @param FileNames
+#' @param FCS.file.folder
+#' @param channel_conjugate_match_file
+#' @param AbCalcFile_col
+#' @param AbCalcSheet_col
+#' @param conjugate_to_desc
+#' @param other_keywords
+#' @param clear_previous
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ab_info_to_fcs <- function (sampledescription,
+                            FileNames,
+                            FCS.file.folder,
+                            channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr"),
+                            AbCalcFile_col = "AbCalcFile",
+                            AbCalcSheet_col = "AbCalcSheet",
+                            conjugate_to_desc = T,
+                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+                            clear_previous = T) {
 
 
   if (!"BiocManager" %in% rownames(utils::installed.packages())) {install.packages("BiocManager")}
@@ -15,36 +31,43 @@ ab_info_to_fcs_keywords <- function (sampledescription,
   ## check sd for columns
 
   sd <- as.data.frame(sampledescription, stringsAsFactors = F)
+  if (!AbCalcFile_col %in% names(sd)) {
+    stop(paste0(AbCalcFile_col, " not found in sampledescription columns."))
+  }
+  if (!AbCalcSheet_col %in% names(sd)) {
+    stop(paste0(AbCalcSheet_col, " not found in sampledescription columns."))
+  }
 
   if (missing(FCS.file.folder)) {
-    FCS.file.folder <- file.path(getwd(), "FCS_files")
+    stop("FCS.file.folder missing. Please provide.")
   }
-
-  if (missing(AbCalcFile_col)) {
-    AbCalcFile_col <- grep("^Ab.{1,}file", names(sd), value = T)
-    if (length(AbCalcFile_col) > 1) {stop("AbCalcFile_col could not be guessed. Please provide the name.")}
-  }
-
-  if (missing(AbCalcSheet_col)) {
-    AbCalcSheet_col <- grep("^Ab.{1,}sheet", names(sd), value = T)
-    if (length(AbCalcSheet_col) > 1) {stop("AbCalcSheet_col could not be guessed. Please provide the name.")}
+  if (missing(FileNames)) {
+    stop("FileNames missing. Please provide.")
   }
 
   ccm <- openxlsx::read.xlsx(channel_conjugate_match_file, sheet = "matches")
-
-  s <- sd[which(sd[,1] %in% fcs.file.names), ]
+  if (!identical(names(ccm), c("Conjugate", "channel", "machine"))) {
+    # avoid case sensitivity
+    stop("Column names of the channel_conjugate_match_file have to be Conjugte, channel, machine.")
+  }
+  s <- sd[which(sd[,1] %in% FileNames), ]
+  if (length(s) == 0) {
+    stop("Non of FileNames found in sampledescription column 1.")
+  }
 
   for (i in 1:nrow(s)) {
     fcs.path <- list.files(FCS.file.folder, pattern = s[i,1], recursive = T, full.names = T)
-    ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F)
+    ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
     channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
-    channels.inv <- setNames(names(channels),channels)
+    channels.inv <- stats::setNames(names(channels),channels)
 
     if (!is.null(s[i,AbCalcFile_col]) && !is.na(s[i,AbCalcFile_col])) {
-      file <- list.files(getwd(), pattern = s[i,AbCalcFile_col], recursive = T, full.names = T)
-      file <- file[which(!stringr::str_detect(basename(file), "^\\~\\$"))]
+      file <- file.path(basename(FCS.file.folder), "Protocols", s[i,AbCalcFile_col])
+      if (!file.exists(file)) {
+        stop(paste0(file, " not found. ", s[i,AbCalcFile_col], " is expected to be in a folder named Protocols in ", basename(FCS.file.folder), "."))
+      }
 
-      sh <- openxlsx::read.xlsx(file, s[i,AbCalcSheet_col])
+      sh <- openxlsx::read.xlsx(file, sheet = s[i,AbCalcSheet_col])
       sh <- sh[which(!is.na(sh[,"Antigen"])),]
 
       if (!is.na(sh[1,"Live.Dead.Marker"])) {
@@ -56,7 +79,16 @@ ab_info_to_fcs_keywords <- function (sampledescription,
         stop(paste0("Duplicate Antigen found in Ab.calc.sheet (",  s[i,AbCalcSheet_col], "). ",  "Please check."))
       }
 
+      if (!"Conjugate" %in% names(sh)) {
+        print("Conjugate column not found in AbCalcSheet")
+      }
+
+      if (length(!other_keywords %in% names(sh)) > 0) {
+        print(paste0(paste(other_keywords, collapse = ", "), " not found in AbCalcSheet."))
+      }
+
       # extract relevant rows from the reference database (matched channels and fluorochromes)
+      # check for matching channels and notify of missing ones
       selection <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(sh[,"Conjugate"])))), ]
       selection <- unique(selection[,c(1,2)])
 
@@ -71,7 +103,7 @@ ab_info_to_fcs_keywords <- function (sampledescription,
       collapse.fun <- function(x) {
         paste0(x, collapse = ", ")
       }
-      other_keywords <- intersect(other_keywords, names(sh))
+      other_keywords <- base::intersect(other_keywords, names(sh))
       sh <-
         sh %>%
         dplyr::group_by(channel) %>%
