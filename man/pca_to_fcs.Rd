@@ -22,22 +22,22 @@ pca_to_fcs(
 \item{file_path}{character, path to a fcs file}
 
 \item{which_lines}{numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
-if you know lines of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.}
+If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.}
 
-\item{channels}{character vector, which channels to use for PC calculation. Either channels names or descriptions may be provided. Also a mixture is possible. If not provided all channels (scatter and fluorescence) except for the Time channel are used.}
+\item{channels}{character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3 or CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.}
 
 \item{compensate}{logical, should compensation be applied before PC calculation}
 
-\item{compMat}{matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used.}
+\item{compMat}{matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have those matrices copied to fcs files.}
 
 \item{timeChannel}{character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.}
 
-\item{logicle_trans}{logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied be for PCA}
+\item{logicle_trans}{logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied befor PCA calculation. Recommendation: yes.}
 
-\item{processed_channels_to_FCS}{logical, should the processed fluorescence intensities (compensation / logicle transformation) be saved to the newly generated fcs file?
-Respective channels are suffixed by _comp and or _lgcl.}
+\item{processed_channels_to_FCS}{logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved to the newly generated fcs file?
+Respective channels are suffixed by _comp, _lgcl, or _comp_logl depend upon the selections above.}
 
-\item{n_pca_dims}{numeric, the number of PCs to add to the newly generated fcs file.}
+\item{n_pca_dims}{numeric, the number of PCs to add to the newly generated fcs file. Default: all.}
 
 \item{output_folder}{character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).}
 

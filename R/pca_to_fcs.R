@@ -5,15 +5,15 @@
 #'
 #' @param file_path character, path to a fcs file
 #' @param which_lines numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
-#' if you know lines of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.
-#' @param channels character vector, which channels to use for PC calculation. Either channels names or descriptions may be provided. Also a mixture is possible. If not provided all channels (scatter and fluorescence) except for the Time channel are used.
+#' If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.
+#' @param channels character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3 or CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.
 #' @param compensate logical, should compensation be applied before PC calculation
-#' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used.
+#' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.
 #' @param timeChannel character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.
-#' @param logicle_trans logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied be for PCA
-#' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation / logicle transformation) be saved to the newly generated fcs file?
-#' Respective channels are suffixed by _comp and or _lgcl.
-#' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file.
+#' @param logicle_trans logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied befor PCA calculation. Recommendation: yes.
+#' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved as extra channels to the newly generated fcs file?
+#' Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the selections above.
+#' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file. Default: all.
 #' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
 #' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _pca.
 #'
@@ -86,14 +86,6 @@ pca_to_fcs <- function(file_path,
 
   exprs <- flowCore::exprs(ff)
   exprs <- exprs[,which(colnames(exprs) %in% channels)]
-
-
-  'if (remove_outliers) {
-    ind.outlier <- unique(unlist(apply(exprs, 2, function(x) which(abs((abs(x - median(x)) / mad(x))) > outlier_limit))))
-    exprs <- exprs[-c(ind.outlier),]
-    flowCore::exprs(ff_orig) <- flowCore::exprs(ff_orig)[-ind.outlier,]
-    print(paste0(length(ind.outlier), " outliers are removed."))
-  }'
 
   pca <- stats::prcomp(exprs, center = T, scale. = T)
   if (is.null(n_pca_dims)) {

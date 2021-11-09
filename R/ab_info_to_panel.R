@@ -1,11 +1,11 @@
 #' Complement the antibody panel table with additional information from your antibody list
 #'
-#' This function matches the used antibodies from a panel to those listed in an antibody list.
+#' This function matches the antibodies in a panel to those listed in an antibody list.
 #' The antibody list may contain additional information like clone or catalog number which are to
-#' be added to the panel table for proper description of the experiment.
-#' The panel_file should be a an xlsx-file as found in the Protocols-folder when running fcexpr::new_exp().
+#' be added to the panel table for proper annotation of the experiment.
+#' The panel_file should be a xlsx-file as found in the Protocols-folder when running fcexpr::new_exp().
 #' Necessary columns in panel_file and antibody_list used for matching are Antigen, Conjugate, Box, Lot.
-#' If they do not exist this function cannot be used. Columns added to the panel_file will appear one column right to
+#' If they do not exist this function cannot be used, yet. Columns added to the panel_file will appear just right to
 #' the LiveDeadMarker column. Anything written there will be overwritten.
 #'
 #' @param panel_file character, path to the xlsx file in which the antibody panel was calculated

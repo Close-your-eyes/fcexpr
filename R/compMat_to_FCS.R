@@ -90,4 +90,6 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
     }
   }
   rownames(sp) <- NULL
+
+  return(sp)
 }
