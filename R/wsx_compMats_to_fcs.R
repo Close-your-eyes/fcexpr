@@ -1,4 +1,16 @@
-wsx_compMats_to_fcs <- function(ws) {
+#' Write the compensation matrices generate in a FlowJo workspace to the SPILL keywords of respective FCS files
+#'
+#' @param ws path to flowjo workspace
+#' @param ... additional arguments to fcexpr:::prep_spill(): max_match_dist, skip_check, verbose
+#'
+#' @return no return but SPILL keyword updated in FCS files
+#' @export
+#'
+#' @examples
+wsx_compMats_to_fcs <- function(ws, ...) {
+
+  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
+  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
 
   ws <- fcexpr:::check_ws(ws)
 
@@ -7,7 +19,7 @@ wsx_compMats_to_fcs <- function(ws) {
     sp <- xml2::xml_child(ss[[n]], "transforms:spilloverMatrix")
     if (!is.na(sp)) {
       compMat <- t(do.call(cbind, lapply(xml2::xml_children(sp)[2:length(xml2::xml_children(sp))], function(x) {
-        mat <- as.matrix(stats::setNames(as.numeric(xml_attr(xml2::xml_children(x), "value")), xml_attr(xml2::xml_children(x), "parameter")), nrow = 1, byrow = T)
+        mat <- as.matrix(stats::setNames(as.numeric(xml2::xml_attr(xml2::xml_children(x), "value")), xml2::xml_attr(xml2::xml_children(x), "parameter")), nrow = 1, byrow = T)
         colnames(mat) <- xml2::xml_attr(x, "parameter")
         return(mat)
       })))
@@ -21,10 +33,15 @@ wsx_compMats_to_fcs <- function(ws) {
   })
   compMats <- compMats[which(!sapply(compMats, is.null))]
 
-  ## read FCS and write compMat to SPILL keyword
+  for (i in seq_along(compMats)) {
+    if (!file.exists(names(compMats)[i])) {
+      print(paste0("File ", names(compMats)[i]), " not found. Did you change the names of FCS files and have not reconnected them to the workspace? Or did you copy the workspace from somewhere else? If so, open the workspace, reconnect the fcs files and save.")
+    }
+    ff <- flowCore::read.FCS(names(compMats)[i], truncate_max_range = F, emptyValue = F)
+    sp <- flowCore::keyword(ff)[["SPILL"]]
+    sp <- prep_spill(sp = sp, compMat = compMats[[i]], ...)
+    flowCore::keyword(ff)[["SPILL"]] <- sp
+    flowCore::write.FCS(ff, names(compMats)[i])
+  }
 
 }
-n<-43
-ws <- "/Users/vonskopnik/Downloads/20-Oct-2021.wsp"
-
-x<-xml2::xml_children(sp)[2:length(xml2::xml_children(sp))][1]

@@ -22,6 +22,9 @@
 #' }
 compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1, skip_check = F) {
 
+  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
+  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+
   if (!file.exists(compMat_file_path)) {
     stop("compMat not found.")
   }
@@ -38,20 +41,38 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
   }
   ff <- flowCore::read.FCS(fcs_file_path, truncate_max_range = F, emptyValue = F)
   sp <- flowCore::keyword(ff)[["SPILL"]]
-  rownames(sp) <- colnames(sp)
 
+
+  sp <- prep_spill(sp = sp, compMat = compMat, max_match_dist = max_match_dist, skip_check = skip_check, verbose = T)
+  flowCore::keyword(ff)[["SPILL"]] <- sp
+  flowCore::write.FCS(ff, fcs_file_path)
+  print(fcs_file_path)
+}
+
+prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose = F) {
+  # sp is SPILL keyword from fcs file
+  # compMat is the matrix generated elsewhere (e.g. FlowJo)
+  # max_match_dist is the maximum allowed string distance between channel names for matching; channel names from FCCF always contain a "/" which is replaced by "_"
+
+  rownames(sp) <- colnames(sp)
   if (!all(colnames(compMat) %in% colnames(sp))) {
-    print("Not all colnames of compMat found in those of the SPILLOVER keyword matrix from the FCS file.")
+    if (verbose) {
+      print("Not all colnames of compMat found in those of the SPILLOVER keyword matrix from the FCS file.")
+    }
     # match channel names
     if (any(apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist)) {
+      print(colnames(compMat)[apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist])
+      print(colnames(sp))
       stop("Too big string distances between channel names of compMat and FCS file. Please, check the column names or make sure you provide the correct compensation matrix.")
     }
     match_ind <- apply(utils::adist(colnames(compMat), colnames(sp)), 1, which.min)
     if (any(duplicated(match_ind))) {
       stop("Channel names from compMat not uniquely matched to channel names from FCS file.")
     }
-    print("Matched channel names:")
-    print(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
+    if (verbose) {
+      print("Matched channel names:")
+      print(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
+    }
     colnames(compMat) <- colnames(sp)[match_ind]
     rownames(compMat) <- colnames(sp)[match_ind]
     if (!skip_check) {
@@ -63,17 +84,10 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
       }
     }
   }
-
-
   for (rr in rownames(compMat)) {
     for (cc in colnames(compMat)) {
       sp[which(rownames(sp) == rr), which(colnames(sp) == cc)] <- compMat[which(rownames(compMat) == rr), which(colnames(compMat) == cc)]
     }
   }
-
   rownames(sp) <- NULL
-  flowCore::keyword(ff)[["SPILL"]] <- sp
-  flowCore::write.FCS(ff, fcs_file_path)
-  print(fcs_file_path)
 }
-
