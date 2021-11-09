@@ -32,7 +32,7 @@ if you know lines of interest (e.g. a subpopulation to select or outliers to exc
 
 \item{timeChannel}{character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.}
 
-\item{logicle_trans}{logical, should the logical transformation (Parks, 2006)\link{"https://pubmed.ncbi.nlm.nih.gov/16604519/"} be applied be for PCA}
+\item{logicle_trans}{logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied be for PCA}
 
 \item{processed_channels_to_FCS}{logical, should the processed fluorescence intensities (compensation / logicle transformation) be saved to the newly generated fcs file?
 Respective channels are suffixed by _comp and or _lgcl.}
