@@ -26,7 +26,7 @@ ab_info_to_panel(
 \item{antibody_list_cols}{character vector, which columns from antibody_list to append to the panel_sheet in panel_file}
 }
 \value{
-No return, but an appended panel_file written to disk.
+No return value, but an appended panel_file written to disk.
 }
 \description{
 This function matches the used antibodies from a panel to those listed in an antibody list.

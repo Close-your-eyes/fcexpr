@@ -10,7 +10,7 @@
 #' @param compensate logical, should compensation be applied before PC calculation
 #' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used.
 #' @param timeChannel character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.
-#' @param logicle_trans logical, should the logical transformation be applied be for PCA
+#' @param logicle_trans logical, should the logical transformation (Parks, 2006)["https://pubmed.ncbi.nlm.nih.gov/16604519/"] be applied be for PCA
 #' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation / logicle transformation) be saved to the newly generated fcs file?
 #' Respective channels are suffixed by _comp and or _lgcl.
 #' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file.
@@ -21,7 +21,7 @@
 #' @export
 #'
 #' @examples
-pca_to_FSC <- function(file_path,
+pca_to_fcs <- function(file_path,
                        which_lines = NULL,
                        channels = NULL,
                        compensate = T,
@@ -72,7 +72,7 @@ pca_to_FSC <- function(file_path,
     notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
                                    which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
     if (length(notfound) > 0) {
-     print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
+      print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
     }
     channels <- flowCore::pData(flowCore::parameters(ff))$name[inds]
   }

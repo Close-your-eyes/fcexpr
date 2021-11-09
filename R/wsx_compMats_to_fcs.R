@@ -1,4 +1,9 @@
-#' Write the compensation matrices generate in a FlowJo workspace to the SPILL keywords of respective FCS files
+#' Write the compensation matrices generated in a FlowJo workspace to the SPILL keywords of respective FCS files
+#'
+#' The compensation matrices generated or optimized in FlowJo only exist in the workspace. The underlying FCS files remain unchanged.
+#' This is part of FlowJos philosophy, FCS remain original all the time. This is actually not a bad procedure but reduces flexibility in some cases.
+#' This function saves the associated compensation matrices to the FCS files - the matrices are written into the SPILL keyword. That makes
+#' them easily and unambiguously available for other calculations outside of FlowJo (e.g. in R) when compensated channels are required.
 #'
 #' @param ws path to flowjo workspace
 #' @param ... additional arguments to fcexpr:::prep_spill(): max_match_dist, skip_check, verbose
