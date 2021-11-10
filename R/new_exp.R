@@ -12,7 +12,7 @@
 #' new_exp(path = '/Users/CMS/Documents/experiments', name = 'CD3_titration')
 #' }
 new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
-## remove mac files in case of windows - check!
+
     if (base::is.null(path)) {
         stop("Please provide a directory (path) to create the folder in.")
     }
@@ -36,5 +36,19 @@ new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
     utils::untar(base::system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
     base::file.rename(base::file.path(path, "template_folder"), base::file.path(path, name))
 
+    if (getOS() == "Windows") {
+        files <- list.files(base::file.path(path, name), all.files = T, recursive = T, full.names = T)
+        file.remove(files[which(grepl("^\\.", basename(files)))])
+    }
+
     base::print(base::paste0(base::file.path(path, name), " created."))
+}
+
+
+getOS <- function() {
+    machine <- switch(Sys.info()[["sysname"]],
+                      Windows= "Windows",
+                      Linux  = "Linux",
+                      Darwin = "Mac")
+    return(machine)
 }
