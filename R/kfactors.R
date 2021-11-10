@@ -3,6 +3,9 @@
 tab <- lapply(list.files(wd, "\\.xlsx$", full.names = T)[which(!grepl("\\~", list.files(wd, "\\.xlsx$")))], function(x) {
   tab <- do.call(rbind, lapply(openxlsx::getSheetNames(x)[-1], function(y) {
     tab <- openxlsx::read.xlsx(x, sheet = y, rows = c(9,14))
+    y <- gsub("LP", "", y)
+    y <- rev(rev(strsplit(y, " ")[[1]])[-1])
+    y <- paste0(y[1], "-", y[2], " ", y[3], "/", y[4], "-", y[5])
     tab$channel <- y
     return(tab)
     #read_xlsx(file.path(wd, "Results_Fortessa.xlsx"), sheet = x, range = "A9:N15") %>% dplyr::rename("variable" = `...1`) %>% tidyr::gather(key = "voltage", value = "value", -c(variable)) %>% dplyr::filter(str_detect(variable, "K-factor")) %>% dplyr::mutate(channel = x)
@@ -30,10 +33,8 @@ ggplot(tab[[2]], aes(x = volt, y = k, group = channel)) +
   geom_point(size = 0.2) +
   geom_line() +
   theme_bw() +
-  facet_wrap(vars(channel), scales = "free_y")
+  facet_wrap(vars(channel), scales = "free_y")'
 
-
-'
 # remove LP
 # replace first space with "-"
 # second space untouched
