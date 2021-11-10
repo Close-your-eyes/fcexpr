@@ -1,5 +1,5 @@
 # xlsx file names have to match whats gonna be written to the $CYT keyword in FCS files
-wd <- file.path(dirname(dirname(rstudioapi::getActiveDocumentContext()$path)), "ignore_folder")
+'wd <- file.path(dirname(dirname(rstudioapi::getActiveDocumentContext()$path)), "ignore_folder")
 tab <- lapply(list.files(wd, "\\.xlsx$", full.names = T)[which(!grepl("\\~", list.files(wd, "\\.xlsx$")))], function(x) {
   tab <- do.call(rbind, lapply(openxlsx::getSheetNames(x)[-1], function(y) {
     tab <- openxlsx::read.xlsx(x, sheet = y, rows = c(9,14))
@@ -33,3 +33,10 @@ ggplot(tab[[2]], aes(x = volt, y = k, group = channel)) +
   facet_wrap(vars(channel), scales = "free_y")
 
 
+'
+# remove LP
+# replace first space with "-"
+# second space untouched
+# third space a "/"
+# then -
+# replace -H at the end (matching later without final letter (A or H for channel height/area))
