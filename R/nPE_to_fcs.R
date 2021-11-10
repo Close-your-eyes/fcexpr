@@ -1,3 +1,21 @@
+#' Convert fluorescence intensity (FI) to number of Photoelectrons (nPE)
+#'
+#' Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
+#' fluorescence intensity (FI) measured by a PMT (detector in a flow cytometer) can be correlated to an absolute number of detected photoelectrons (nPE).
+#' Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale.
+#'
+#' @param file_path character, path to a fcs file
+#' @param compensate logical, should compensation be applied before PC calculation
+#' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.
+#' @param logicle_trans logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied before nPE calculation.
+#' @param kfactor_df data.frame, table with k-factors for every channel and voltage per machine, defaults to system.file("extdata", "k_factors.rds", package = "fcexpr")
+#' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
+#' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _nPE.
+#'
+#' @return appended flowFrame which is also saved as fcs file
+#' @export
+#'
+#' @examples
 nPE_to_fcs <- function(file_path,
                        compensate = F,
                        compMat,
@@ -101,7 +119,5 @@ nPE_to_fcs <- function(file_path,
   }
 
   flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file_path)), "_", new_file_suffix, ".fcs")))
-  return(list(pca = pca, ff = ff_new))
-
-
+  return(ff_new)
 }

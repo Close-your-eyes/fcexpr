@@ -10,14 +10,14 @@
 #' @param compensate logical, should compensation be applied before PC calculation
 #' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.
 #' @param timeChannel character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.
-#' @param logicle_trans logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied befor PCA calculation. Recommendation: yes.
+#' @param logicle_trans logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied before PCA calculation. Recommendation: yes.
 #' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved as extra channels to the newly generated fcs file?
 #' Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the selections above.
 #' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file. Default: all.
 #' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
 #' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _pca.
 #'
-#' @return
+#' @return list of pca-object and appended flowFrame which is also saved as fcs file
 #' @export
 #'
 #' @examples
