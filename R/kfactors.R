@@ -3,7 +3,7 @@
 tab <- lapply(list.files(wd, "\\.xlsx$", full.names = T)[which(!grepl("\\~", list.files(wd, "\\.xlsx$")))], function(x) {
   tab <- do.call(rbind, lapply(openxlsx::getSheetNames(x)[-1], function(y) {
     tab <- openxlsx::read.xlsx(x, sheet = y, rows = c(9,14))
-    y <- gsub("LP", "", y)
+    #y <- gsub("LP", "", y)
     y <- rev(rev(strsplit(y, " ")[[1]])[-1])
     y <- paste0(y[1], "-", y[2], " ", y[3], "/", y[4], "-", y[5])
     tab$channel <- y

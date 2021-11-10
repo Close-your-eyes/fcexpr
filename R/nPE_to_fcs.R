@@ -1,9 +1,10 @@
 nPE_to_fcs <- function(file_path,
                        compensate = F,
                        compMat,
-                       timeChannel,
                        logicle_trans = F,
-                       kfactor_df) {
+                       kfactor_df,
+                       output_folder = NULL,
+                       new_file_suffix = "nPE") {
 
   if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
   if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
@@ -17,18 +18,22 @@ nPE_to_fcs <- function(file_path,
     kfactor_df <- readRDS(system.file("extdata", "k_factors.rds", package = "fcexpr"))
   }
 
-  ff_orig <- flowCore::read.FCS(file_path, which.lines = which_lines, truncate_max_range = F, emptyValue = F)
+  ff_orig <- flowCore::read.FCS(file_path, truncate_max_range = F, emptyValue = F)
 
   if (!flowCore::keyword(ff_orig)[["$CYT"]] %in% names(kfactor_df)) {
     stop(paste0(flowCore::keyword(ff_orig)[["$CYT"]], " not found in names of kfactor_df. The fcs file had to be recorded at one of these machines: ", paste(names(kfactor_df), collapse = ", "), "."))
   }
+  kfactor_df <- kfactor_df[[flowCore::keyword(ff_orig)[["$CYT"]]]]
 
   volts <- stack(flowCore::keyword(ff_orig)[which(grepl("P[[:digit:]]{1,}V", names(flowCore::keyword(ff_orig))))])
   volts$ind <- gsub("V$", "", volts$ind)
   names(volts) <- c("volt", "ind")
+  volts$volt <- as.numeric(volts$volt)
   pdata <- flowCore::pData(flowCore::parameters(ff_orig))
   volts <- merge(pdata, volts, by.x = "row.names", by.y = "ind")
   volts <- volts[which(!grepl("FSC|SSC", volts$name)), which(names(volts) %in% c("name", "volt"))]
+  volts$channel <- as.character(gsub("-[[:alpha:]]{1}$", "", volts$name))
+  volt_k_df <- merge(volts, kfactor_df, by = c("volt", "channel"))
 
   if (compensate) {
     if (missing(compMat)) {
@@ -41,35 +46,38 @@ nPE_to_fcs <- function(file_path,
     print("No compensation applied.")
   }
 
-  if(!missing(timeChannel)) {
-    if (!timeChannel %in% colnames(flowCore::exprs(ff))) {
-      stop("timeChannel not found in exprs of flowFrame.")
-    }
-  } else {
-    timeChannel <- flowCore:::findTimeChannel(ff)
-    print(paste0("time channel detected: ", timeChannel))
-  }
-
-
   if (logicle_trans) {
-    ff <- lgcl_trsfrm_ff(ff, channels = channels)
+    ff <- lgcl_trsfrm_ff(ff, channels = volt_k_df$name)
   }
   exprs <- flowCore::exprs(ff)
+  exprs <- exprs[, which(colnames(exprs) %in% volt_k_df$name)]
 
-  # filter scatter channels
-  # get voltages
+  for (i in colnames(exprs)) {
+    exprs[,i] <- exprs[,i]*volt_k_df[which(volt_k_df$name == i),"k"]
+  }
+  colnames(exprs) <- paste0(colnames(exprs), "_nPE")
 
-
+  if (compensate && logicle_trans) {
+    ext <- "_comp_lgcl"
+  } else if (logicle_trans) {
+    ext <- "_lgcl"
+  } else if (compensate) {
+    ext <- "_comp"
+  }
+  colnames(exprs) <- paste0(colnames(exprs), ext)
 
   new_p <- flowCore::parameters(ff_orig)[1,]
   new_kw <- flowCore::keyword(ff_orig)
   new_pars <- flowCore::parameters(ff_orig)
-  for (z in 1:n_pca_dims) {
+  for (z in 1:ncol(exprs)) {
     new_p_number <- as.integer(dim(ff_orig)[2]+z)
     rownames(new_p) <- c(paste0("$P", new_p_number))
     new_pars <- BiocGenerics::combine(new_pars, new_p)
-    new_p_name <- paste0("PC", z)
-    new_p_desc <- paste0("PCA_dim", z)
+    new_p_name <- colnames(exprs)[z]
+    new_p_desc <- pdata[which(pdata$name == strsplit(colnames(exprs)[z], "_")[[1]][1]), "desc"]
+    if (is.na(new_p_desc)) {
+      new_p_desc <- ""
+    }
     flowCore::pData(new_pars)$name[new_p_number] <- new_p_name
     flowCore::pData(new_pars)$desc[new_p_number] <- new_p_desc
 
@@ -79,13 +87,21 @@ nPE_to_fcs <- function(file_path,
     new_kw[paste0("$P",as.character(new_p_number),"E")] <- "0,0"
     new_kw[paste0("$P",as.character(new_p_number),"G")] <- "1"
     new_kw[paste0("$P",as.character(new_p_number),"B")] <- new_kw["$P1B"]
-    new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(pca[["x"]][,z])
+    new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(exprs[,z])
     new_kw[paste0("$P",as.character(new_p_number),"DISPLAY")] <- "LIN"
-    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(pca[["x"]][,z])
-    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(pca[["x"]][,z])
+    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(exprs[,z])
+    new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(exprs[,z])
   }
-  ff_new <- methods::new("flowFrame", exprs = cbind(flowCore::exprs(ff_orig), pca[["x"]][,1:n_pca_dims]), parameters = new_pars, description = new_kw)
+  ff_new <- methods::new("flowFrame", exprs = cbind(flowCore::exprs(ff_orig), exprs), parameters = new_pars, description = new_kw)
 
+  if (!is.null(output_folder)) {
+    dir.create(output_folder, recursive = T, showWarnings = F)
+  } else {
+    output_folder <- dirname(file_path)
+  }
+
+  flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file_path)), "_", new_file_suffix, ".fcs")))
+  return(list(pca = pca, ff = ff_new))
 
 
 }
