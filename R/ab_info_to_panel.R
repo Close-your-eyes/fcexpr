@@ -12,7 +12,7 @@
 #' @param panel_sheet character, the name of the sheet in the panel_file
 #' @param antibody_list character, path to the xlsx file representing the antibody list with additional information for the used antibodies
 #' @param antibody_list_cols character vector, which columns from antibody_list to append to the panel_sheet in panel_file
-#' @param antibody_list_sheet character, the name of the sheet in the antibody_list
+#' @param antibody_list_sheet character or numeric, the name or index of the sheet in the antibody_list
 #'
 #' @return No return value, but an appended panel_file written to disk.
 #' @export
@@ -22,7 +22,7 @@
 #' @examples
 ab_info_to_panel <- function(panel_file,
                              panel_sheet = "Panel",
-                             antibody_list = "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx",
+                             antibody_list,
                              antibody_list_sheet = 1,
                              antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")) {
 
@@ -42,6 +42,10 @@ ab_info_to_panel <- function(panel_file,
     stop("At least one of the required columns Antigen, Conjugate, Box, Lot is not found in panel_sheet of panel_file.")
   }
   panel <- panel[,c("Antigen", "Conjugate", "Box", "Lot")]
+
+  if (missing(antibody_list)) {
+    antibody_list <- "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx"
+  }
 
   if (!file.exists(antibody_list)) {
     stop("antibody_list not found.")

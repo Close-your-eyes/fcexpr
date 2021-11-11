@@ -43,7 +43,7 @@ nPE_to_fcs <- function(file_path,
   }
   kfactor_df <- kfactor_df[[flowCore::keyword(ff_orig)[["$CYT"]]]]
 
-  volts <- stack(flowCore::keyword(ff_orig)[which(grepl("P[[:digit:]]{1,}V", names(flowCore::keyword(ff_orig))))])
+  volts <- utils::stack(flowCore::keyword(ff_orig)[which(grepl("P[[:digit:]]{1,}V", names(flowCore::keyword(ff_orig))))])
   volts$ind <- gsub("V$", "", volts$ind)
   names(volts) <- c("volt", "ind")
   volts$volt <- as.numeric(volts$volt)
