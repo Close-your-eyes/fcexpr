@@ -149,7 +149,7 @@ pca_to_fcs <- function(file_path,
       new_kw[paste0("$P",as.character(new_p_number),"G")] <- "1"
       new_kw[paste0("$P",as.character(new_p_number),"B")] <- new_kw["$P1B"]
       new_kw[paste0("$P",as.character(new_p_number),"R")] <- max(exprs[,z])
-      new_kw[paste0("$P",as.character(new_p_number),"DISPLAY")] <- "LIN"
+      new_kw[paste0("$P",as.character(new_p_number),"DISPLAY")] <- ifelse(logicle_trans, "LIN", "LOG")
       new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmin")] <- min(exprs[,z])
       new_kw[paste0("flowCore_$P",as.character(new_p_number),"Rmax")] <- max(exprs[,z])
     }
