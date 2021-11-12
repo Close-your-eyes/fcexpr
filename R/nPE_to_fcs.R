@@ -1,8 +1,10 @@
 #' Convert fluorescence intensity (FI) to number of Photoelectrons (nPE)
 #'
-#' Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
+#' CAUTION: Very experimental function. Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
 #' fluorescence intensity (FI) measured by a PMT (detector in a flow cytometer) can be correlated to an absolute number of detected photoelectrons (nPE).
-#' Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale.
+#' Currently this only works for fluorescence channels, not scatter channels. Also, strictly speaking, it is only valid for Height-channels (-H at the end)- For Area (-A) and Width (-W) it may not be correct.
+#' Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale. A good idea would be to test the conversion by analyzing the same sample with different
+#' settings and/or at different machines.
 #'
 #' @param file_path character, path to a fcs file
 #' @param compensate logical, should compensation be applied before PC calculation
@@ -11,12 +13,14 @@
 #' @param kfactor_df data.frame, table with k-factors for every channel and voltage per machine, defaults to system.file("extdata", "k_factors.rds", package = "fcexpr")
 #' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
 #' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _nPE.
+#' @param h_channels_only logical, have only the height channels converted to nPE; height channels are actually the only ones for which the conversion is correct.
 #'
 #' @return appended flowFrame which is also saved as fcs file
 #' @export
 #'
 #' @examples
 nPE_to_fcs <- function(file_path,
+                       h_channels_only = T,
                        compensate = F,
                        compMat,
                        logicle_trans = F,
@@ -51,7 +55,22 @@ nPE_to_fcs <- function(file_path,
   volts <- merge(pdata, volts, by.x = "row.names", by.y = "ind")
   volts <- volts[which(!grepl("FSC|SSC", volts$name)), which(names(volts) %in% c("name", "volt"))]
   volts$channel <- as.character(gsub("-[[:alpha:]]{1}$", "", volts$name))
+  volts$channel_type <- sapply(seq_along(volts$name), function (x) gsub(paste0(volts$channel[x], "-"), "", volts$name[x]))
   volt_k_df <- merge(volts, kfactor_df, by = c("volt", "channel"))
+  if (all(volt_k_df$channel_type == "A")) {
+    warning("Only Area-channels were detected in the fcs file. Conversion from FI to nPE is strictly valid only for Height-channels. Nevertheless, conversion will be done for Area channels as well. The more the width of events deviates the wronger the conversion becomes.")
+    if (h_channels_only) {
+      print("h_channels_only set to TRUE, so no channels will be converted.")
+    }
+  } else if (any(volt_k_df$channel_type != "H")) {
+    warning("Conversion from FI to nPE is strictly valid only for Height-channels.")
+  }
+  if (h_channels_only) {
+    volt_k_df <- volt_k_df[which(volt_k_df$channel_type == "H"),]
+  }
+  if (nrow(volt_k_df) == 0) {
+    stop("No channels left to convert, consider setting h_channels_only to FALSE in order to have area and width channels converted. Converting these channels may be incorrect though.")
+  }
 
   if (compensate) {
     if (missing(compMat)) {
