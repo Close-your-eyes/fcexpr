@@ -1,9 +1,28 @@
+#' Title
+#'
+#' @param wsp
+#' @param FCS.file.folder
+#' @param groups
+#' @param population
+#' @param invert_groups
+#' @param samples
+#' @param invert_samples
+#' @param inverse_transform
+#' @param downsample
+#' @param remove_redundant_channels
+#' @param lapply_fun
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 wsp_get_ff <- function(wsp,
                        FCS.file.folder,
                        groups = NULL,
                        population,
                        invert_groups = F,
-                       samples = NULL, # have to be unique across all wsp
+                       samples = NULL,
                        invert_samples = F,
                        inverse_transform = c(T,F),
                        downsample = 1,
@@ -25,7 +44,7 @@ wsp_get_ff <- function(wsp,
 
 
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
-    y <- fcexpr::wsx_get_fcs_paths(wsp[x], basename = T, split = F)
+    y <- wsx_get_fcs_paths(wsp[x], basename = T, split = F)
     y$wsp <- wsp[x]
 
     key <- sapply(wsx_get_keywords(ws), function(z) {
@@ -54,7 +73,7 @@ wsp_get_ff <- function(wsp,
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
 
-  ff.list <- lapply_fun(split(smpl, 1:nrow(smpl))[1:3],
+  ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
                         FCS.file.folder = FCS.file.folder,
                         inverse_transform = inverse_transform,
@@ -62,14 +81,17 @@ wsp_get_ff <- function(wsp,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population)
 
-  names(ff.list) <- smpl$FilePath[1:3]
-
-  ff.list <- lapply(seq_along(ff.list[[1]]), function(x) {
-    sapply(ff.list, "[", x, simplify = T)
+  ffs <- sapply(ff.list, "[", 1)
+  names(ffs) <- smpl$FilePath
+  ffs <- lapply(seq_along(ffs[[1]]), function(x) {
+    sapply(ffs, "[", x, simplify = T)
   })
-  names(ff.list) <- setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
+  names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
 
-  return(ff.list)
+  inds <- sapply(ff.list, "[", 2)
+  names(inds) <- smpl$FilePath
+
+  return(list(ffs, inds))
 }
 
 
@@ -85,6 +107,8 @@ get_ff <- function (i, FCS.file.folder, inverse_transform, downsample, remove_re
   })
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
+  inds_non_subset <- inds
+
   s <- if (downsample < 1) {
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
@@ -99,8 +123,7 @@ get_ff <- function (i, FCS.file.folder, inverse_transform, downsample, remove_re
   }
 
   flowWorkspace::gs_cleanup_temp(gs)
-
-  return(list(ex, inds))
+  return(list(ex, inds_non_subset))
 }
 
 .flowjo_to_gatingset2 <- function (ws, name = NULL, subset = list(), execute = TRUE,
