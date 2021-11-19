@@ -1,17 +1,19 @@
-#' Title
+#' Get subsetted flowFrames from one or many flowjo workspaces
 #'
-#' @param wsp
-#' @param FCS.file.folder
-#' @param groups
-#' @param population
-#' @param invert_groups
-#' @param samples
-#' @param invert_samples
-#' @param inverse_transform
-#' @param downsample
-#' @param remove_redundant_channels
-#' @param lapply_fun
-#' @param ...
+#'
+#'
+#' @param wsp vector of paths to flowjo workspaces
+#' @param FCS.file.folder path to folder of FCS files; has to be one common folder for all wsp
+#' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp
+#' @param population which population (=node, =gate) to subset flowFrames one
+#' @param invert_groups logical whether to invert group selection
+#' @param samples vector of samples to select (names of FCS files); not-unique FCS file names across wsp cannot be selected individually yet
+#' @param invert_samples logical whether to invert sample selection
+#' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
+#' @param downsample numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted
+#' @param remove_redundant_channels remove channels that are not part of the gating tree
+#' @param lapply_fun lapply function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return
 #' @export

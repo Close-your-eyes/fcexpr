@@ -5,7 +5,7 @@
 #'
 #' @param sampledescription data frame
 #' @param columns vector of column names from sampledescription to write as keywords
-#' @param FCS.file.folder folder of FCS files
+#' @param FCS.file.folder path to folder of FCS files
 #'
 #' @return no return but keywords written to FCS files
 #' @export
