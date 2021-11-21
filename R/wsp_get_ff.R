@@ -119,6 +119,8 @@ wsp_get_ff <- function(wsp,
 get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels, population) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
+  # pass full path as attr and check consistency later
+
   if (nrow(x) > 1) {
     stop("Only one fcs file at a time.")
   }

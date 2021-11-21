@@ -1,3 +1,3 @@
-wsp_get_indices <- function(wsp){
+wsp_get_indices <- function(wsp) {
 
 }
