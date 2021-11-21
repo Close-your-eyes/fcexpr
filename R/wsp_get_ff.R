@@ -1,13 +1,14 @@
-#' Get subsetted flowFrames from one or many flowjo workspaces
+#' Get subsetted flowFrames from FCS files in one or many flowjo workspaces (wsp)
 #'
 #'
 #'
 #' @param wsp vector of paths to flowjo workspaces
-#' @param FCS.file.folder path to folder of FCS files; has to be one common folder for all wsp
+#' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
+#' if not provided fcs file paths are derived individually from the wsp (xml)
 #' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp
-#' @param population which population (=node, =gate) to subset flowFrames one
+#' @param population which population (=node, =gate) to subset flowFrames one; use wsx_get_poppaths (make fun!) to get poppaths
 #' @param invert_groups logical whether to invert group selection
-#' @param samples vector of samples to select (names of FCS files); not-unique FCS file names across wsp cannot be selected individually yet
+#' @param samples vector or list of samples to select (names of FCS files)
 #' @param invert_samples logical whether to invert sample selection
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param downsample numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted
@@ -20,7 +21,7 @@
 #'
 #' @examples
 wsp_get_ff <- function(wsp,
-                       FCS.file.folder,
+                       FCS.file.folder = NULL,
                        groups = NULL,
                        population,
                        invert_groups = F,
@@ -42,17 +43,26 @@ wsp_get_ff <- function(wsp,
     if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
     if (class(groups) != "list") {groups <- rep(list(groups), length(wsp))}
   }
-  if (!dir.exists(FCS.file.folder)) {stop(paste0(FCS.file.folder, " not found."))}
+  if (!is.null(samples)) {
+    if (class(samples) == "list" && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
+    if (class(samples) != "list") {samples <- rep(list(samples), length(wsp))}
+  }
+  if (!is.null(FCS.file.folder)) {
+    if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
+    if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
+    if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
+  }
 
 
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
-    y <- wsx_get_fcs_paths(wsp[x], basename = T, split = F)
+    y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
+    y$FileName <- basename(y$FilePath)
 
-    key <- sapply(wsx_get_keywords(ws), function(z) {
+    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
       z[which(z$name == "$FIL"),"value"]
     })
-    y$FIL <- key[y$FilePath]
+    y$FIL <- key[y$FileName]
 
     if (!is.null(groups)) {
       if (invert_groups) {
@@ -61,23 +71,33 @@ wsp_get_ff <- function(wsp,
         y <- y[which(y$group %in% groups[[x]]),]
       }
     }
+
+    if (!is.null(samples)) {
+      if (invert_samples) {
+        y <- y[which(!y$FileName %in% samples),]
+      } else {
+        y <- y[which(y$FileName %in% samples),]
+      }
+    }
+
+    if (is.null(FCS.file.folder)) {
+      y$FCS.file.folder <- NA
+    }
+
     return(y)
   }))
 
-  if (!is.null(samples)) {
-    if (invert_samples) {
-      smpl <- smpl[which(!smpl$FilePath %in% samples),]
-    } else {
-      smpl <- smpl[which(smpl$FilePath %in% samples),]
-    }
-  }
-
+  # remove doublets due to "All Samples" association
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
+  if (any(table(smpl$FilePath) > 1)) {
+    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples argument or fix manually.")
+    stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
+  }
 
+  # writing h5 files to disk may be the limiting factor, so doing this by multicore may not imrove speed
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
-                        FCS.file.folder = FCS.file.folder,
                         inverse_transform = inverse_transform,
                         downsample = downsample,
                         remove_redundant_channels = remove_redundant_channels,
@@ -96,21 +116,34 @@ wsp_get_ff <- function(wsp,
   return(list(ffs, inds))
 }
 
+get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels, population) {
 
-get_ff <- function (i, FCS.file.folder, inverse_transform, downsample, remove_redundant_channels, population) {
-  gs <- .flowjo_to_gatingset2(ws = CytoML::open_flowjo_xml(i$wsp), name = i$group, path = FCS.file.folder, subset = i$FIL, truncate_max_range = F)
+  # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
+  if (nrow(x) > 1) {
+    stop("Only one fcs file at a time.")
+  }
+
+  if (is.na(x$FCS.file.folder)) {
+    path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
+    names(path)[which(names(path) == "FilePath")] <- "file"
+    if (!file.exists(path$file)) {
+      stop(paste0(path$file, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provdide the FCS.file.folder(s) on the current computer."))
+    }
+  } else {
+    path <- x$FCS.file.folder
+  }
+
+  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
   }
 
-  ex <- lapply(inverse_transform, function (x) {
-    flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = x))
+  ex <- lapply(inverse_transform, function (y) {
+    flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y))
   })
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
-  inds_non_subset <- inds
-
   s <- if (downsample < 1) {
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
@@ -119,84 +152,12 @@ get_ff <- function (i, FCS.file.folder, inverse_transform, downsample, remove_re
   inds[which(inds)[!which(inds) %in% s]] <- F
 
   if (length(which(inds)) > 1) {
-    for (x in seq_along(ex)) {
-      ex[[x]] <- subset(ex[[x]], inds)
+    for (i in seq_along(ex)) {
+      ex[[i]] <- subset(ex[[i]], inds)
     }
   }
 
   flowWorkspace::gs_cleanup_temp(gs)
-  return(list(ex, inds_non_subset))
+  return(list(ex, inds))
 }
 
-.flowjo_to_gatingset2 <- function (ws, name = NULL, subset = list(), execute = TRUE,
-                                   path = "", cytoset = NULL, backend_dir = tempdir(), backend = flowWorkspace::get_default_backend(),
-                                   includeGates = TRUE, additional.keys = "$TOT", additional.sampleID = FALSE,
-                                   keywords = character(), keywords.source = "XML", keyword.ignore.case = FALSE,
-                                   extend_val = 0, extend_to = -4000, channel.ignore.case = FALSE,
-                                   leaf.bool = TRUE, include_empty_tree = FALSE, skip_faulty_gate = FALSE,
-                                   compensation = NULL, transform = TRUE, fcs_file_extension = ".fcs",
-                                   greedy_match = FALSE, mc.cores = 1, ...) {
-  if (is.null(cytoset))
-    cytoset <- flowWorkspace::cytoset()
-  backend <- match.arg(backend, c("h5", "tile"))
-  g <- CytoML::fj_ws_get_sample_groups(ws)
-  groups <- g[!duplicated(g$groupName), ]
-  groups <- groups[order(groups$groupID), "groupName"]
-  if (is.null(name)) {
-    groupInd <- menu(groups, graphics = FALSE, "Choose which group of samples to import:")
-  } else if (is.numeric(name)) {
-    if (length(groups) < name)
-      stop("Invalid sample group index.")
-    groupInd <- name
-  } else if (is.character(name)) {
-    if (is.na(match(name, groups)))
-      stop("Invalid sample group name.")
-    groupInd <- match(name, groups)
-  }
-
-  if (is(subset, "character")) {
-    subset <- list(name = subset)
-  }
-  if (!is(subset, "list")) {
-    stop("invalid 'subset' argument!")
-  }
-  if (is.null(additional.keys)) {additional.keys <- character(0)}
-  if (is.null(path)) {path <- ""}
-  args <- list(...)
-  if (!is.null(args[["isNcdf"]])) {
-    warning("'isNcdf' argument is deprecated!Data is always stored in h5 format by default!")
-    args[["isNcdf"]] <- NULL
-  }
-  if (is.null(compensation)) {
-    compensation <- list()
-  } else {
-    if (is.list(compensation) && !is.data.frame(compensation)) {
-      compensation <- sapply(compensation, CytoML:::check_comp,
-                             simplify = FALSE)
-    } else compensation <- CytoML:::check_comp(compensation)
-  }
-  args <- list(ws = ws@doc, group_id = groupInd - 1, subset = subset,
-               execute = execute, path = suppressWarnings(normalizePath(path)),
-               cytoset = cytoset@pointer, backend_dir = suppressWarnings(normalizePath(backend_dir)),
-               backend = backend, includeGates = includeGates, additional_keys = additional.keys,
-               additional_sampleID = additional.sampleID, keywords = keywords,
-               is_pheno_data_from_FCS = keywords.source == "FCS", keyword_ignore_case = keyword.ignore.case,
-               extend_val = extend_val, extend_to = extend_to, channel_ignore_case = channel.ignore.case,
-               leaf_bool = leaf.bool, include_empty_tree = include_empty_tree,
-               skip_faulty_gate = skip_faulty_gate, comps = compensation,
-               transform = transform, fcs_file_extension = fcs_file_extension,
-               greedy_match = greedy_match, fcs_parse_arg = args, num_threads = mc.cores)
-  p <- do.call(CytoML:::parse_workspace, args)
-  gs <- new("GatingSet", pointer = p)
-  gslist <- suppressMessages(flowWorkspace:::gs_split_by_tree(gs))
-  if (length(gslist) > 1) {
-    msg <- "GatingSet contains different gating tree structures and must be cleaned before using it!\n "
-    if (grepl("all samples", groups[groupInd], ignore.case = TRUE)) {
-      msg <- c(msg, "It seems that you selected the 'All Samples' group,",
-               " which is a generic group and typically contains samples with different gating schemes attached.",
-               "Please choose a different sample group and try again.")
-    }
-    warning(msg)
-  }
-  gs
-}

@@ -14,7 +14,7 @@
 #' \dontrun{
 #' wsx_get_fcs_paths(ws)
 #' }
-wsx_get_fcs_paths <- function(ws, split = T, basename = F) {
+wsx_get_fcs_paths <- function(ws, split = T) {
 
   ws <- check_ws(ws)
   if (!any(class(ws) == "xml_document")) {
@@ -26,12 +26,10 @@ wsx_get_fcs_paths <- function(ws, split = T, basename = F) {
   }
 
   FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_find_all(ws, ".//DataSet"), "uri"))
-  if (basename) {
-    FilePath <- basename(FilePath)
-  }
   sampleID <- gsub("^file:", "", xml2::xml_attr(xml2::xml_find_all(ws, ".//DataSet"), "sampleID"))
-  paths <- dplyr::full_join(wsx_get_groups(ws, filter_AllSamples = F, collapse_groups = F), data.frame(FilePath, sampleID), by = "sampleID")[-2]
+  paths <- dplyr::full_join(wsx_get_groups(ws, filter_AllSamples = F, collapse_groups = F), data.frame(FilePath, sampleID), by = "sampleID")
 
+  paths$FileName <- basename(paths$FilePath)
   if (split) {
     paths <- split(paths[,"FilePath"], paths$group)
   }

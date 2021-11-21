@@ -21,7 +21,7 @@
 #' @param xlsx.file.name name of the sampledescription file
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
 #' @param init.columns additional columns to add to the initial file
-#' @param write.log write a hidden (not on windows) log file every time changes take place
+#' @param write.log write a hidden (not hidden on windows) log file every time changes take place
 #'
 #' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
 #' @export
