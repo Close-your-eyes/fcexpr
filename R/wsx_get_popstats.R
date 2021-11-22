@@ -7,7 +7,7 @@
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
 #'
-#' @return returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
+#' @return data frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
 #'
 #' @examples

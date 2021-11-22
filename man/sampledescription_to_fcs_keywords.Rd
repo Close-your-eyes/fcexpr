@@ -11,7 +11,7 @@ sampledescription_to_fcs_keywords(sampledescription, columns, FCS.file.folder)
 
 \item{columns}{vector of column names from sampledescription to write as keywords}
 
-\item{FCS.file.folder}{folder of FCS files}
+\item{FCS.file.folder}{path to folder of FCS files}
 }
 \value{
 no return but keywords written to FCS files

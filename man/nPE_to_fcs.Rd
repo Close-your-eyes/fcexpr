@@ -6,6 +6,7 @@
 \usage{
 nPE_to_fcs(
   file_path,
+  h_channels_only = T,
   compensate = F,
   compMat,
   logicle_trans = F,
@@ -16,6 +17,8 @@ nPE_to_fcs(
 }
 \arguments{
 \item{file_path}{character, path to a fcs file}
+
+\item{h_channels_only}{logical, have only the height channels converted to nPE; height channels are actually the only ones for which the conversion is correct.}
 
 \item{compensate}{logical, should compensation be applied before PC calculation}
 
@@ -33,7 +36,9 @@ nPE_to_fcs(
 appended flowFrame which is also saved as fcs file
 }
 \description{
-Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
+CAUTION: Very experimental function. Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
 fluorescence intensity (FI) measured by a PMT (detector in a flow cytometer) can be correlated to an absolute number of detected photoelectrons (nPE).
-Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale.
+Currently this only works for fluorescence channels, not scatter channels. Also, strictly speaking, it is only valid for Height-channels (-H at the end)- For Area (-A) and Width (-W) it may not be correct.
+Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale. A good idea would be to test the conversion by analyzing the same sample with different
+settings and/or at different machines.
 }

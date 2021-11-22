@@ -12,7 +12,7 @@ wsx_get_popstats(ws, return_stats = T)
 \item{return_stats}{return statistics next to cells counts}
 }
 \value{
-returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
+data frame with cells counts or a list with counts and statistics if return_stats = T
 }
 \description{
 Flowjo wsp files contain many information like gated event counts, statistics and keywords

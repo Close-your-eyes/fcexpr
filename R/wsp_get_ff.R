@@ -5,15 +5,17 @@
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
 #' if not provided fcs file paths are derived individually from the wsp (xml)
-#' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp
-#' @param population which population (=node, =gate) to subset flowFrames one; use wsx_get_poppaths (make fun!) to get poppaths
+#' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+#' if NULL samples from all groups are read
+#' @param population which population (=node, =gate) to subset flowFrames one; use wsx_get_poppaths to get paths
 #' @param invert_groups logical whether to invert group selection
-#' @param samples vector or list of samples to select (names of FCS files)
+#' @param samples vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
+#' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param downsample numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted
-#' @param remove_redundant_channels remove channels that are not part of the gating tree
-#' @param lapply_fun lapply function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
+#' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return
@@ -82,6 +84,8 @@ wsp_get_ff <- function(wsp,
 
     if (is.null(FCS.file.folder)) {
       y$FCS.file.folder <- NA
+    } else {
+      y$FCS.file.folder <- FCS.file.folder[x]
     }
 
     return(y)
@@ -91,11 +95,26 @@ wsp_get_ff <- function(wsp,
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
   if (any(table(smpl$FilePath) > 1)) {
-    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples argument or fix manually.")
+    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
     stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
   }
 
-  # writing h5 files to disk may be the limiting factor, so doing this by multicore may not imrove speed
+  # check if population exists for each sample
+  pp <- do.call(rbind, lapply(wsp, function(x) {
+    wsx_get_poppaths(x, collapse = F)
+  }))
+  pp <- pp[which(pp$FileName %in% smpl$FileName),]
+  pp <- pp %>%
+    dplyr::group_by(PopulationFullPath, Population, ws) %>%
+    dplyr::summarise(FileName = list(FileName), .groups = "drop")
+  pp <- as.data.frame(pp)
+  pp_is <- unique(unlist(pp[unique(c(which(pp$PopulationFullPath == population), which(pp$Population == population))), "FileName"]))
+  if (length(smpl$FileName[which(!smpl$FileName %in% pp_is)]) > 0) {
+    print(paste0("For ", paste(smpl$FileName[which(!smpl$FileName %in% pp_is)], collapse = ", "), " population was not found."))
+  }
+  smpl <- smpl[which(smpl$FileName %in% pp_is),]
+
+  # writing h5 files to disk may be the limiting factor, so doing this by multicore may not improve speed
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
                         inverse_transform = inverse_transform,
@@ -119,7 +138,7 @@ wsp_get_ff <- function(wsp,
 get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels, population) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
-  # pass full path as attr and check consistency later
+  # pass full path as attr and check consistency later?
 
   if (nrow(x) > 1) {
     stop("Only one fcs file at a time.")
