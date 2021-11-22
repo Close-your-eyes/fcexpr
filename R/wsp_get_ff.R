@@ -58,7 +58,6 @@ wsp_get_ff <- function(wsp,
     if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
   }
 
-
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
@@ -79,9 +78,9 @@ wsp_get_ff <- function(wsp,
 
     if (!is.null(samples)) {
       if (invert_samples) {
-        y <- y[which(!y$FileName %in% samples),]
+        y <- y[which(!y$FileName %in% samples[[x]]),]
       } else {
-        y <- y[which(y$FileName %in% samples),]
+        y <- y[which(y$FileName %in% samples[[x]]),]
       }
     }
 
@@ -126,14 +125,14 @@ wsp_get_ff <- function(wsp,
                         population = population)
 
   ffs <- sapply(ff.list, "[", 1)
-  names(ffs) <- smpl$FilePath
+  names(ffs) <- smpl$FileName
   ffs <- lapply(seq_along(ffs[[1]]), function(x) {
     sapply(ffs, "[", x, simplify = T)
   })
   names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
 
   inds <- sapply(ff.list, "[", 2)
-  names(inds) <- smpl$FilePath
+  names(inds) <- smpl$FileName
 
   return(list(ffs, inds))
 }
@@ -148,14 +147,16 @@ get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels,
   }
 
   if (is.na(x$FCS.file.folder)) {
-    path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
-    names(path)[which(names(path) == "FilePath")] <- "file"
-    if (!file.exists(path$file)) {
-      stop(paste0(path$file, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provdide the FCS.file.folder(s) on the current computer."))
+    #path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
+    #names(path)[which(names(path) == "FilePath")] <- "file"
+    path <- dirname(x$FilePath)
+    if (!file.exists(path)) {
+      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provdide the FCS.file.folder(s) on the current computer."))
     }
   } else {
     path <- x$FCS.file.folder
   }
+
 
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
 
@@ -172,13 +173,14 @@ get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels,
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
     sort(sample(which(inds), min(length(which(inds)),downsample)))
+  } else {
+    which(inds)
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
 
-  if (length(which(inds)) > 1) {
-    for (i in seq_along(ex)) {
-      ex[[i]] <- subset(ex[[i]], inds)
-    }
+
+  for (i in seq_along(ex)) {
+    ex[[i]] <- subset(ex[[i]], inds)
   }
 
   flowWorkspace::gs_cleanup_temp(gs)
