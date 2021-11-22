@@ -10,6 +10,7 @@ wsp_get_indices(
   groups = NULL,
   invert_groups = F,
   samples = NULL,
+  invert_samples = F,
   lapply_fun = lapply,
   ...
 )
@@ -27,6 +28,8 @@ if NULL samples from all groups are read}
 
 \item{samples}{vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
 if NULL all samples (from selected groups) are read}
+
+\item{invert_samples}{logical whether to invert sample selection}
 
 \item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 

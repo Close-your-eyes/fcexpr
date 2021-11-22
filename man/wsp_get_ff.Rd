@@ -2,7 +2,7 @@
 % Please edit documentation in R/wsp_get_ff.R
 \name{wsp_get_ff}
 \alias{wsp_get_ff}
-\title{Get subsetted flowFrames from FCS files in one or many flowjo workspaces (wsp)}
+\title{Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces}
 \usage{
 wsp_get_ff(
   wsp,
@@ -48,8 +48,8 @@ if NULL all samples (from selected groups) are read}
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
-
+a list of flowframes
 }
 \description{
-Get subsetted flowFrames from FCS files in one or many flowjo workspaces (wsp)
+Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces
 }

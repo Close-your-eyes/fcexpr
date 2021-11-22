@@ -16,7 +16,7 @@ a list or data frame of paths to fcs files
 }
 \description{
 If one has a large experiment with many fcs files and many workspaces with various
-gatings finding out which fcs files are used in which workspace may be helpful.
+gatings, finding out which fcs files are gated in which workspace may be helpful.
 }
 \examples{
 \dontrun{

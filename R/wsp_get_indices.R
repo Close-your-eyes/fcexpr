@@ -45,7 +45,7 @@ wsp_get_indices <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = c(T,F))
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -54,8 +54,6 @@ wsp_get_indices <- function(wsp,
   if (is.null(smpl)) {
     return(NULL)
   }
-  # remove duplicates due to "All Samples" association, which group to keep does not matter
-  smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
   if (any(table(smpl$FilePath) > 1)) {
     print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
@@ -68,33 +66,6 @@ wsp_get_indices <- function(wsp,
   names(ind.list) <- smpl$FileName
   return(ind.list)
 }
-
-get_inds <- function(x) {
-  if (nrow(x) > 1) {
-    stop("Only one fcs file at a time.")
-  }
-
-  if (is.na(x$FCS.file.folder)) {
-    #path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
-    #names(path)[which(names(path) == "FilePath")] <- "file"
-    path <- dirname(x$FilePath)
-    if (!file.exists(path)) {
-      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provide the FCS.file.folder(s) on the current computer."))
-    }
-  } else {
-    path <- x$FCS.file.folder
-  }
-
-  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
-  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
-  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-  attr(ind_mat, "ws") <- x$wsp
-  attr(ind_mat, "FilePath") <- x$FilePath
-
-  flowWorkspace::gs_cleanup_temp(gs)
-  return(ind_mat)
-}
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 

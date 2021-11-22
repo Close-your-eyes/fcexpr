@@ -1,7 +1,7 @@
 #' Get file paths to the fcs files in a workspace
 #'
 #' If one has a large experiment with many fcs files and many workspaces with various
-#' gatings finding out which fcs files are used in which workspace may be helpful.
+#' gatings, finding out which fcs files are gated in which workspace may be helpful.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param split logical whether to split file paths by groups; if yes a list is returned, if no a data frame
