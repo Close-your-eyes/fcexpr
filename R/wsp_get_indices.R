@@ -1,9 +1,13 @@
 #' Get indices for all gated populations in a flowjo workspace
 #'
-#' Apply geometric definitions with CytoML::flowjo_to_gatingset and save the respective indices. This may take a little
-#' bit of time as .h5 files are written to disk for every fcs file. Obtained indices for selected populations may then be applied to fcs files
-#' by ...
+#' Every row in a fcs file represents an event. Every column is a parameter (channel). Gates select a subset (rows) of events by applying limits to usually one or two channels.
+#' A sub-population of gated events hence may be defined by a vector of (row-) indices (TRUE - events is included in gate; FALSE - event is not included). A whole gating tree
+#' may be represented by a matrix with n columns for n gates and m rows for m events. The output of this function may be saved to disk and applied to fcs files with fcexpr::inds_get_ff
+#' in order to obtain subsetted flowfframes representing gated populations in flowjo.
 #'
+#' Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.
+#' This process may take a while depend upon size of fcs files as a .h5 file is written to disk for every fcs file before indices can be derived. Hence, it is recommended
+#' to save the indices-matrices in case of large FCS files.
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
@@ -15,8 +19,9 @@
 #' if NULL all samples (from selected groups) are read
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
+#' @param invert_samples logical whether to invert sample selection
 #'
-#' @return list of of matrices, one entry for each selected sample
+#' @return list of of matrices, one for each selected sample
 #' @export
 #'
 #' @examples
@@ -25,9 +30,13 @@ wsp_get_indices <- function(wsp,
                             groups = NULL,
                             invert_groups = F,
                             samples = NULL,
+                            invert_samples = F,
                             lapply_fun = lapply,
                             ...) {
 
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
   if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
@@ -36,7 +45,7 @@ wsp_get_indices <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -77,14 +86,15 @@ get_inds <- function(x) {
   }
 
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
-  inds <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = gh_get_pop_paths(gs[[1]]))
-  attr(inds, "short_names") <- stats::setNames(shortest_unique_path(colnames(inds)), nm = colnames(inds))
-  attr(inds, "ws") <- x$wsp
-  attr(inds, "FilePath") <- x$FilePath
+  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
+  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
+  attr(ind_mat, "ws") <- x$wsp
+  attr(ind_mat, "FilePath") <- x$FilePath
 
-  return(inds)
+  flowWorkspace::gs_cleanup_temp(gs)
+  return(ind_mat)
 }
-
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 
 

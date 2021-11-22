@@ -1,4 +1,4 @@
-#' Get subsetted flowFrames from FCS files in one or many flowjo workspaces (wsp)
+#' Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces
 #'
 #'
 #'
@@ -18,7 +18,7 @@
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
-#' @return
+#' @return a list of flowframes
 #' @export
 #'
 #' @examples
@@ -35,6 +35,9 @@ wsp_get_ff <- function(wsp,
                        lapply_fun = lapply,
                        ...) {
 
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
   if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
@@ -44,7 +47,7 @@ wsp_get_ff <- function(wsp,
   lapply_fun <- match.fun(lapply_fun)
 
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -130,6 +133,7 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
   })
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
+
   s <- if (downsample < 1) {
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
@@ -149,7 +153,7 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
 }
 
 
-check_in <- function(wsp, samples, groups, FCS.file.folder) {
+check_in <- function(wsp, samples, groups, FCS.file.folder, inverse_transform) {
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
     if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
@@ -164,6 +168,14 @@ check_in <- function(wsp, samples, groups, FCS.file.folder) {
     if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
     if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
   }
+
+  if (!length(inverse_transform) %in% c(1,2)) {
+    stop("inverse_transform must be of length 1 or 2, T or F or c(T,F) or c(F,T)")
+  }
+  if (any(duplicated(inverse_transform))) {
+    stop("inverse_transform cannot have duplicates.")
+  }
+
   return(list(groups = groups, samples = samples, FCS.file.folder = FCS.file.folder))
 }
 
