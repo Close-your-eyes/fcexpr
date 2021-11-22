@@ -1,6 +1,6 @@
-#' Title
 #'
-#' @param wsps
+#'
+#' @param wsp
 #' @param groups
 #' @param FCS.file.folder
 #'
@@ -8,13 +8,19 @@
 #' @export
 #'
 #' @examples
-wsp_get_gs <- function(wsps,
+wsp_get_gs <- function(wsp,
                        groups,
                        FCS.file.folder) {
 
-  if (!"CytoML" %in% rownames(installed.packages())) {BiocManager::install("CytoML")}
-  if (!"flowWorkspace" %in% rownames(installed.packages())) {BiocManager::install("flowWorkspace")}
-
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("CytoML", quietly = T)){
+    BiocManager::install("CytoML")
+  }
+  if (!requireNamespace("flowWorkspace", quietly = T)){
+    BiocManager::install("flowWorkspace")
+  }
 
   if (missing(wsps) || class(wsps) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (missing(groups)) {stop("Please provide a vector of list of groups to import.")}
@@ -37,3 +43,4 @@ wsp_get_gs <- function(wsps,
 
   return(setNames(gs.list, paste0(basename(names(wsp.groups)), "_-_", wsp.groups)))
 }
+

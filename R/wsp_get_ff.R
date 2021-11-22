@@ -43,56 +43,16 @@ wsp_get_ff <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
-  if (!is.null(groups)) {
-    if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
-    if (class(groups) != "list") {groups <- rep(list(groups), length(wsp))}
+
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
+  groups <- checked_in[["groups"]]
+  samples <- checked_in[["samples"]]
+  FCS.file.folder <- checked_in[["FCS.file.folder"]]
+
+  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder)
+  if (is.null(smpl)) {
+    return(NULL)
   }
-  if (!is.null(samples)) {
-    if (class(samples) == "list" && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
-    if (class(samples) != "list") {samples <- rep(list(samples), length(wsp))}
-  }
-  if (!is.null(FCS.file.folder)) {
-    if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
-    if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
-    if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
-  }
-
-  smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
-    y <- wsx_get_fcs_paths(wsp[x], split = F)
-    y$wsp <- wsp[x]
-    y$FileName <- basename(y$FilePath)
-
-    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
-      z[which(z$name == "$FIL"),"value"]
-    })
-    y$FIL <- key[y$FileName]
-
-    if (!is.null(groups)) {
-      if (invert_groups) {
-        y <- y[which(!y$group %in% groups[[x]]),]
-      } else {
-        y <- y[which(y$group %in% groups[[x]]),]
-      }
-    }
-
-    if (!is.null(samples)) {
-      if (invert_samples) {
-        y <- y[which(!y$FileName %in% samples[[x]]),]
-      } else {
-        y <- y[which(y$FileName %in% samples[[x]]),]
-      }
-    }
-
-    if (is.null(FCS.file.folder)) {
-      y$FCS.file.folder <- NA
-    } else {
-      y$FCS.file.folder <- FCS.file.folder[x]
-    }
-
-    return(y)
-  }))
-
   # remove doublets due to "All Samples" association
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
@@ -122,7 +82,8 @@ wsp_get_ff <- function(wsp,
                         inverse_transform = inverse_transform,
                         downsample = downsample,
                         remove_redundant_channels = remove_redundant_channels,
-                        population = population)
+                        population = population,
+                        ...)
 
   ffs <- sapply(ff.list, "[", 1)
   names(ffs) <- smpl$FileName
@@ -137,7 +98,7 @@ wsp_get_ff <- function(wsp,
   return(list(ffs, inds))
 }
 
-get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels, population) {
+get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, population) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
   # pass full path as attr and check consistency later?
@@ -151,7 +112,7 @@ get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels,
     #names(path)[which(names(path) == "FilePath")] <- "file"
     path <- dirname(x$FilePath)
     if (!file.exists(path)) {
-      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provdide the FCS.file.folder(s) on the current computer."))
+      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provide the FCS.file.folder(s) on the current computer."))
     }
   } else {
     path <- x$FCS.file.folder
@@ -187,3 +148,66 @@ get_ff <- function (x, inverse_transform, downsample, remove_redundant_channels,
   return(list(ex, inds))
 }
 
+
+check_in <- function(wsp, samples, groups, FCS.file.folder) {
+  if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
+  if (!is.null(groups)) {
+    if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
+    if (class(groups) != "list") {groups <- rep(list(groups), length(wsp))}
+  }
+  if (!is.null(samples)) {
+    if (class(samples) == "list" && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
+    if (class(samples) != "list") {samples <- rep(list(samples), length(wsp))}
+  }
+  if (!is.null(FCS.file.folder)) {
+    if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
+    if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
+    if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
+  }
+  return(list(groups = groups, samples = samples, FCS.file.folder = FCS.file.folder))
+}
+
+
+get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS.file.folder) {
+  smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
+    y <- wsx_get_fcs_paths(wsp[x], split = F)
+    y$wsp <- wsp[x]
+    y$FileName <- basename(y$FilePath)
+
+    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
+      z[which(z$name == "$FIL"),"value"]
+    })
+    y$FIL <- key[y$FileName]
+
+    if (!is.null(groups)) {
+      if (invert_groups) {
+        y <- y[which(!y$group %in% groups[[x]]),]
+      } else {
+        y <- y[which(y$group %in% groups[[x]]),]
+      }
+    }
+    if(nrow(y) == 0) {
+      return(NULL)
+    }
+
+    if (!is.null(samples)) {
+      if (invert_samples) {
+        y <- y[which(!y$FileName %in% samples[[x]]),]
+      } else {
+        y <- y[which(y$FileName %in% samples[[x]]),]
+      }
+    }
+    if(nrow(y) == 0) {
+      return(NULL)
+    }
+
+    if (is.null(FCS.file.folder)) {
+      y$FCS.file.folder <- NA
+    } else {
+      y$FCS.file.folder <- FCS.file.folder[x]
+    }
+
+    return(y)
+  }))
+  return(smpl)
+}
