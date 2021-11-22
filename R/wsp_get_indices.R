@@ -36,7 +36,6 @@ wsp_get_indices <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-
   checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
@@ -46,7 +45,7 @@ wsp_get_indices <- function(wsp,
   if (is.null(smpl)) {
     return(NULL)
   }
-  # remove doublets due to "All Samples" association
+  # remove duplicates due to "All Samples" association, which group to keep does not matter
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
   if (any(table(smpl$FilePath) > 1)) {
@@ -60,7 +59,6 @@ wsp_get_indices <- function(wsp,
   names(ind.list) <- smpl$FileName
   return(ind.list)
 }
-
 
 get_inds <- function(x) {
   if (nrow(x) > 1) {
@@ -81,6 +79,9 @@ get_inds <- function(x) {
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
   inds <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = gh_get_pop_paths(gs[[1]]))
   attr(inds, "short_names") <- stats::setNames(shortest_unique_path(colnames(inds)), nm = colnames(inds))
+  attr(inds, "ws") <- x$wsp
+  attr(inds, "FilePath") <- x$FilePath
+
   return(inds)
 }
 

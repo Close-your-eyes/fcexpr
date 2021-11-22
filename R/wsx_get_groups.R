@@ -43,5 +43,3 @@ wsx_get_groups <- function(ws, filter_AllSamples = T, collapse_groups = T) {
 
   return(gr)
 }
-
-

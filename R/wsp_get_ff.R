@@ -53,7 +53,7 @@ wsp_get_ff <- function(wsp,
   if (is.null(smpl)) {
     return(NULL)
   }
-  # remove doublets due to "All Samples" association
+  # remove duplicates due to "All Samples" association, which group to keep does not matter
   smpl <- dplyr::distinct(smpl, FilePath, wsp, .keep_all = T)
 
   if (any(table(smpl$FilePath) > 1)) {
