@@ -25,13 +25,13 @@ ab_info_to_fcs <- function (sampledescription,
                             clear_previous = T) {
 
   # how to handle non-fluorochrome conjugates?
-  if (requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }
-  if (requireNamespace("CytoML", quietly = T)){
+  if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
-  if (requireNamespace("flowWorkspace", quietly = T)){
+  if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
 

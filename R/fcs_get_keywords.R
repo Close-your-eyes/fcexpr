@@ -20,10 +20,10 @@
 #' keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
 #' }
 fcs_get_keywords <- function(file_path) {
-  if (requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }
-  if (requireNamespace("flowCore", quietly = T)){
+  if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
 

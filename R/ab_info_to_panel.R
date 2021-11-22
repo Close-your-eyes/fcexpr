@@ -26,7 +26,9 @@ ab_info_to_panel <- function(panel_file,
                              antibody_list_sheet = 1,
                              antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")) {
 
-  if (missing(panel_file)) {stop("Please provide a panel_file.")}
+  if (missing(panel_file)) {
+    stop("Please provide a panel_file.")
+  }
   if (!grepl("xlsx$", panel_file)) {
     stop("panel_file has to be an xlsx file.")
   }

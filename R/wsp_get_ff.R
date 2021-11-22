@@ -35,10 +35,10 @@ wsp_get_ff <- function(wsp,
                        lapply_fun = lapply,
                        ...) {
 
-  if (requireNamespace("CytoML", quietly = T)){
+  if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
-  if (requireNamespace("flowWorkspace", quietly = T)){
+  if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
   lapply_fun <- match.fun(lapply_fun)

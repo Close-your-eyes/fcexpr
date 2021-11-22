@@ -22,10 +22,10 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
                                               FCS.file.folder) {
 
-  if (requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }
-  if (requireNamespace("flowCore", quietly = T)){
+  if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
 

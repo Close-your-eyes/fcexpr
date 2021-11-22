@@ -26,7 +26,7 @@ split_flowjo_export_image <- function(img,
                                       pptx_image_size = 1,
                                       pptx_border_space = 0.2) {
 
-  if (requireNamespace("magick", quietly = T)){
+  if (!requireNamespace("magick", quietly = T)){
     utils::install.packages("magick")
   }
 

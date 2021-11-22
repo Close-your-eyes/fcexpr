@@ -14,10 +14,10 @@
 #' @examples
 wsx_compMats_to_fcs <- function(ws, ...) {
 
-  if (requireNamespace("CytoML", quietly = T)){
+  if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
-  if (requireNamespace("flowWorkspace", quietly = T)){
+  if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
   ws <- check_ws(ws)

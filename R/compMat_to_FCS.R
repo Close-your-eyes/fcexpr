@@ -22,10 +22,10 @@
 #' }
 compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1, skip_check = F) {
 
-  if (requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }
-  if (requireNamespace("flowCore", quietly = T)){
+  if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
 

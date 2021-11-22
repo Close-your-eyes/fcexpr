@@ -43,13 +43,13 @@ read.FCS_comma <- function (filename, transformation = "linearize", which.lines 
                             dataset = NULL, emptyValue = TRUE, channel_alias = NULL,
                             ...) {
 
-  if (requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }
-  if (requireNamespace("flowCore", quietly = T)){
+  if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
-  if (requireNamespace("flowWorkspace", quietly = T)){
+  if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
   channel_alias <- flowCore:::check_channel_alias(channel_alias)
