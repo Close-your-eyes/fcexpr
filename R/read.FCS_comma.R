@@ -43,10 +43,15 @@ read.FCS_comma <- function (filename, transformation = "linearize", which.lines 
                             dataset = NULL, emptyValue = TRUE, channel_alias = NULL,
                             ...) {
 
-  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
-  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
-  if (!"flowWorkspace" %in% rownames(utils::installed.packages())) {BiocManager::install("flowWorkspace")}
-
+  if (requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
+  if (requireNamespace("flowWorkspace", quietly = T)){
+    BiocManager::install("flowWorkspace")
+  }
   channel_alias <- flowCore:::check_channel_alias(channel_alias)
   if (ncdf)
     .Deprecated("'ncdf' argument is deprecated!Please use 'ncdfFlow' package for disk-based data structure.")

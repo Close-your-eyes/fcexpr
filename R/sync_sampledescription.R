@@ -30,8 +30,11 @@
 #' \dontrun{
 #' sync_sampledescription(FCS.file.folder = file.path(wd, 'FCS_files'))
 #' }
-sync_sampledescription <- function(FCS.file.folder, xlsx.file.name = "sampledescription.xlsx", exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
-    "deleted_fcs_files"), init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"), write.log = T) {
+sync_sampledescription <- function(FCS.file.folder,
+                                   xlsx.file.name = "sampledescription.xlsx",
+                                   exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files"),
+                                   init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
+                                   write.log = T) {
 
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))

@@ -10,8 +10,6 @@ wsx_get_fcs_paths(ws, split = T)
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
 
 \item{split}{logical whether to split file paths by groups; if yes a list is returned, if no a data frame}
-
-\item{basename}{logical whether to return the filename instead of the complete path}
 }
 \value{
 a list or data frame of paths to fcs files

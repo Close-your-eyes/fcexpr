@@ -35,9 +35,12 @@ wsp_get_ff <- function(wsp,
                        lapply_fun = lapply,
                        ...) {
 
-  if (!"CytoML" %in% rownames(installed.packages())) {BiocManager::install("CytoML")}
-  if (!"flowWorkspace" %in% rownames(installed.packages())) {BiocManager::install("flowWorkspace")}
-
+  if (requireNamespace("CytoML", quietly = T)){
+    BiocManager::install("CytoML")
+  }
+  if (requireNamespace("flowWorkspace", quietly = T)){
+    BiocManager::install("flowWorkspace")
+  }
   lapply_fun <- match.fun(lapply_fun)
 
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}

@@ -26,8 +26,9 @@ split_flowjo_export_image <- function(img,
                                       pptx_image_size = 1,
                                       pptx_border_space = 0.2) {
 
-
-  if (!"magick" %in% rownames(utils::installed.packages())) {utils::install.packages("magick")}
+  if (requireNamespace("magick", quietly = T)){
+    utils::install.packages("magick")
+  }
 
   if (missing(folder)) {
     folder <- format(Sys.time(), "%Y%m%d_%H%M%S")

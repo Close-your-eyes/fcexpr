@@ -24,10 +24,16 @@ ab_info_to_fcs <- function (sampledescription,
                             other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
                             clear_previous = T) {
 
-
   # how to handle non-fluorochrome conjugates?
-  if (!"BiocManager" %in% rownames(utils::installed.packages())) {install.packages("BiocManager")}
-  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+  if (requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (requireNamespace("CytoML", quietly = T)){
+    BiocManager::install("CytoML")
+  }
+  if (requireNamespace("flowWorkspace", quietly = T)){
+    BiocManager::install("flowWorkspace")
+  }
 
   ## check sd for columns
 

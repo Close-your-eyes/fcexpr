@@ -14,13 +14,6 @@
 wsx_get_groups <- function(ws, filter_AllSamples = T, collapse_groups = T) {
 
   ws <- check_ws(ws)
-  if (!any(class(ws) == "xml_document")) {
-    stop("ws must be a xml-document or a character path to its location on disk")
-  }
-
-  if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
-    warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
-  }
 
   g <- sapply(xml2::xml_children(xml2::xml_child(ws, "Groups")), function(y) {
     xml2::xml_attrs(y)[["name"]]

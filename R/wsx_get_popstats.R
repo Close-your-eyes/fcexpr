@@ -24,10 +24,6 @@ wsx_get_popstats <- function(ws, return_stats = T) {
 
   ws <- check_ws(ws)
 
-  if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
-    warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
-  }
-
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply(seq_along(gg), function(n) {
 
@@ -178,11 +174,9 @@ wsx_get_popstats <- function(ws, return_stats = T) {
 }
 
 wsp_xml_get_samples <- function(x) {
+
   if (is.character(x)) {
     x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
   }
   s <- as.data.frame(t(sapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
     xml2::xml_attrs(xml2::xml_child(y, "DataSet"))

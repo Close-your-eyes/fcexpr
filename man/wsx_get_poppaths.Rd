@@ -8,6 +8,8 @@ wsx_get_poppaths(ws, collapse = T)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
+
+\item{collapse}{logical whether to collapse FileNames to a list column}
 }
 \value{
 data frame

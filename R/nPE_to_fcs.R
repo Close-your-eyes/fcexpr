@@ -28,9 +28,15 @@ nPE_to_fcs <- function(file_path,
                        output_folder = NULL,
                        new_file_suffix = "nPE") {
 
-  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
-  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
-  if (!"BiocGenerics" %in% rownames(utils::installed.packages())) {BiocManager::install("BiocGenerics")}
+  if (requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
+  if (requireNamespace("BiocGenerics", quietly = T)){
+    BiocManager::install("BiocGenerics")
+  }
 
   if (!file.exists(file_path)) {
     stop(paste0(file_path, " not found."))

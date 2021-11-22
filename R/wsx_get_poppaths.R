@@ -19,14 +19,9 @@ wsx_get_poppaths <- function(ws, collapse = T) {
 
   ws <- check_ws(ws)
 
-  if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
-    warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
-  }
-
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
 
   gates <- lapply(seq_along(gg), function(n) {
-
 
     prnts <- xml2::xml_parents(gg[n])
 

@@ -22,8 +22,12 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
                                               FCS.file.folder) {
 
-  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
-  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+  if (requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
 
   fcs_files <- .check.FCS.files(FCS.file.folder)
   fcs_files <- stats::setNames(names(fcs_files), fcs_files)
