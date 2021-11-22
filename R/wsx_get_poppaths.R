@@ -1,6 +1,7 @@
 #' Obtain paths to populations/nodes/gates in a flowjo workspace
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
+#' @param collapse logical whether to collapse FileNames to a list column
 #'
 #' @return data frame
 #' @export
