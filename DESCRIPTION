@@ -30,7 +30,8 @@ Imports:
     stringr,
     BiocGenerics,
     magrittr,
-    fuzzyjoin
+    fuzzyjoin,
+    readODS
 Suggests: 
     rmarkdown,
     knitr,

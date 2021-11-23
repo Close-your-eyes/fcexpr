@@ -7,7 +7,7 @@
 #'
 #' Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.
 #' This process may take a while depend upon size of fcs files as a .h5 file is written to disk for every fcs file before indices can be derived. Hence, it is recommended
-#' to save the indices-matrices in case of large FCS files.
+#' to save the indices-matrices to disk in case of large FCS files.
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;

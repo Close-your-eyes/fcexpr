@@ -1,13 +1,13 @@
-#' Title
+#' Get (subsetted) flowFrames from FCS files
 #'
-#' @param ind_mat
-#' @param population
-#' @param alias_attr_name
-#' @param path_attr_name
-#' @param downsample
-#' @param inverse_transform
-#' @param lapply_fun
-#' @param ...
+#' @param ind_mat a list of indices matrices, preferentially generated with fcexpr::wsp_get_indices
+#' @param population which population (=node, =gate) to subset flowFrames on
+#' @param alias_attr_name the name of attribute containing aliases (shortest unique names) of node-names (gating paths)
+#' @param path_attr_name the name of attribute containing the path (url) to the fcs file on which to apply the subsetting
+#' @param downsample numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted
+#' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
+#' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return
 #' @export

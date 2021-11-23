@@ -7,7 +7,7 @@
 #' if not provided fcs file paths are derived individually from the wsp (xml)
 #' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 #' if NULL samples from all groups are read
-#' @param population which population (=node, =gate) to subset flowFrames one; use wsx_get_poppaths to get paths
+#' @param population which population (=node, =gate) to subset flowFrames on; use wsx_get_poppaths to get paths
 #' @param invert_groups logical whether to invert group selection
 #' @param samples vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
 #' if NULL all samples (from selected groups) are read
