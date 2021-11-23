@@ -13,7 +13,7 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
-#' @param downsample numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted
+#' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen

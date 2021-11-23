@@ -61,6 +61,14 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
       z[which(z$name == "$FIL"),"value"]
     })
     y$FIL <- key[y$FileName]
+    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
+      z[which(z$name == "$TOT"),"value"]
+    })
+    y$TOT <- trimws(key[y$FileName])
+    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
+      z[which(z$name == "$BEGINDATA"),"value"]
+    })
+    y$BEGINDATA <- key[y$FileName]
 
     if (!is.null(groups)) {
       if (invert_groups) {
@@ -84,8 +92,23 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
       return(NULL)
     }
 
-    # remove duplicates due to "All Samples" association, which group to keep does not matter
+    # remove All Samples group
+    y <- do.call(rbind, lapply(unique(y$sampleID), function(zz) {
+      if (length(y[which(y$sampleID== zz),"group"]) > 1) {
+        y[intersect(which(y$sampleID == zz), which(y$group != "All Samples")), ]
+      } else if (y[which(y$sampleID == zz),"group"] == "All Samples") {
+        y[which(y$sampleID == zz), ]
+      } else {
+        stop("group error occured.")
+      }
+    }))
+    # remove other duplicates (multiple groups)
+    y <- dplyr::arrange(y, group)
     y <- dplyr::distinct(y, FilePath, wsp, .keep_all = T)
+
+    if (any(duplicated(y[,which(names(y) %in% c("FIL", "TOT", "BEGINDATA"))]))) {
+      stop("Samples cannot be identified unambiguously.")
+    }
 
     if (is.null(FCS.file.folder)) {
       y$FCS.file.folder <- NA
@@ -174,7 +197,13 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
   }
 
 
-  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
+  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
+                                    name = x$group,
+                                    path = path,
+                                    subset = `$FIL` == x$FIL && `$BEGINDATA` == x$BEGINDATA && `$TOT` == x$TOT,
+                                    truncate_max_range = F,
+                                    keywords = c("$FIL", "$BEGINDATA", "$TOT"),
+                                    additional.keys = c("$TOT", "$BEGINDATA"))
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
@@ -248,4 +277,24 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform) {
   }
 
   return(ff)
+}
+
+get_gs <- function(x, remove_redundant_channels) {
+
+  gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
+                                    name = unique(x$group),
+                                    path = unique(x$FCS.file.folder),
+                                    subset = `$FIL` == x$FIL && `$BEGINDATA` == x$BEGINDATA && `$TOT` == x$TOT,
+                                    truncate_max_range = F,
+                                    keywords = c("$FIL", "$BEGINDATA", "$TOT"),
+                                    additional.keys = c("$TOT", "$BEGINDATA"))
+
+  rownames(x) <- paste(x$FIL, x$TOT, x$BEGINDATA, sep = "_")
+  flowWorkspace::sampleNames(gs) <- x[flowWorkspace::sampleNames(gs),"FileName"]
+
+  if (remove_redundant_channels) {
+    gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
+  }
+
+  return(gs)
 }

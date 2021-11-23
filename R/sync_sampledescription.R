@@ -43,17 +43,21 @@ sync_sampledescription <- function(FCS.file.folder,
     if (!file.suffix %in% c("xlsx", "ods", "txt", "tsv", "csv")) {
         stop("file.name is expected to have one of the following suffixes: .xlsx, .ods, .txt, .tsv, .csv.")
     }
+    if (file.suffix == "ods") {
+        stop("ods not handled, yet.")
+    }
+
     if (!is.null(file.sep) && !file.sep %in% c(",", ";", "\t")) {
         stop("file.sep is expected to be one of ',', ';', '\\t'.")
     }
     if (!file.suffix %in% c("xlsx", "ods", "tsv") && is.null(file.sep)) {
         stop("When file.name is not an xlsx, ods or tsv file, a separator has to be provided. Preferentially use tab in case of .txt files: file.sep = \"\\t.\" For .csv comma, semicolon or tab can be used even though this is not prefereable.")
     }
-    if (file.suffix == "tsv" && file.sep != "\t") {
+    if (file.suffix == "tsv" && (is.null(file.sep) || file.sep != "\t")) {
         stop("When file.suffix is tsv, file.sep must be \\t.")
     }
-    if (file.suffix == "csv" && file.sep == "\t") {
-        warning("tab as file.sep while writing a .csv-file is strange.")
+    if (file.suffix == "csv" && !file.sep %in% c(",", ";")) {
+        stop("Use comma or semicolon as file.sep when file.name is a .csv.")
     }
 
 
@@ -92,6 +96,7 @@ sync_sampledescription <- function(FCS.file.folder,
         fcs.files <- fcs.files[order(lubridate::parse_date_time(sapply(strsplit(fcs.files, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S"))]
         sd <- data.frame(FileName = paste0(sprintf(paste0("%04d"), seq_along(fcs.files)), "_-_", basename(names(fcs.files))), identity = fcs.files, stringsAsFactors = F)
         sd[, init.columns] <- ""
+        rownames(sd) <- NULL
 
         .write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, file.name = file.name, file.sep = file.sep)
         .write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log, file.sep = file.sep)
@@ -263,7 +268,7 @@ sync_sampledescription <- function(FCS.file.folder,
     }
     if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
         tryCatch({
-            write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep)
+            write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F)
         }, error = function(e) {
             new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
             print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))

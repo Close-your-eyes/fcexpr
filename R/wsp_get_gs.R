@@ -3,14 +3,22 @@
 #' @param wsp
 #' @param groups
 #' @param FCS.file.folder
+#' @param invert_groups
+#' @param samples
+#' @param invert_samples
+#' @param remove_redundant_channels
 #'
 #' @return
 #' @export
 #'
 #' @examples
 wsp_get_gs <- function(wsp,
-                       groups,
-                       FCS.file.folder) {
+                       FCS.file.folder = NULL,
+                       groups = NULL,
+                       invert_groups = F,
+                       samples = NULL,
+                       invert_samples = F,
+                       remove_redundant_channels = F) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -22,25 +30,41 @@ wsp_get_gs <- function(wsp,
     BiocManager::install("flowWorkspace")
   }
 
-  if (missing(wsps) || class(wsps) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
-  if (missing(groups)) {stop("Please provide a vector of list of groups to import.")}
-  if (class(groups) == "list" && length(groups) != length(wsps)) {stop("list of groups has to have the same length as wsps. Alternatively pass a vector groups to use for all workspace.")}
-  if (class(groups) != "list") {groups <- rep(list(groups), length(wsps))}
-  if (!dir.exists(FCS.file.folder)) {stop(paste0(FCS.file.folder, " not found."))}
+  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder, inverse_transform = c(T,F))
+  groups <- checked_in[["groups"]]
+  samples <- checked_in[["samples"]]
+  FCS.file.folder <- checked_in[["FCS.file.folder"]]
 
+  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder)
+  if (is.null(smpl)) {
+    return(NULL)
+  }
+  if (any(table(smpl$FilePath) > 1)) {
+    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
+    stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
+  }
 
-  wsp.groups <- unlist(lapply(wsps, function(x) {
-    wsp <- CytoML::open_flowjo_xml(x)
-    sample.groups <- base::intersect(unique(CytoML::fj_ws_get_sample_groups(wsp)$groupName), groups)
-    return(setNames(sample.groups, rep(x,length(sample.groups))))
-  }))
-
-  gs.list <- pblapply(seq_along(wsp.groups), function(x) {
-    gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(names(wsp.groups)[x]), name = wsp.groups[x], path = FCS.file.folder, truncate_max_range = F)
-    flowWorkspace::sampleNames(gs) <- sapply(seq_along(gs), function(z) {basename(keyword(flowWorkspace::gh_pop_get_data(gs[[z]]))[["FILENAME"]])})
-    return(gs)
+  smpl_list <- split(smpl, paste0(basename(smpl$wsp), "_-_", smpl$group))
+  smpl_list <- lapply(smpl_list, function(x) {
+    if (any(is.na(x$FCS.file.folder))) {
+      path <- x$FilePath
+      n <- length(unique(path))
+      while (n != 1) {
+        path <- dirname(path)
+        n <- length(unique(path))
+      }
+    }
+    print(paste0("Common FCS.file.folder determined: ", unique(path), "."))
+    x$FCS.file.folder <- path
+    return(x)
   })
 
-  return(setNames(gs.list, paste0(basename(names(wsp.groups)), "_-_", wsp.groups)))
+  gs_list <- lapply(smpl_list,
+                    get_gs,
+                    remove_redundant_channels = remove_redundant_channels)
+  names(gs_list) <- names(smpl_list)
+
+  return(gs_list)
 }
+
 
