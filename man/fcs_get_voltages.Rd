@@ -2,7 +2,7 @@
 % Please edit documentation in R/fcs_get_voltages.R
 \name{fcs_get_voltages}
 \alias{fcs_get_voltages}
-\title{Get voltages of PMTs from a fcs file}
+\title{Obtain PMT-voltages from a FCS file}
 \usage{
 fcs_get_voltages(file_path)
 }
@@ -10,11 +10,12 @@ fcs_get_voltages(file_path)
 \item{file_path}{path to the fcs file}
 }
 \value{
-a data.frame with different columns depending on the machine the fcs was acquired with; usually the 'V'-column indicates PMT voltages
+a data.frame with different columns depending on the machine the fcs was acquired with;
+usually the 'V'-column indicates PMT voltages
 }
 \description{
 If there is a large number of fcs files and one wants to make sure that all files
-have been acquired with the same settings this functions helps to pull out the
+have been acquired with the same settings this functions may help by retrieving the
 voltage of PMTs.
 }
 \examples{
