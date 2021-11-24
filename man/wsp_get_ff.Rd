@@ -28,7 +28,7 @@ if not provided fcs file paths are derived individually from the wsp (xml)}
 \item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 if NULL samples from all groups are read}
 
-\item{population}{which population (=node, =gate) to subset flowFrames one; use wsx_get_poppaths to get paths}
+\item{population}{which population (=node, =gate) to subset flowFrames on; use wsx_get_poppaths to get paths}
 
 \item{invert_groups}{logical whether to invert group selection}
 
@@ -39,7 +39,7 @@ if NULL all samples (from selected groups) are read}
 
 \item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
 
-\item{downsample}{numeric, if < 0 then a fraction of each flowFrame is sampled, if > 0 an absolute number of each flowFrame is subsetted}
+\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
 

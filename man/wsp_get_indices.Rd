@@ -47,5 +47,5 @@ in order to obtain subsetted flowfframes representing gated populations in flowj
 \details{
 Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.
 This process may take a while depend upon size of fcs files as a .h5 file is written to disk for every fcs file before indices can be derived. Hence, it is recommended
-to save the indices-matrices in case of large FCS files.
+to save the indices-matrices to disk in case of large FCS files.
 }

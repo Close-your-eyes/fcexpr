@@ -2,7 +2,7 @@
 % Please edit documentation in R/inds_get_ff.R
 \name{inds_get_ff}
 \alias{inds_get_ff}
-\title{Title}
+\title{Get (subsetted) flowFrames from FCS files}
 \usage{
 inds_get_ff(
   ind_mat,
@@ -16,11 +16,25 @@ inds_get_ff(
 )
 }
 \arguments{
-\item{...}{}
+\item{ind_mat}{a list of indices matrices, preferentially generated with fcexpr::wsp_get_indices}
+
+\item{population}{which population (=node, =gate) to subset flowFrames on; must be a column name of ind_mat or an alias stored in alias_attr_name}
+
+\item{alias_attr_name}{the name of attribute containing aliases (shortest unique names) of node-names (gating paths)}
+
+\item{path_attr_name}{the name of attribute containing the path (url) to the fcs file on which to apply the subsetting}
+
+\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled}
+
+\item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
+
+\item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
+
+\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
 
 }
 \description{
-Title
+Get (subsetted) flowFrames from FCS files
 }

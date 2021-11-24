@@ -6,7 +6,8 @@
 \usage{
 sync_sampledescription(
   FCS.file.folder,
-  xlsx.file.name = "sampledescription.xlsx",
+  file.name = "sampledescription.xlsx",
+  file.sep = NULL,
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
     "deleted_fcs_files"),
   init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
@@ -16,7 +17,9 @@ sync_sampledescription(
 \arguments{
 \item{FCS.file.folder}{path to the folder which contains FCS files}
 
-\item{xlsx.file.name}{name of the sampledescription file}
+\item{file.name}{name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv}
+
+\item{file.sep}{separator in case file.name is not .xlsx or .ods; use comma (,), semicolon (;) or tab (\t)}
 
 \item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
 
@@ -28,7 +31,7 @@ sync_sampledescription(
 No return value. Instead sampledescription.xlsx and FCS files are synced.
 }
 \description{
-Five cases can be handled: (i) if no xlsx-file named xlsx.file.name exists
+Five cases can be handled: (i) if no xlsx-file named file.name exists
 an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
 When new FCS files are added to FCS.file.folder and the function is called
 they are added in order of acquisition to the xlsx-file. (iii) When file names
