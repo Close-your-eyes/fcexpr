@@ -22,6 +22,7 @@ ab_info_to_fcs <- function (sampledescription,
                             AbCalcSheet_col = "AbCalcSheet",
                             conjugate_to_desc = T,
                             other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+                            protocols.folder = "Protocols",
                             clear_previous = T) {
 
   # how to handle non-fluorochrome conjugates?
@@ -69,25 +70,25 @@ ab_info_to_fcs <- function (sampledescription,
     channels.inv <- stats::setNames(names(channels),channels)
 
     if (!is.null(s[i,AbCalcFile_col]) && !is.na(s[i,AbCalcFile_col])) {
-      file <- file.path(basename(FCS.file.folder), "Protocols", s[i,AbCalcFile_col])
+      file <- file.path(dirname(FCS.file.folder), protocols.folder, s[i,AbCalcFile_col])
       if (!file.exists(file)) {
-        stop(paste0(file, " not found. ", s[i,AbCalcFile_col], " is expected to be in a folder named Protocols in ", basename(FCS.file.folder), "."))
+        stop(paste0(file, " not found. ", s[i,AbCalcFile_col], " is expected to be in a folder named ", protocols.folder, " in ", basename(FCS.file.folder), "."))
       }
 
       sh <- openxlsx::read.xlsx(file, sheet = s[i,AbCalcSheet_col])
+      # check columns
+      if (!"Conjugate" %in% names(sh)) { #Antigen
+        stop("Conjugate column not found in AbCalcSheet")
+      }
       sh <- sh[which(!is.na(sh[,"Antigen"])),]
 
-      if (!is.na(sh[1,"Live.Dead.Marker"])) {
-        sh <- dplyr::bind_rows(sh, data.frame(Conjugate = sh[1,"Live.Dead.Marker"]))
+      if (!is.na(sh[1,"LiveDeadMarker"])) {
+        sh <- dplyr::bind_rows(sh, data.frame(Conjugate = sh[1,"LiveDeadMarker"]))
         sh[nrow(sh),which(names(sh) != "Conjugate")] <- NA
       }
 
       if (length(unique(sh[,"Antigen"])) != length(sh[,"Antigen"])) {
         stop(paste0("Duplicate Antigen found in Ab.calc.sheet (",  s[i,AbCalcSheet_col], "). ",  "Please check."))
-      }
-
-      if (!"Conjugate" %in% names(sh)) {
-        print("Conjugate column not found in AbCalcSheet")
       }
 
       if (length(!other_keywords %in% names(sh)) > 0) {

@@ -22,7 +22,6 @@
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
 #' @param init.columns additional columns to add to the initial file
 #' @param write.log write a hidden (not hidden on windows) log file every time changes take place
-#' @param file.sep separator in case file.name is not .xlsx or .ods; use comma (,), semicolon (;) or tab (\t)
 #'
 #' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
 #' @export
@@ -33,7 +32,6 @@
 #' }
 sync_sampledescription <- function(FCS.file.folder,
                                    file.name = "sampledescription.xlsx",
-                                   file.sep = NULL,
                                    exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files"),
                                    init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
                                    write.log = T) {
@@ -47,19 +45,12 @@ sync_sampledescription <- function(FCS.file.folder,
         stop("ods not handled, yet.")
     }
 
-    if (!is.null(file.sep) && !file.sep %in% c(",", ";", "\t")) {
-        stop("file.sep is expected to be one of ',', ';', '\\t'.")
+    if (file.suffix %in% c("txt", "tsv")) {
+        file.sep <- "\t"
     }
-    if (!file.suffix %in% c("xlsx", "ods", "tsv") && is.null(file.sep)) {
-        stop("When file.name is not an xlsx, ods or tsv file, a separator has to be provided. Preferentially use tab in case of .txt files: file.sep = \"\\t.\" For .csv comma, semicolon or tab can be used even though this is not prefereable.")
+    if (file.suffix == "csv") {
+        file.sep <- ";"
     }
-    if (file.suffix == "tsv" && (is.null(file.sep) || file.sep != "\t")) {
-        stop("When file.suffix is tsv, file.sep must be \\t.")
-    }
-    if (file.suffix == "csv" && !file.sep %in% c(",", ";")) {
-        stop("Use comma or semicolon as file.sep when file.name is a .csv.")
-    }
-
 
     if (!dir.exists(FCS.file.folder)) {
         stop(paste0(FCS.file.folder, " not found."))

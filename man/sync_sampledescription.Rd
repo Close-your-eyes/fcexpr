@@ -7,7 +7,6 @@
 sync_sampledescription(
   FCS.file.folder,
   file.name = "sampledescription.xlsx",
-  file.sep = NULL,
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
     "deleted_fcs_files"),
   init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
@@ -18,8 +17,6 @@ sync_sampledescription(
 \item{FCS.file.folder}{path to the folder which contains FCS files}
 
 \item{file.name}{name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv}
-
-\item{file.sep}{separator in case file.name is not .xlsx or .ods; use comma (,), semicolon (;) or tab (\t)}
 
 \item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
 
