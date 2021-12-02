@@ -1,11 +1,6 @@
 Package: fcexpr
-<<<<<<< HEAD
-Title: Manage and Analzye flow cytometry experiments, beginner-friendly
-Version: 0.0.0.9622
-=======
 Title: Manage and Analzye flow cytometry experiments
 Version: 0.0.0.9910
->>>>>>> dev
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
@@ -32,12 +27,8 @@ Imports:
     stringr,
     BiocGenerics,
     magrittr,
-<<<<<<< HEAD
-    fuzzyjoin
-=======
     fuzzyjoin,
     readODS
->>>>>>> dev
 Suggests: 
     rmarkdown,
     knitr,
