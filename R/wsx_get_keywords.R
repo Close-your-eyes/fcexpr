@@ -33,15 +33,16 @@
 wsx_get_keywords <- function(ws) {
 
   ws <- check_ws(ws)
-  if (!any(class(ws) == "xml_document")) {
-    stop("ws must be a xml-document or a character path to its location on disk")
-  }
 
   keywords <- lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
     k <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
-    do.call(rbind, lapply(k, function(y) data.frame(as.list(y))))
+    df <- data.frame(name = sapply(k, "[", 1), value = sapply(k, "[", 2))
+    rownames(df) <- NULL
+    return(df)
   })
 
-  names(keywords) <- fcexpr:::wsp_xml_get_samples(ws)[,"FileName"]
+  names(keywords) <- wsp_xml_get_samples(ws)[,"FileName"]
   return(keywords)
 }
+
+

@@ -14,6 +14,10 @@ ab_info_to_fcs(
   AbCalcSheet_col = "AbCalcSheet",
   conjugate_to_desc = T,
   other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+<<<<<<< HEAD
+=======
+  protocols.folder = "Protocols",
+>>>>>>> dev
   clear_previous = T
 )
 }

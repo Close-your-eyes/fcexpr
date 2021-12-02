@@ -28,6 +28,7 @@ If you know your events (~lines) of interest (e.g. a subpopulation to select or 
 
 \item{compensate}{logical, should compensation be applied before PC calculation}
 
+<<<<<<< HEAD
 \item{compMat}{matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have those matrices copied to fcs files.}
 
 \item{timeChannel}{character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.}
@@ -36,6 +37,16 @@ If you know your events (~lines) of interest (e.g. a subpopulation to select or 
 
 \item{processed_channels_to_FCS}{logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved to the newly generated fcs file?
 Respective channels are suffixed by _comp, _lgcl, or _comp_logl depend upon the selections above.}
+=======
+\item{compMat}{matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.}
+
+\item{timeChannel}{character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.}
+
+\item{logicle_trans}{logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied before PCA calculation. Recommendation: yes.}
+
+\item{processed_channels_to_FCS}{logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved as extra channels to the newly generated fcs file?
+Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the selections above.}
+>>>>>>> dev
 
 \item{n_pca_dims}{numeric, the number of PCs to add to the newly generated fcs file. Default: all.}
 
@@ -44,7 +55,11 @@ Respective channels are suffixed by _comp, _lgcl, or _comp_logl depend upon the 
 \item{new_file_suffix}{character, the suffix to add to the the newly generated fcs file. Default is _pca.}
 }
 \value{
+<<<<<<< HEAD
 
+=======
+list of pca-object and appended flowFrame which is also saved as fcs file
+>>>>>>> dev
 }
 \description{
 A PCA is calculated on selected events and selected channels with stats::prcomp.

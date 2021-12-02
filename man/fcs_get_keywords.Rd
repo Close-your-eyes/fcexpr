@@ -2,7 +2,7 @@
 % Please edit documentation in R/fcs_get_keywords.R
 \name{fcs_get_keywords}
 \alias{fcs_get_keywords}
-\title{Get keywords from all FCS files in a folder or subfolder}
+\title{Obtain keywords from a FCS file}
 \usage{
 fcs_get_keywords(file_path)
 }
@@ -14,7 +14,8 @@ a data frame of keywords as columns and FCS files as rows
 }
 \description{
 The returned data frame can be used to filter for relevant keywords which may then be joined to the sampledescription.
-Note that if you have defined your keywords in flowjo you have to export the FCS files in order to hard-code the keyword into the FCS file. Otherwise it only exists in the flowjo workspace. In order to pull out keywords from there another function exists.
+Note that if you have defined your keywords in flowjo you have to export the FCS files in order to hard-code the keyword into the FCS file.
+Otherwise it only exists in the flowjo workspace. In order to pull out keywords from flowjo wsx_get_keywords may be used.
 }
 \examples{
 \dontrun{

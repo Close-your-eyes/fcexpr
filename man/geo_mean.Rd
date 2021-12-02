@@ -12,11 +12,11 @@ geo_mean(x, rm.na = F)
 \item{rm.na}{logical if to remove na or not}
 }
 \value{
-a numeric representing the geomtric mean of values in x
+a numeric representing the geometric mean of values in x
 }
 \description{
 In flow cytometry the geometric mean is a common metric of central tendency.
-It is less susceptible to outlier than the arithmetic mean, but more susceptible
+It is less susceptible to outliers than the arithmetic mean, but more susceptible
 as compared to the median. If you have untransformed values of fluorescence
 intensities (original output of the machines) this function may not work as you
 may have negative values in your vector x. Hence, the median has to be used or

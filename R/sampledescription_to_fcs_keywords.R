@@ -5,7 +5,7 @@
 #'
 #' @param sampledescription data frame
 #' @param columns vector of column names from sampledescription to write as keywords
-#' @param FCS.file.folder folder of FCS files
+#' @param FCS.file.folder path to folder of FCS files
 #'
 #' @return no return but keywords written to FCS files
 #' @export
@@ -22,8 +22,17 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
                                               FCS.file.folder) {
 
+<<<<<<< HEAD
   if (!"BiocManager" %in% rownames(utils::installed.packages())) {install.packages("BiocManager")}
   if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+=======
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
+>>>>>>> dev
 
   fcs_files <- .check.FCS.files(FCS.file.folder)
   fcs_files <- stats::setNames(names(fcs_files), fcs_files)

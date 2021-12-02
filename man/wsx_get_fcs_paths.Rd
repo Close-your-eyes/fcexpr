@@ -4,17 +4,19 @@
 \alias{wsx_get_fcs_paths}
 \title{Get file paths to the fcs files in a workspace}
 \usage{
-wsx_get_fcs_paths(ws)
+wsx_get_fcs_paths(ws, split = T)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
+
+\item{split}{logical whether to split file paths by groups; if yes a list is returned, if no a data frame}
 }
 \value{
-a list of paths to fcs files grouped by groups in the ws
+a list or data frame of paths to fcs files
 }
 \description{
 If one has a large experiment with many fcs files and many workspaces with various
-gatings finding out which fcs files are used in which workspace may be helpful.
+gatings, finding out which fcs files are gated in which workspace may be helpful.
 }
 \examples{
 \dontrun{

@@ -1,12 +1,13 @@
-#' Get voltages of PMTs from a fcs file
+#' Obtain PMT-voltages from a FCS file
 #'
 #' If there is a large number of fcs files and one wants to make sure that all files
-#' have been acquired with the same settings this functions helps to pull out the
+#' have been acquired with the same settings this functions may help by retrieving the
 #' voltage of PMTs.
 #'
 #' @param file_path path to the fcs file
 #'
-#' @return a data.frame with different columns depending on the machine the fcs was acquired with; usually the 'V'-column indicates PMT voltages
+#' @return a data.frame with different columns depending on the machine the fcs was acquired with;
+#' usually the 'V'-column indicates PMT voltages
 #' @export
 #'
 #' @examples
@@ -26,8 +27,12 @@
 #' }))
 #' }
 fcs_get_voltages <- function(file_path) {
-    if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
-    if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+    if (!requireNamespace("BiocManager", quietly = T)){
+        utils::install.packages("BiocManager")
+    }
+    if (!requireNamespace("flowCore", quietly = T)){
+        BiocManager::install("flowCore")
+    }
 
     if (!file.exists(file_path)) {
         stop(paste0(file_path, " not found."))

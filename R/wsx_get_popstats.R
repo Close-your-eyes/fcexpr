@@ -6,8 +6,9 @@
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
+#' @param groups which flowjo groups to include
 #'
-#' @return returns a data.frame with cells counts or a list with counts and statistics if return_stats = T
+#' @return data frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
 #'
 #' @examples
@@ -20,13 +21,9 @@
 #' # import the population counts:
 #' wsx_get_popstats(ws = ws[[1]])
 #' }
-wsx_get_popstats <- function(ws, return_stats = T) {
+wsx_get_popstats <- function(ws, groups = NULL, return_stats = T) {
 
   ws <- check_ws(ws)
-
-  if (xml2::xml_attr(ws, "flowJoVersion") != "10.7.1") {
-    warning("This function was tested with a FlowJo wsp from version 10.7.1. Other version may lead to unexpected results.")
-  }
 
   gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply(seq_along(gg), function(n) {
@@ -137,8 +134,11 @@ wsx_get_popstats <- function(ws, return_stats = T) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
   }
   gates_out <- do.call(rbind, gates_list)
-
-  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws), by = "sampleID")
+  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, collapse_to = "list"), by = "sampleID")
+  if (!is.null(groups)) {
+    gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
+    gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
+  }
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
@@ -175,57 +175,4 @@ wsx_get_popstats <- function(ws, return_stats = T) {
     return(list(counts = gates_out, stats = stats_out))
   }
   return(gates_out)
-}
-
-wsp_xml_get_samples <- function(x) {
-  if (is.character(x)) {
-    x <- xml2::read_xml(x)
-  }
-  if (!any(class(x) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-  s <- as.data.frame(t(sapply(xml2::xml_children(xml2::xml_child(x, "SampleList")), function(y) {
-    xml2::xml_attrs(xml2::xml_child(y, "DataSet"))
-  })), stringsAsFactors = F)
-  names(s) <- c("FilePath", "sampleID")
-  s$FilePath <- gsub("file:", "", s$FilePath)
-  s$FileName <- basename(s$FilePath)
-  return(s)
-}
-
-shortest_unique_path <- function(p) {
-  p_rev <- sapply(strsplit(p, "/"), rev)
-  p_rev <- lapply(seq_along(p_rev), function(x) {
-    i<-1
-    while (any(sapply(p_rev[-x], function(y) {
-      identical(p_rev[[x]][1:i], y[1:i])
-    }))) {
-      i<-i+1
-    }
-    return(p_rev[[x]][1:i])
-  })
-  p <- sapply(sapply(p_rev, rev), function(x) paste(x, collapse = "/"))
-  return(p)
-}
-
-check_ws <- function(ws) {
-  if (is.character(ws)) {
-    if (!file.exists(ws)) {
-      stop("ws not found.")
-    }
-    if (length(ws) > 1) {
-      stop("Only one ws at a time.")
-    }
-    if (!grepl("\\.", basename(ws))) {
-      stop("Did you pass a directory as ws? Please pass the path the wsp-file.")
-    }
-    if (rev(strsplit(ws, "\\.")[[1]])[1] != "wsp") {
-      stop("ws has to be a file path that ends with .wsp.")
-    }
-    ws <- xml2::read_xml(ws)
-  }
-  if (!any(class(ws) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
-  }
-  return(ws)
 }

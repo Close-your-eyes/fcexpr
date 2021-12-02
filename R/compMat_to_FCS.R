@@ -22,8 +22,17 @@
 #' }
 compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1, skip_check = F) {
 
+<<<<<<< HEAD
   if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
   if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
+=======
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
+>>>>>>> dev
 
   if (!file.exists(compMat_file_path)) {
     stop("compMat not found.")
