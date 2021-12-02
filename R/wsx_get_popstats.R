@@ -20,7 +20,9 @@
 #' # import the population counts:
 #' wsx_get_popstats(ws = ws[[1]])
 #' }
-wsx_get_popstats <- function(ws, return_stats = T) {
+wsx_get_popstats <- function(ws, groups = NULL, return_stats = T) {
+
+  # to do: add option to filter for groups
 
   ws <- check_ws(ws)
 
@@ -133,8 +135,11 @@ wsx_get_popstats <- function(ws, return_stats = T) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
   }
   gates_out <- do.call(rbind, gates_list)
-
-  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws), by = "sampleID")
+  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, collapse_to = "list"), by = "sampleID")
+  if (!is.null(groups)) {
+    gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
+    gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
+  }
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
