@@ -1,14 +1,17 @@
+#' Get (subsetted) gatingsets from flowjo workspaces
 #'
+#' @param wsp vector of paths to flowjo workspaces
+#' @param groupsvector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+#' if NULL samples from all groups are read
+#' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
+#' if not provided fcs file paths are derived individually from the wsp (xml)
+#' @param invert_groups logical whether to invert group selection
+#' @param samplesvector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
+#' if NULL all samples (from selected groups) are read
+#' @param invert_samples logical whether to invert sample selection
+#' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
 #'
-#' @param wsp
-#' @param groups
-#' @param FCS.file.folder
-#' @param invert_groups
-#' @param samples
-#' @param invert_samples
-#' @param remove_redundant_channels
-#'
-#' @return
+#' @return list of gatingsets
 #' @export
 #'
 #' @examples

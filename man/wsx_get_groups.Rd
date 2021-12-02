@@ -4,7 +4,12 @@
 \alias{wsx_get_groups}
 \title{Retrieve groups within a flowjo workspace and associated samples (sampleID)}
 \usage{
-wsx_get_groups(ws, filter_AllSamples = T, collapse_groups = T)
+wsx_get_groups(
+  ws,
+  filter_AllSamples = T,
+  collapse_groups = T,
+  collapse_to = "list"
+)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
@@ -12,6 +17,8 @@ wsx_get_groups(ws, filter_AllSamples = T, collapse_groups = T)
 \item{filter_AllSamples}{logical whether to filter the All Samples Group in case the fcs file is also part of another group}
 
 \item{collapse_groups}{logical whether to collapse multiple group-belongings of samples into a list-column in the data frame}
+
+\item{collapse_to}{string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '\emph{-}'}
 }
 \value{
 a data frame

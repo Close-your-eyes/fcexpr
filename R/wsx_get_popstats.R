@@ -6,6 +6,7 @@
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
+#' @param groups which flowjo groups to include
 #'
 #' @return data frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
@@ -21,8 +22,6 @@
 #' wsx_get_popstats(ws = ws[[1]])
 #' }
 wsx_get_popstats <- function(ws, groups = NULL, return_stats = T) {
-
-  # to do: add option to filter for groups
 
   ws <- check_ws(ws)
 

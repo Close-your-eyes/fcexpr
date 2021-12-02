@@ -4,10 +4,12 @@
 \alias{wsx_get_popstats}
 \title{Import data from a wsp file}
 \usage{
-wsx_get_popstats(ws, return_stats = T)
+wsx_get_popstats(ws, groups = NULL, return_stats = T)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
+
+\item{groups}{which flowjo groups to include}
 
 \item{return_stats}{return statistics next to cells counts}
 }

@@ -71,7 +71,7 @@ sync_sampledescription <- function(FCS.file.folder,
             }
         }
         for (x in list.files(wd, "\\.txt$|\\.tsv$|\\.csv$", full.names = T)) {
-            if(all(any(grepl("FileName", names(read.table(x, header = T, nrows = 2, sep = "\t")))), any(grepl("identity", names(read.table(x, header = T, nrows = 2, sep = "\t")))))) {
+            if(all(any(grepl("FileName", names(utils::read.table(x, header = T, nrows = 2, sep = "\t")))), any(grepl("identity", names(utils::read.table(x, header = T, nrows = 2, sep = "\t")))))) {
                 choice <- utils::menu(c("Yes", "No"), title = paste0("Another putative sampledescription file was found in the parent folder of FCS.file.folder: ", basename(x), ". Do you want to continue initiating another file (type 1)? If not change the file.name argument to ", basename(x), " and type 2."))
                 if (choice == 2) {
                     return(NULL)
@@ -259,11 +259,11 @@ sync_sampledescription <- function(FCS.file.folder,
     }
     if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
         tryCatch({
-            write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F)
+            utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F)
         }, error = function(e) {
             new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
             print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-            write.table(x = named.sheet.list[[1]], file = new, sep = file.sep)
+            utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep)
         })
     }
     if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
@@ -310,7 +310,7 @@ sync_sampledescription <- function(FCS.file.folder,
         sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
     }
     if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
-        sd <- as.data.frame(read.table(file = file.path(wd, file.name), header = T, sep = file.sep))
+        sd <- as.data.frame(utils::read.table(file = file.path(wd, file.name), header = T, sep = file.sep))
         if (ncol(sd) == 1) {
             stop("sampledescription has only one column. Did you provide the wrong seperator (file.sep)?")
         }
