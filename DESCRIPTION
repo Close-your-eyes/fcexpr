@@ -28,7 +28,8 @@ Imports:
     BiocGenerics,
     magrittr,
     fuzzyjoin,
-    readODS
+    readODS,
+    scales
 Suggests: 
     rmarkdown,
     knitr,
