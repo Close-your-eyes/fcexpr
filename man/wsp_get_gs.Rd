@@ -20,17 +20,17 @@ wsp_get_gs(
 \item{FCS.file.folder}{path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
 if not provided fcs file paths are derived individually from the wsp (xml)}
 
+\item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+if NULL samples from all groups are read}
+
 \item{invert_groups}{logical whether to invert group selection}
+
+\item{samples}{vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
+if NULL all samples (from selected groups) are read}
 
 \item{invert_samples}{logical whether to invert sample selection}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
-
-\item{groupsvector}{or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
-if NULL samples from all groups are read}
-
-\item{samplesvector}{or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
-if NULL all samples (from selected groups) are read}
 }
 \value{
 list of gatingsets
