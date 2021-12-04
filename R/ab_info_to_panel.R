@@ -13,7 +13,6 @@
 #' @param antibody_list character, path to the xlsx file representing the antibody list with additional information for the used antibodies
 #' @param antibody_list_cols character vector, which columns from antibody_list to append to the panel_sheet in panel_file
 #' @param antibody_list_sheet character or numeric, the name or index of the sheet in the antibody_list
-#'
 #' @return No return value, but an appended panel_file written to disk.
 #' @export
 #'
@@ -24,7 +23,8 @@ ab_info_to_panel <- function(panel_file,
                              panel_sheet = "Panel",
                              antibody_list,
                              antibody_list_sheet = 1,
-                             antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")) {
+                             antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")
+                             ) {
 
   if (missing(panel_file)) {
     stop("Please provide a panel_file.")
