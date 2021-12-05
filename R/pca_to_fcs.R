@@ -52,7 +52,15 @@ pca_to_fcs <- function(file_path,
   if (compensate) {
     if (missing(compMat)) {
       compMat <- flowCore::keyword(ff_orig)[["SPILL"]]
-      print("SPILL keyword used for compensation.")
+      if (is.null(compMat)) {
+        compMat <- flowCore::keyword(ff_orig)[["$SPILLOVER"]]
+        if (is.null(compMat)) {
+          stop("compMat could not be determined.")
+        }
+        print("$SPILLOVER keyword used for compensation.")
+      } else {
+        print("SPILL keyword used for compensation.")
+      }
     }
     ff <- flowCore::compensate(ff_orig, compMat)
   } else {
