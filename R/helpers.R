@@ -1,3 +1,30 @@
+lgcl_trsfrm_ff <- function(ff, channels = NULL) {
+
+  if (is.null(channels)) {
+    channels <- colnames(flowCore::exprs(ff))
+    channels <- channels[which(channels != flowCore:::findTimeChannel(ff))]
+  }
+
+  trfms <- lapply(channels, function(z) {
+    m <- 4.5
+    lgcl <- NULL
+    while(is.null(lgcl)) {
+      lgcl <- tryCatch(flowCore::estimateLogicle(ff, z, m = m),
+                       error = function(e) {
+                         #print(m)
+                         return(NULL)
+                       }
+      )
+      m <- m + 0.1
+    }
+    return(lgcl)
+  })
+
+  for (i in seq_along(trfms)) {
+    ff <- flowCore::transform(ff, trfms[[i]])
+  }
+  return(ff)
+}
 
 wsp_xml_get_samples <- function(x) {
 

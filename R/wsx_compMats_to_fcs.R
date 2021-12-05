@@ -14,12 +14,6 @@
 #' @examples
 wsx_compMats_to_fcs <- function(ws, ...) {
 
-<<<<<<< HEAD
-  if (!"BiocManager" %in% rownames(utils::installed.packages())) {utils::install.packages("BiocManager")}
-  if (!"flowCore" %in% rownames(utils::installed.packages())) {BiocManager::install("flowCore")}
-
-  ws <- fcexpr:::check_ws(ws)
-=======
   if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
   }
@@ -27,7 +21,6 @@ wsx_compMats_to_fcs <- function(ws, ...) {
     BiocManager::install("flowWorkspace")
   }
   ws <- check_ws(ws)
->>>>>>> dev
 
   ss <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), "Sample")
   compMats <- lapply(seq_along(ss), function(n) {
