@@ -7,7 +7,12 @@
 ab_info_to_panel(
   panel_file,
   panel_sheet = "Panel",
+<<<<<<< HEAD
+ 
+    antibody_list = "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx",
+=======
   antibody_list,
+>>>>>>> dev
   antibody_list_sheet = 1,
   antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat",
     "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")
@@ -20,7 +25,11 @@ ab_info_to_panel(
 
 \item{antibody_list}{character, path to the xlsx file representing the antibody list with additional information for the used antibodies}
 
+<<<<<<< HEAD
+\item{antibody_list_sheet}{character, the name of the sheet in the antibody_list}
+=======
 \item{antibody_list_sheet}{character or numeric, the name or index of the sheet in the antibody_list}
+>>>>>>> dev
 
 \item{antibody_list_cols}{character vector, which columns from antibody_list to append to the panel_sheet in panel_file}
 }

@@ -52,7 +52,15 @@ pca_to_fcs <- function(file_path,
   if (compensate) {
     if (missing(compMat)) {
       compMat <- flowCore::keyword(ff_orig)[["SPILL"]]
-      print("SPILL keyword used for compensation.")
+      if (is.null(compMat)) {
+        compMat <- flowCore::keyword(ff_orig)[["$SPILLOVER"]]
+        if (is.null(compMat)) {
+          stop("compMat could not be determined.")
+        }
+        print("$SPILLOVER keyword used for compensation.")
+      } else {
+        print("SPILL keyword used for compensation.")
+      }
     }
     ff <- flowCore::compensate(ff_orig, compMat)
   } else {
@@ -89,7 +97,6 @@ pca_to_fcs <- function(file_path,
   if (logicle_trans) {
     ff <- lgcl_trsfrm_ff(ff, channels = channels)
   }
-
   exprs <- flowCore::exprs(ff)
   exprs <- exprs[,which(colnames(exprs) %in% channels)]
 
@@ -171,34 +178,5 @@ pca_to_fcs <- function(file_path,
 
   flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file_path)), "_", new_file_suffix, ".fcs")))
   return(list(pca = pca, ff = ff_new))
-}
-
-lgcl_trsfrm_ff <- function(ff, channels = NULL) {
-
-  if (is.null(channels)) {
-    channels <- colnames(flowCore::exprs(ff))
-    channels <- channels[which(channels != flowCore:::findTimeChannel(ff))]
-  }
-
-  trfms <- lapply(channels, function(z) {
-    m <- 4.5
-    lgcl <- NULL
-    while(is.null(lgcl)) {
-      lgcl <- tryCatch(flowCore::estimateLogicle(ff, z, m = m),
-                       error = function(e) {
-                         #print(m)
-                         return(NULL)
-                       }
-      )
-      m <- m + 0.1
-    }
-    return(lgcl)
-  })
-
-
-  for (i in seq_along(trfms)) {
-    ff <- flowCore::transform(ff, trfms[[i]])
-  }
-  return(ff)
 }
 

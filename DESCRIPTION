@@ -15,9 +15,6 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: 
     BiocManager,
-    CytoML,
-    flowCore,
-    flowWorkspace,
     lubridate,
     methods,
     openxlsx,
@@ -39,5 +36,8 @@ Suggests:
     ggplot2,
     tidyverse,
     officer,
-    magick
+    magick,
+    CytoML,
+    flowCore,
+    flowWorkspace
 VignetteBuilder: knitr

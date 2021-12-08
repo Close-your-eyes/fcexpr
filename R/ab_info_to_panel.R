@@ -45,10 +45,6 @@ ab_info_to_panel <- function(panel_file,
   }
   panel <- panel[,c("Antigen", "Conjugate", "Box", "Lot")]
 
-  if (missing(antibody_list)) {
-    antibody_list <- "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx"
-  }
-
   if (!file.exists(antibody_list)) {
     stop("antibody_list not found.")
   }
