@@ -101,9 +101,6 @@ Resulting PCs are added as channels to a newly generated FCS file." />
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
-    <li>
-      <a href="../articles/synchronizing_FCS_files_with_an_xlsx_file.html">synchronizing FCS files with an xlsx file</a>
-    </li>
   </ul>
 </li>
       </ul>
@@ -168,23 +165,6 @@ If you know your events (~lines) of interest (e.g. a subpopulation to select or 
     </tr>
     <tr>
       <th>compMat</th>
-      <td><p>matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have those matrices copied to fcs files.</p></td>
-    </tr>
-    <tr>
-      <th>timeChannel</th>
-      <td><p>character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.</p></td>
-    </tr>
-    <tr>
-      <th>logicle_trans</th>
-      <td><p>logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied befor PCA calculation. Recommendation: yes.</p></td>
-    </tr>
-    <tr>
-      <th>processed_channels_to_FCS</th>
-      <td><p>logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved to the newly generated fcs file?
-Respective channels are suffixed by _comp, _lgcl, or _comp_logl depend upon the selections above.</p></td>
-    </tr>
-    <tr>
-      <th>compMat</th>
       <td><p>matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.</p></td>
     </tr>
     <tr>
@@ -216,10 +196,7 @@ Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the 
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
-<p>=======
-list of pca-object and appended flowFrame which is also saved as fcs file
-&gt;&gt;&gt;&gt;&gt;&gt;&gt; dev</p>
+    <p>list of pca-object and appended flowFrame which is also saved as fcs file</p>
 
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

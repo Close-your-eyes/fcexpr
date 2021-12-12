@@ -1,4 +1,4 @@
-#' Synchronize an excel file (sampledescription.xlsx) with FCS files
+#' Synchronize a meta data table (sampledescription) with FCS files
 #'
 #' Five cases can be handled: (i) if no xlsx-file named file.name exists
 #' an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
@@ -23,7 +23,7 @@
 #' @param init.columns additional columns to add to the initial file
 #' @param write.log write a hidden (not hidden on windows) log file every time changes take place
 #'
-#' @return No return value. Instead sampledescription.xlsx and FCS files are synced.
+#' @return No return value. Instead sampledescription table and FCS files are synced.
 #' @export
 #'
 #' @examples

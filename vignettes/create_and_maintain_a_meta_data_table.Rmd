@@ -24,4 +24,166 @@ devtools::install_github("Close-your-eyes/fcexpr")
 library(fcexpr)
 ```
 
-In order to plot the data from a flowjo workspace (event counts or MFI) meta data to the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment and to make the process time-efficient the sync_sampledescription function may be used.
+In order to plot data from a flowjo workspace (event counts or MFIs) meta data about the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment the sync_sampledescription function may be used. The respective table containing meta data will be referred to as 'sampledescription'.
+
+
+### Please follow the steps of the vignette with arbitrary data (fcs files) of your own and observe what happens on your disk.
+
+## Initiate
+
+Pick a directory on your disk and create a template folder with fcexpr::new_exp(). A respective folder appears in "path". It has a default structure and contains a few template folders and files.  
+```{r, include=F}
+dir <- tempdir()
+```
+
+```{r, eval=F}
+dir <- "/Users/vonskopnik/Documents"
+```
+```{r}
+fcexpr::new_exp(path = dir, name = "my_experiment", date_prefix = F)
+# you may prefer date_prefix = T to have the folder automatically prefixed by todays date
+```
+
+Save the path to that folder in a variable to access it easily below.
+```{r, include=F}
+wd <- file.path(dir, "my_experiment")
+```
+```{r, eval=F}
+wd <- "/Users/vonskopnik/Documents/my_experiment"
+```
+
+Next, add FCS files to the FCS_files folder. Here, example files from this package are used.
+```{r, include = F}
+# this command copies examples files from the fcexpr package but you may use your own
+utils::untar(system.file("extdata", "Part_1.tgz", package = "fcexpr"), exdir = file.path(wd, "FCS_files"))
+```
+```{r}
+list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
+```
+
+To initiate a sampledescription run sync_sampledescription. The respective file is always written to the parent folder of FCS.file.folder. By default it is an xlsx file named 'sampledescription.xlsx'. You may change that to a open formats like .txt or .tsv. See ?sync_sampledescription.
+```{r}
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), init.columns = c())
+```
+All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously. Check the file on your disk.  
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+
+Also the actual FCS files have a prefix now. **The names of the FCS files and the entries in the sampledescription have been synchronized.**
+```{r}
+list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
+```
+
+
+## Add meta data
+
+Additional columns with meta data can be added. **These columns serve to document the content of FCS files and one can use them group the data when plotting.**
+```{r, echo=F,include=F}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+sd$Patient_ID <- sort(rep(1:5, 2))
+sd$Staining <- rep(c("FMO", "full"), 5)
+sd$Patient_sex <- c(rep("M",4),rep("F",6))
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+
+## Rename FCS files
+
+When the names in the FileName column are changed and sync_sampledescription is run, **synchronization takes place.**
+```{r, echo=F,include=F}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+sd[2,1] <- "File_2"
+sd[5,1] <- "File_5"
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+```{r}
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
+```
+
+The prefixed continuous number is added automatically as well as the .fcs-suffix.  
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+FCS files have been renamed accordingly.
+```{r}
+list.files(file.path(wd, "FCS_files", "Part_1"))
+```
+** Note: When files are renamed, respective FlowJo Workspaces have to be opened once in order to adopt the changes in file names in the wsp-file. FlowJo recognizes FCS by other parameters than the file name.**
+
+## Reorder
+
+The FCS files have been added in chronological order of acquisition (see the date in identity column). If one is not happy with that, the row-order in the sampledescription can be changed. When running sync_sampledescription the prefix-number will be adjusted. **NOTE: Never change the content of the identity column and never mix up rows of FileName and identity!!!**
+
+```{r, echo=F,include=F}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+sd <- sd[c(1,2,9,10,5,6,3,4,7,8),]
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+```{r}
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
+```
+```{r}
+list.files(file.path(wd, "FCS_files", "Part_1"))
+```
+
+## Addition of new FCS files
+
+When FCS files are added to the FCS_files folder and sync_sampledescription is run, the sampledescription will be appended by the new files (~synchronized).
+```{r, include=F}
+# this command uses example files from the fcexpr package
+utils::untar(base::system.file("extdata", "Part_2.tgz", package = "fcexpr"), exdir = file.path(wd, "FCS_files"))
+```
+```{r}
+# here, example files from this package have been added
+list.files(file.path(wd, "FCS_files"))
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+
+## Exclude or remove samples
+
+The function argument exclude.folders in sync_sampledescription specifies folder names that will be ignored for syncing with the sampledescription. Such folders may contain controls like rainbow beads or compensation controls or similar - in general, files which do not contain biological information. If, by accident, one or more of these files end up in our sampledescription since one forgot to copy them to a respective folder one can have them removed by deleting the FileName, **but only the FileName**, from the sampledescription.
+
+```{r, echo=F,include=F}
+sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
+sd$FileName <- ifelse(grepl("comp", sd$FileName), NA, sd$FileName)
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+```{r}
+fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
+```
+
+The prefixed numbers are made continuous by renaming files accordingly.  
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+
+## The log file
+
+By default a log file is written (write.log = T) which documents all changes to sampledescription. On Mac/linux it is hidden, on Windows it is not.
+
+```{r, echo=F}
+unlink(wd, recursive = T)
+```

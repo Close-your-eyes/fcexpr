@@ -2,7 +2,7 @@
 % Please edit documentation in R/sync_sampledescription.R
 \name{sync_sampledescription}
 \alias{sync_sampledescription}
-\title{Synchronize an excel file (sampledescription.xlsx) with FCS files}
+\title{Synchronize a meta data table (sampledescription) with FCS files}
 \usage{
 sync_sampledescription(
   FCS.file.folder,
@@ -25,7 +25,7 @@ sync_sampledescription(
 \item{write.log}{write a hidden (not hidden on windows) log file every time changes take place}
 }
 \value{
-No return value. Instead sampledescription.xlsx and FCS files are synced.
+No return value. Instead sampledescription table and FCS files are synced.
 }
 \description{
 Five cases can be handled: (i) if no xlsx-file named file.name exists

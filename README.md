@@ -75,9 +75,8 @@ experiments by creating a default folder as follows.
 fcexpr::new_exp(path = "my_path", name = "my_folder_name")
 ```
 
-Then copy your fcs files to the respect folder and see the vignette
-below of how to document (synchronize) them with a sampledescription
-file.
+Then copy your fcs files to the FCS\_files folder and see the vignette
+below of how to set up a meta data table (sampledescription).
 
 Alternatively, you may only be interested in obtaining the statistics
 from your flowjo workspace, then use:
@@ -88,7 +87,7 @@ fcexpr::wsx_get_popstats(ws = "myfolder/my.wsp")
 
 ## Vignettes (tutorials)
 
-[synchronize FCS files and
-sampledescription](https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html)  
+[maintain a
+sampledescription](https://close-your-eyes.github.io/fcexpr/articles/create_and_maintain_a_meta_data_table.html)  
 [import data from flowjo
 workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)

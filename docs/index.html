@@ -59,9 +59,6 @@
     <li>
       <a href="articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
-    <li>
-      <a href="articles/synchronizing_FCS_files_with_an_xlsx_file.html">synchronizing FCS files with an xlsx file</a>
-    </li>
   </ul>
 </li>
       </ul>
@@ -118,7 +115,7 @@
 <p>You may adopt the whole concept of organizing flow cytometric experiments by creating a default folder as follows.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my_path"</span>, name <span class="op">=</span> <span class="st">"my_folder_name"</span><span class="op">)</span></code></pre></div>
-<p>Then copy your fcs files to the respect folder and see the vignette below of how to document (synchronize) them with a sampledescription file.</p>
+<p>Then copy your fcs files to the FCS_files folder and see the vignette below of how to set up a meta data table (sampledescription).</p>
 <p>Alternatively, you may only be interested in obtaining the statistics from your flowjo workspace, then use:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="st">"myfolder/my.wsp"</span><span class="op">)</span></code></pre></div>
@@ -126,7 +123,7 @@
 <div id="vignettes-tutorials" class="section level2">
 <h2 class="hasAnchor">
 <a href="#vignettes-tutorials" class="anchor"></a>Vignettes (tutorials)</h2>
-<p><a href="https://close-your-eyes.github.io/fcexpr/articles/synchronizing_FCS_files_with_an_xlsx_file.html">synchronize FCS files and sampledescription</a><br><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html">import data from flowjo workspaces</a></p>
+<p><a href="https://close-your-eyes.github.io/fcexpr/articles/create_and_maintain_a_meta_data_table.html">maintain a sampledescription</a><br><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html">import data from flowjo workspaces</a></p>
 </div>
 </div>
   </div>
