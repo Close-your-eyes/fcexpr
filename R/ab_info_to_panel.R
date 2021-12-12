@@ -73,6 +73,10 @@ ab_info_to_panel <- function(panel_file,
     dplyr::arrange(row.num) %>%
     dplyr::distinct()
 
+  if (nrow(panel_add) == 0) {
+    stop("No antibodies could be matched. Check for correct Antigen, Conjugate and Box as indicated in the ab_list.")
+  }
+
   if (any(duplicated(panel_add$row.num))) {
     print(as.data.frame(panel_add))
     stop("Ambiguous entries found. Please check and make specific by providing a Box and/or Lot.")
