@@ -39,7 +39,7 @@ dir <- tempdir()
 ```{r, eval=F}
 dir <- "/Users/vonskopnik/Documents"
 ```
-```{r}
+```{r, results="hide"}
 fcexpr::new_exp(path = dir, name = "my_experiment", date_prefix = F)
 # you may prefer date_prefix = T to have the folder automatically prefixed by todays date
 ```
@@ -170,7 +170,7 @@ openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
-```{r}
+```{r, results="hide"}
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
 ```
 
