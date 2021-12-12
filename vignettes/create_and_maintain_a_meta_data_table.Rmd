@@ -1,0 +1,27 @@
+---
+title: "create_and_maintain_a_meta_data_table"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{create_and_maintain_a_meta_data_table}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = F}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+options(knitr.kable.NA = '', width = 80)
+```
+
+Install necessary packages in RStudio:
+```{r setup, eval=F}
+install.packages("BiocManager")
+BiocManager::install("flowCore")
+install.packages("devtools")
+devtools::install_github("Close-your-eyes/fcexpr")
+library(fcexpr)
+```
+
+In order to plot the data from a flowjo workspace (event counts or MFI) meta data to the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment and to make the process time-efficient the sync_sampledescription function may be used.
