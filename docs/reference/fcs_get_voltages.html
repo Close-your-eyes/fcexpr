@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Get voltages of PMTs from a fcs file — fcs_get_voltages • fcexpr</title>
+<title>Obtain PMT-voltages from a FCS file — fcs_get_voltages • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,9 +39,9 @@
 
 
 
-<meta property="og:title" content="Get voltages of PMTs from a fcs file — fcs_get_voltages" />
+<meta property="og:title" content="Obtain PMT-voltages from a FCS file — fcs_get_voltages" />
 <meta property="og:description" content="If there is a large number of fcs files and one wants to make sure that all files
-have been acquired with the same settings this functions helps to pull out the
+have been acquired with the same settings this functions may help by retrieving the
 voltage of PMTs." />
 
 
@@ -74,7 +74,7 @@ voltage of PMTs." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -96,6 +96,9 @@ voltage of PMTs." />
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -120,14 +123,14 @@ voltage of PMTs." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Get voltages of PMTs from a fcs file</h1>
+    <h1>Obtain PMT-voltages from a FCS file</h1>
     
     <div class="hidden name"><code>fcs_get_voltages.Rd</code></div>
     </div>
 
     <div class="ref-description">
     <p>If there is a large number of fcs files and one wants to make sure that all files
-have been acquired with the same settings this functions helps to pull out the
+have been acquired with the same settings this functions may help by retrieving the
 voltage of PMTs.</p>
     </div>
 
@@ -144,7 +147,8 @@ voltage of PMTs.</p>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a data.frame with different columns depending on the machine the fcs was acquired with; usually the 'V'-column indicates PMT voltages</p>
+    <p>a data.frame with different columns depending on the machine the fcs was acquired with;
+usually the 'V'-column indicates PMT voltages</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"></pre>

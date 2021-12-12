@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription • fcexpr</title>
+<title>Complement the antibody panel table with additional information from your antibody list — ab_info_to_panel • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,16 +39,14 @@
 
 
 
-<meta property="og:title" content="Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription" />
-<meta property="og:description" content="Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered." />
+<meta property="og:title" content="Complement the antibody panel table with additional information from your antibody list — ab_info_to_panel" />
+<meta property="og:description" content="This function matches the antibodies in a panel to those listed in an antibody list.
+The antibody list may contain additional information like clone or catalog number which are to
+be added to the panel table for proper annotation of the experiment.
+The panel_file should be a xlsx-file as found in the Protocols-folder when running fcexpr::new_exp().
+Necessary columns in panel_file and antibody_list used for matching are Antigen, Conjugate, Box, Lot.
+If they do not exist this function cannot be used, yet. Columns added to the panel_file will appear just right to
+the LiveDeadMarker column. Anything written there will be overwritten." />
 
 
 
@@ -129,74 +127,68 @@ is changed prefixes will be re-numbered." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Synchronize an excel file (sampledescription.xlsx) with FCS files</h1>
+    <h1>Complement the antibody panel table with additional information from your antibody list</h1>
     
-    <div class="hidden name"><code>sync_sampledescription.Rd</code></div>
+    <div class="hidden name"><code>ab_info_to_panel.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered.</p>
+    <p>This function matches the antibodies in a panel to those listed in an antibody list.
+The antibody list may contain additional information like clone or catalog number which are to
+be added to the panel table for proper annotation of the experiment.
+The panel_file should be a xlsx-file as found in the Protocols-folder when running fcexpr::new_exp().
+Necessary columns in panel_file and antibody_list used for matching are Antigen, Conjugate, Box, Lot.
+If they do not exist this function cannot be used, yet. Columns added to the panel_file will appear just right to
+the LiveDeadMarker column. Anything written there will be overwritten.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>sync_sampledescription</span><span class='op'>(</span>
-  <span class='va'>FCS.file.folder</span>,
-  file.name <span class='op'>=</span> <span class='st'>"sampledescription.xlsx"</span>,
-  exclude.folders <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"compensation"</span>, <span class='st'>"other_fcs_files"</span>, <span class='st'>"experiment.file"</span>,
-    <span class='st'>"deleted_fcs_files"</span><span class='op'>)</span>,
-  init.columns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"AbCalcFile"</span>, <span class='st'>"AbCalcSheet"</span>, <span class='st'>"ExpProtocolFile"</span>, <span class='st'>"ExpPart"</span><span class='op'>)</span>,
-  write.log <span class='op'>=</span> <span class='cn'>T</span>
-<span class='op'>)</span></pre>
+    <pre class="usage">ab_info_to_panel(
+  panel_file,
+  panel_sheet = "Panel",
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+ 
+    antibody_list = "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx",
+=======
+  antibody_list,
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; dev
+  antibody_list_sheet = 1,
+  antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat",
+    "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")
+)</pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>FCS.file.folder</th>
-      <td><p>path to the folder which contains FCS files</p></td>
+      <th>panel_file</th>
+      <td><p>character, path to the xlsx file in which the antibody panel was calculated</p></td>
     </tr>
     <tr>
-      <th>file.name</th>
-      <td><p>name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv</p></td>
+      <th>panel_sheet</th>
+      <td><p>character, the name of the sheet in the panel_file</p></td>
     </tr>
     <tr>
-      <th>exclude.folders</th>
-      <td><p>character vector of folders to exclude when checking for FCS files</p></td>
+      <th>antibody_list</th>
+      <td><p>character, path to the xlsx file representing the antibody list with additional information for the used antibodies</p></td>
     </tr>
     <tr>
-      <th>init.columns</th>
-      <td><p>additional columns to add to the initial file</p></td>
+      <th>antibody_list_sheet</th>
+      <td><p>character, the name of the sheet in the antibody_list</p></td>
     </tr>
     <tr>
-      <th>write.log</th>
-      <td><p>write a hidden (not hidden on windows) log file every time changes take place</p></td>
+      <th>antibody_list_sheet</th>
+      <td><p>character or numeric, the name or index of the sheet in the antibody_list</p></td>
+    </tr>
+    <tr>
+      <th>antibody_list_cols</th>
+      <td><p>character vector, which columns from antibody_list to append to the panel_sheet in panel_file</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>No return value. Instead sampledescription.xlsx and FCS files are synced.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+    <p>No return value, but an appended panel_file written to disk.</p>
 
-    <p>The xlsx-file will always be written to the root of the FCS.file.folder.
-Preferentially, do not have the xlsx-files open in excel when calling the the function.
-Never edit the 'identity' column in the xlsx-file manually.
-Never mix up rows of FileName and identity.
-The identity column contain a concatenated string of the $FIL keyword, the number of events
-and the acquisition date time of the FCS file.</p>
-
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
-<span class='r-in'><span class='fu'>sync_sampledescription</span><span class='op'>(</span>FCS.file.folder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>wd</span>, <span class='st'>'FCS_files'</span><span class='op'>)</span><span class='op'>)</span></span>
-<span class='r-in'><span class='op'>}</span></span>
-</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

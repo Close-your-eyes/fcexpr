@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription • fcexpr</title>
+<title>Split a flowjo export of multiple plots into separate graphics for rearrangement — split_flowjo_export_image • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,16 +39,8 @@
 
 
 
-<meta property="og:title" content="Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription" />
-<meta property="og:description" content="Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered." />
+<meta property="og:title" content="Split a flowjo export of multiple plots into separate graphics for rearrangement — split_flowjo_export_image" />
+<meta property="og:description" content="Split a flowjo export of multiple plots into separate graphics for rearrangement" />
 
 
 
@@ -129,72 +121,68 @@ is changed prefixes will be re-numbered." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Synchronize an excel file (sampledescription.xlsx) with FCS files</h1>
+    <h1>Split a flowjo export of multiple plots into separate graphics for rearrangement</h1>
     
-    <div class="hidden name"><code>sync_sampledescription.Rd</code></div>
+    <div class="hidden name"><code>split_flowjo_export_image.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered.</p>
+    <p>Split a flowjo export of multiple plots into separate graphics for rearrangement</p>
     </div>
 
-    <pre class="usage"><span class='fu'>sync_sampledescription</span><span class='op'>(</span>
-  <span class='va'>FCS.file.folder</span>,
-  file.name <span class='op'>=</span> <span class='st'>"sampledescription.xlsx"</span>,
-  exclude.folders <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"compensation"</span>, <span class='st'>"other_fcs_files"</span>, <span class='st'>"experiment.file"</span>,
-    <span class='st'>"deleted_fcs_files"</span><span class='op'>)</span>,
-  init.columns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"AbCalcFile"</span>, <span class='st'>"AbCalcSheet"</span>, <span class='st'>"ExpProtocolFile"</span>, <span class='st'>"ExpPart"</span><span class='op'>)</span>,
-  write.log <span class='op'>=</span> <span class='cn'>T</span>
+    <pre class="usage"><span class='fu'>split_flowjo_export_image</span><span class='op'>(</span>
+  <span class='va'>img</span>,
+  nPlots_x <span class='op'>=</span> <span class='fl'>4</span>,
+  nPlots_y <span class='op'>=</span> <span class='fl'>3</span>,
+  <span class='va'>folder</span>,
+  <span class='va'>pptx_name</span>,
+  pptx_image_size <span class='op'>=</span> <span class='fl'>1</span>,
+  pptx_border_space <span class='op'>=</span> <span class='fl'>0.2</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>FCS.file.folder</th>
-      <td><p>path to the folder which contains FCS files</p></td>
+      <th>img</th>
+      <td><p>character path to an image, preferable a png exported from flowjos layout editor, has to be equally spaced in x and y direction</p></td>
     </tr>
     <tr>
-      <th>file.name</th>
-      <td><p>name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv</p></td>
+      <th>nPlots_x</th>
+      <td><p>integer, how many plots in x direction</p></td>
     </tr>
     <tr>
-      <th>exclude.folders</th>
-      <td><p>character vector of folders to exclude when checking for FCS files</p></td>
+      <th>nPlots_y</th>
+      <td><p>integer, how many plots in y direction</p></td>
     </tr>
     <tr>
-      <th>init.columns</th>
-      <td><p>additional columns to add to the initial file</p></td>
+      <th>folder</th>
+      <td><p>folder name of where to save split images, this folder is written to the directory of img</p></td>
     </tr>
     <tr>
-      <th>write.log</th>
-      <td><p>write a hidden (not hidden on windows) log file every time changes take place</p></td>
+      <th>pptx_name</th>
+      <td><p>character, name a pptx to write the split images to; if missing no pptx is generated</p></td>
+    </tr>
+    <tr>
+      <th>pptx_image_size</th>
+      <td><p>numeric, size of the images in pptx</p></td>
+    </tr>
+    <tr>
+      <th>pptx_border_space</th>
+      <td><p>numeric, space between images in pptx</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>No return value. Instead sampledescription.xlsx and FCS files are synced.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
-
-    <p>The xlsx-file will always be written to the root of the FCS.file.folder.
-Preferentially, do not have the xlsx-files open in excel when calling the the function.
-Never edit the 'identity' column in the xlsx-file manually.
-Never mix up rows of FileName and identity.
-The identity column contain a concatenated string of the $FIL keyword, the number of events
-and the acquisition date time of the FCS file.</p>
+    <p>writes a folder with split images and optionally a pptx</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
-<span class='r-in'><span class='fu'>sync_sampledescription</span><span class='op'>(</span>FCS.file.folder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>wd</span>, <span class='st'>'FCS_files'</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># copy an example file to your disk</span></span>
+<span class='r-in'><span class='fu'><a href='https://rdrr.io/r/base/files.html'>file.copy</a></span><span class='op'>(</span>from <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/system.file.html'>system.file</a></span><span class='op'>(</span><span class='st'>"extdata"</span>, <span class='st'>"img.png"</span>, package <span class='op'>=</span> <span class='st'>"fcexpr"</span><span class='op'>)</span>, to <span class='op'>=</span> <span class='st'>"your_path"</span><span class='op'>)</span></span>
+<span class='r-in'><span class='fu'>fcexpr</span><span class='fu'>::</span><span class='fu'>split_flowjo_export_image</span><span class='op'>(</span>img <span class='op'>=</span> <span class='st'>"your_path/img.png"</span>,</span>
+<span class='r-in'>nPlots_x <span class='op'>=</span> <span class='fl'>6</span>, nPlots_y <span class='op'>=</span> <span class='fl'>6</span>, pptx <span class='op'>=</span> <span class='st'>"my_img_split.pptx"</span><span class='op'>)</span></span>
 <span class='r-in'><span class='op'>}</span></span>
 </pre>
   </div>

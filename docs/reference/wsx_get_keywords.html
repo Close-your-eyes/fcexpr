@@ -75,7 +75,7 @@ Also, when you decide to put the same FCS files into another workspace the keywo
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -97,6 +97,9 @@ Also, when you decide to put the same FCS files into another workspace the keywo
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -149,25 +152,25 @@ Also, when you decide to put the same FCS files into another workspace the keywo
     <p>a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='co'># ws is the path to a flowjo workspace to extract keywords from</span>
-<span class='va'>k</span> <span class='op'>&lt;-</span> <span class='fu'>fcexpr</span><span class='fu'>:::</span><span class='fu'>wsx_get_keywords</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span>
-<span class='co'># make it a data.frame</span>
-<span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/do.call.html'>do.call</a></span><span class='op'>(</span><span class='va'>rbind</span>, <span class='va'>k</span><span class='op'>)</span>
-<span class='co'># create a FileName-column</span>
-<span class='va'>kk</span><span class='op'>$</span><span class='va'>FileName</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/rep.html'>rep</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>k</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/lapply.html'>sapply</a></span><span class='op'>(</span><span class='va'>k</span>,<span class='va'>nrow</span><span class='op'>)</span><span class='op'>)</span>
-<span class='co'># do not use kk$FileName &lt;- rownames(kk) as rownames have a suffix to make them unique</span>
-<span class='co'># select keywords and make it a wider data.frame for subsequent joining with the sampledescription</span>
-<span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='va'>kk</span><span class='op'>[</span><span class='fu'><a href='https://rdrr.io/r/base/which.html'>which</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>$</span><span class='va'>name</span> <span class='op'>%in%</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"$CYT"</span>, <span class='st'>"$OP"</span><span class='op'>)</span><span class='op'>)</span>,<span class='op'>]</span>
-<span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/tidyr/man/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='va'>kk</span>, names_from <span class='op'>=</span> <span class='va'>name</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span>
-<span class='co'># make valid column names (general)</span>
-<span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/make.names.html'>make.names</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span>
-<span class='co'># or in this special case</span>
-<span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>gsub</a></span><span class='op'>(</span><span class='st'>"\\$"</span>, <span class='st'>""</span>, <span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span>
-<span class='co'># sd is your sampledescription</span>
-<span class='va'>sd</span> <span class='op'>&lt;-</span> <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/dplyr/man/mutate-joins.html'>left_join</a></span><span class='op'>(</span><span class='va'>sd</span>, <span class='va'>kk</span>, by <span class='op'>=</span> <span class='st'>"FileName"</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
+    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
+<span class='r-in'><span class='co'># ws is the path to a flowjo workspace to extract keywords from</span></span>
+<span class='r-in'><span class='va'>k</span> <span class='op'>&lt;-</span> <span class='fu'>fcexpr</span><span class='fu'>:::</span><span class='fu'>wsx_get_keywords</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># make it a data.frame</span></span>
+<span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/do.call.html'>do.call</a></span><span class='op'>(</span><span class='va'>rbind</span>, <span class='va'>k</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># create a FileName-column</span></span>
+<span class='r-in'><span class='va'>kk</span><span class='op'>$</span><span class='va'>FileName</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/rep.html'>rep</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>k</span><span class='op'>)</span>, <span class='fu'><a href='https://rdrr.io/r/base/lapply.html'>sapply</a></span><span class='op'>(</span><span class='va'>k</span>,<span class='va'>nrow</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># do not use kk$FileName &lt;- rownames(kk) as rownames have a suffix to make them unique</span></span>
+<span class='r-in'><span class='co'># select keywords and make it a wider data.frame for subsequent joining with the sampledescription</span></span>
+<span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='va'>kk</span><span class='op'>[</span><span class='fu'><a href='https://rdrr.io/r/base/which.html'>which</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>$</span><span class='va'>name</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"$CYT"</span>, <span class='st'>"$OP"</span><span class='op'>)</span><span class='op'>)</span>,<span class='op'>]</span></span>
+<span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/tidyr/man/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='va'>kk</span>, names_from <span class='op'>=</span> <span class='va'>name</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># make valid column names (general)</span></span>
+<span class='r-in'><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/make.names.html'>make.names</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># or in this special case</span></span>
+<span class='r-in'><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>gsub</a></span><span class='op'>(</span><span class='st'>"\\$"</span>, <span class='st'>""</span>, <span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># sd is your sampledescription</span></span>
+<span class='r-in'><span class='va'>sd</span> <span class='op'>&lt;-</span> <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/dplyr/man/mutate-joins.html'>left_join</a></span><span class='op'>(</span><span class='va'>sd</span>, <span class='va'>kk</span>, by <span class='op'>=</span> <span class='st'>"FileName"</span><span class='op'>)</span></span>
+<span class='r-in'><span class='op'>}</span></span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

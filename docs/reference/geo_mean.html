@@ -41,7 +41,7 @@
 
 <meta property="og:title" content="Geometric mean — geo_mean" />
 <meta property="og:description" content="In flow cytometry the geometric mean is a common metric of central tendency.
-It is less susceptible to outlier than the arithmetic mean, but more susceptible
+It is less susceptible to outliers than the arithmetic mean, but more susceptible
 as compared to the median. If you have untransformed values of fluorescence
 intensities (original output of the machines) this function may not work as you
 may have negative values in your vector x. Hence, the median has to be used or
@@ -77,7 +77,7 @@ the data needs transformation (e.g. logicle transformation)." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -99,6 +99,9 @@ the data needs transformation (e.g. logicle transformation)." />
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -130,7 +133,7 @@ the data needs transformation (e.g. logicle transformation)." />
 
     <div class="ref-description">
     <p>In flow cytometry the geometric mean is a common metric of central tendency.
-It is less susceptible to outlier than the arithmetic mean, but more susceptible
+It is less susceptible to outliers than the arithmetic mean, but more susceptible
 as compared to the median. If you have untransformed values of fluorescence
 intensities (original output of the machines) this function may not work as you
 may have negative values in your vector x. Hence, the median has to be used or
@@ -154,11 +157,12 @@ the data needs transformation (e.g. logicle transformation).</p>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a numeric representing the geomtric mean of values in x</p>
+    <p>a numeric representing the geometric mean of values in x</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='fu'>geo_mean</span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1</span>,<span class='fl'>2</span>,<span class='fl'>3</span>,<span class='fl'>10</span>,<span class='fl'>100</span><span class='op'>)</span><span class='op'>)</span>
-</div><div class='output co'>#&gt; [1] 5.696791</div></pre>
+    <pre class="examples"><span class='r-in'><span class='fu'>geo_mean</span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>1</span>,<span class='fl'>2</span>,<span class='fl'>3</span>,<span class='fl'>10</span>,<span class='fl'>100</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-out co'><span class='r-pr'>#&gt;</span> [1] 5.696791</span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

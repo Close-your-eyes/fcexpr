@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription • fcexpr</title>
+<title>Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces — wsp_get_ff • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,16 +39,8 @@
 
 
 
-<meta property="og:title" content="Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription" />
-<meta property="og:description" content="Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered." />
+<meta property="og:title" content="Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces — wsp_get_ff" />
+<meta property="og:description" content="Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces" />
 
 
 
@@ -129,74 +121,90 @@ is changed prefixes will be re-numbered." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Synchronize an excel file (sampledescription.xlsx) with FCS files</h1>
+    <h1>Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces</h1>
     
-    <div class="hidden name"><code>sync_sampledescription.Rd</code></div>
+    <div class="hidden name"><code>wsp_get_ff.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered.</p>
+    <p>Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces</p>
     </div>
 
-    <pre class="usage"><span class='fu'>sync_sampledescription</span><span class='op'>(</span>
-  <span class='va'>FCS.file.folder</span>,
-  file.name <span class='op'>=</span> <span class='st'>"sampledescription.xlsx"</span>,
-  exclude.folders <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"compensation"</span>, <span class='st'>"other_fcs_files"</span>, <span class='st'>"experiment.file"</span>,
-    <span class='st'>"deleted_fcs_files"</span><span class='op'>)</span>,
-  init.columns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"AbCalcFile"</span>, <span class='st'>"AbCalcSheet"</span>, <span class='st'>"ExpProtocolFile"</span>, <span class='st'>"ExpPart"</span><span class='op'>)</span>,
-  write.log <span class='op'>=</span> <span class='cn'>T</span>
+    <pre class="usage"><span class='fu'>wsp_get_ff</span><span class='op'>(</span>
+  <span class='va'>wsp</span>,
+  FCS.file.folder <span class='op'>=</span> <span class='cn'>NULL</span>,
+  groups <span class='op'>=</span> <span class='cn'>NULL</span>,
+  <span class='va'>population</span>,
+  invert_groups <span class='op'>=</span> <span class='cn'>F</span>,
+  samples <span class='op'>=</span> <span class='cn'>NULL</span>,
+  invert_samples <span class='op'>=</span> <span class='cn'>F</span>,
+  inverse_transform <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='cn'>T</span>, <span class='cn'>F</span><span class='op'>)</span>,
+  downsample <span class='op'>=</span> <span class='fl'>1</span>,
+  remove_redundant_channels <span class='op'>=</span> <span class='cn'>F</span>,
+  lapply_fun <span class='op'>=</span> <span class='va'>lapply</span>,
+  <span class='va'>...</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
+      <th>wsp</th>
+      <td><p>vector of paths to flowjo workspaces</p></td>
+    </tr>
+    <tr>
       <th>FCS.file.folder</th>
-      <td><p>path to the folder which contains FCS files</p></td>
+      <td><p>path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
+if not provided fcs file paths are derived individually from the wsp (xml)</p></td>
     </tr>
     <tr>
-      <th>file.name</th>
-      <td><p>name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv</p></td>
+      <th>groups</th>
+      <td><p>vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+if NULL samples from all groups are read</p></td>
     </tr>
     <tr>
-      <th>exclude.folders</th>
-      <td><p>character vector of folders to exclude when checking for FCS files</p></td>
+      <th>population</th>
+      <td><p>which population (=node, =gate) to subset flowFrames on; use wsx_get_poppaths to get paths</p></td>
     </tr>
     <tr>
-      <th>init.columns</th>
-      <td><p>additional columns to add to the initial file</p></td>
+      <th>invert_groups</th>
+      <td><p>logical whether to invert group selection</p></td>
     </tr>
     <tr>
-      <th>write.log</th>
-      <td><p>write a hidden (not hidden on windows) log file every time changes take place</p></td>
+      <th>samples</th>
+      <td><p>vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
+if NULL all samples (from selected groups) are read</p></td>
+    </tr>
+    <tr>
+      <th>invert_samples</th>
+      <td><p>logical whether to invert sample selection</p></td>
+    </tr>
+    <tr>
+      <th>inverse_transform</th>
+      <td><p>return inverse- (T) or logicle- (F) transform or both (c(T,F))</p></td>
+    </tr>
+    <tr>
+      <th>downsample</th>
+      <td><p>numeric, if &lt; 0 then a fraction of events is sampled, if &gt; 0 an absolute number of events is sampled</p></td>
+    </tr>
+    <tr>
+      <th>remove_redundant_channels</th>
+      <td><p>remove channels that are not part of the gating tree, mainly to reduce memory load</p></td>
+    </tr>
+    <tr>
+      <th>lapply_fun</th>
+      <td><p>lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested</p></td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td><p>additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>No return value. Instead sampledescription.xlsx and FCS files are synced.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+    <p>a list of flowframes</p>
 
-    <p>The xlsx-file will always be written to the root of the FCS.file.folder.
-Preferentially, do not have the xlsx-files open in excel when calling the the function.
-Never edit the 'identity' column in the xlsx-file manually.
-Never mix up rows of FileName and identity.
-The identity column contain a concatenated string of the $FIL keyword, the number of events
-and the acquisition date time of the FCS file.</p>
-
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
-<span class='r-in'><span class='fu'>sync_sampledescription</span><span class='op'>(</span>FCS.file.folder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>wd</span>, <span class='st'>'FCS_files'</span><span class='op'>)</span><span class='op'>)</span></span>
-<span class='r-in'><span class='op'>}</span></span>
-</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

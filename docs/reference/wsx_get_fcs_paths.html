@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Title — wsx_get_fcs_paths • fcexpr</title>
+<title>Get file paths to the fcs files in a workspace — wsx_get_fcs_paths • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,8 +39,9 @@
 
 
 
-<meta property="og:title" content="Title — wsx_get_fcs_paths" />
-<meta property="og:description" content="Title" />
+<meta property="og:title" content="Get file paths to the fcs files in a workspace — wsx_get_fcs_paths" />
+<meta property="og:description" content="If one has a large experiment with many fcs files and many workspaces with various
+gatings, finding out which fcs files are gated in which workspace may be helpful." />
 
 
 
@@ -72,7 +73,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -94,6 +95,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -118,16 +122,17 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Title</h1>
+    <h1>Get file paths to the fcs files in a workspace</h1>
     
     <div class="hidden name"><code>wsx_get_fcs_paths.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Title</p>
+    <p>If one has a large experiment with many fcs files and many workspaces with various
+gatings, finding out which fcs files are gated in which workspace may be helpful.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>wsx_get_fcs_paths</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>wsx_get_fcs_paths</span><span class='op'>(</span><span class='va'>ws</span>, split <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -136,17 +141,21 @@
       <th>ws</th>
       <td><p>path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))</p></td>
     </tr>
+    <tr>
+      <th>split</th>
+      <td><p>logical whether to split file paths by groups; if yes a list is returned, if no a data frame</p></td>
+    </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>a list of paths to fcs files grouped by groups in the ws</p>
+    <p>a list or data frame of paths to fcs files</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='fu'>wsx_get_fcs_paths</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
+    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
+<span class='r-in'><span class='fu'>wsx_get_fcs_paths</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span></span>
+<span class='r-in'><span class='op'>}</span></span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

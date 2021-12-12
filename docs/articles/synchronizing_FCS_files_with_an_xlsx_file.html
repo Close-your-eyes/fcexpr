@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -54,6 +54,9 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
+    <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
     <li>
@@ -93,7 +96,7 @@
 <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
 <span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
-<p>In order to plot the data from a flowjo workspace (event counts or MFI) meta data to the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment and to make the process time-efficient the sync_sampledescription function may be used. Annotating FCS file within the workspace is another common procedure which is not convenient to me though. (i) The link of keyword and FCS file only exists in the workspace which does not allow to use it for plotting easily, (ii) if the workspace gets corrupted for any reason the keyword-annotation is lost and has to be redone, (iii) flowjo is an expensive commercial software that you may not want to be dependent on, (iv) I do not like the responsiveness when typing keywords in flowjo.<br>
+<p>In order to plot the data from a flowjo workspace (event counts or MFI) meta data to the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment and to make the process convient the sync_sampledescription function may be used. Annotating FCS file within the workspace is another common procedure which is not convenient to me though. (i) The link of keyword and FCS file only exists in the workspace which does not allow to use it for plotting easily, (ii) if the workspace gets corrupted for any reason the keyword-annotation is lost and has to be redone, (iii) flowjo is an expensive commercial software that you may not want to be dependent on, (iv) I do not like the responsiveness when typing keywords in flowjo.<br>
 That’s why I prefer to save meta data in more common format (xlsx convert-able to csv) which (i) can also be used for plotting, (ii) is easier to read, (iii) is stable on the long run, (iv) has convenient autofill options and copy-paste functions.</p>
 <div id="please-follow-the-steps-of-the-vignette-and-observe-what-happens-on-your-disk-" class="section level3">
 <h3 class="hasAnchor">
@@ -106,10 +109,10 @@ That’s why I prefer to save meta data in more common format (xlsx convert-able
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">dir</span> <span class="op">&lt;-</span> <span class="st">"/Users/vonskopnik/Documents"</span>
 <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">dir</span>, name <span class="op">=</span> <span class="st">"my_experiment"</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211026_my_experiment created."</span>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211212_my_experiment created."</span>
 <span class="va">wd</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">dir</span>, <span class="fu"><a href="https://rdrr.io/r/base/paste.html">paste0</a></span><span class="op">(</span><span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html">gsub</a></span><span class="op">(</span><span class="st">"-"</span>, <span class="st">""</span>, <span class="fu">base</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html">Sys.Date</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, <span class="st">"_my_experiment"</span><span class="op">)</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/print.html">print</a></span><span class="op">(</span><span class="va">wd</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211026_my_experiment"</span></code></pre></div>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211212_my_experiment"</span></code></pre></div>
 <p>Next, add FCS files to the FCS_files folder. You can use your own files, or use example files that come with this package.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># this command uses example files from the fcexpr package</span>
@@ -897,9 +900,9 @@ sampledescription.xlsx:</p>
 </table>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/sync_sampledescription.html">sync_sampledescription</a></span><span class="op">(</span>FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, write.log <span class="op">=</span> <span class="cn">F</span><span class="op">)</span>
-<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211026_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
-<span class="co">#&gt; [2] "/Users/vonskopnik/Documents/20211026_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
-<span class="co">#&gt; [3] "/Users/vonskopnik/Documents/20211026_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
+<span class="co">#&gt; [1] "/Users/vonskopnik/Documents/20211212_my_experiment/FCS_files/Part_2/0012_-_PE_comp.fcs"  </span>
+<span class="co">#&gt; [2] "/Users/vonskopnik/Documents/20211212_my_experiment/FCS_files/Part_2/0014_-_FITC_comp.fcs"</span>
+<span class="co">#&gt; [3] "/Users/vonskopnik/Documents/20211212_my_experiment/FCS_files/Part_2/0016_-_APC_comp.fcs" </span>
 <span class="co">#&gt; [1] "FCS files moved to deleted_FCS_files and sampledescription.xlsx updated."</span>
 <span class="co">#&gt;                               FileName                     PreviousFileName</span>
 <span class="co">#&gt; 1 0012_-_Specimen_001_Tube_003_003.fcs 0013_-_Specimen_001_Tube_003_003.fcs</span>

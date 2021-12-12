@@ -74,7 +74,7 @@ the respective FCS files once the gating has been conducted." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -96,6 +96,9 @@ the respective FCS files once the gating has been conducted." />
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -131,7 +134,7 @@ from FCS files. These may be accessed without a dongle and can be read completel
 the respective FCS files once the gating has been conducted.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>wsx_get_popstats</span><span class='op'>(</span><span class='va'>ws</span>, return_stats <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>wsx_get_popstats</span><span class='op'>(</span><span class='va'>ws</span>, groups <span class='op'>=</span> <span class='cn'>NULL</span>, return_stats <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -141,6 +144,10 @@ the respective FCS files once the gating has been conducted.</p>
       <td><p>path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))</p></td>
     </tr>
     <tr>
+      <th>groups</th>
+      <td><p>which flowjo groups to include</p></td>
+    </tr>
+    <tr>
       <th>return_stats</th>
       <td><p>return statistics next to cells counts</p></td>
     </tr>
@@ -148,19 +155,19 @@ the respective FCS files once the gating has been conducted.</p>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>returns a data.frame with cells counts or a list with counts and statistics if return_stats = T</p>
+    <p>data frame with cells counts or a list with counts and statistics if return_stats = T</p>
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><div class='input'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span>
-<span class='co'># When the script is saved to R_scripts in the experiment folder,</span>
-<span class='co'># get the absolute path to the folder</span>
-<span class='va'>wd</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/basename.html'>dirname</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/basename.html'>dirname</a></span><span class='op'>(</span><span class='fu'>rstudioapi</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/rstudioapi/man/rstudio-editors.html'>getActiveDocumentContext</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>$</span><span class='va'>path</span><span class='op'>)</span><span class='op'>)</span>
-<span class='co'># find workspaces</span>
-<span class='va'>ws</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.files.html'>list.files</a></span><span class='op'>(</span>path <span class='op'>=</span> <span class='va'>wd</span>, pattern <span class='op'>=</span> <span class='st'>'\\.wsp$'</span>, recursive <span class='op'>=</span> <span class='cn'>T</span>, full.names <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span>
-<span class='co'># import the population counts:</span>
-<span class='fu'>wsx_get_popstats</span><span class='op'>(</span>ws <span class='op'>=</span> <span class='va'>ws</span><span class='op'>[[</span><span class='fl'>1</span><span class='op'>]</span><span class='op'>]</span><span class='op'>)</span>
-<span class='op'>}</span>
-</div></pre>
+    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
+<span class='r-in'><span class='co'># When the script is saved to R_scripts in the experiment folder,</span></span>
+<span class='r-in'><span class='co'># get the absolute path to the folder</span></span>
+<span class='r-in'><span class='va'>wd</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/basename.html'>dirname</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/basename.html'>dirname</a></span><span class='op'>(</span><span class='fu'>rstudioapi</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/rstudioapi/man/rstudio-editors.html'>getActiveDocumentContext</a></span><span class='op'>(</span><span class='op'>)</span><span class='op'>$</span><span class='va'>path</span><span class='op'>)</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># find workspaces</span></span>
+<span class='r-in'><span class='va'>ws</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/list.files.html'>list.files</a></span><span class='op'>(</span>path <span class='op'>=</span> <span class='va'>wd</span>, pattern <span class='op'>=</span> <span class='st'>'\\.wsp$'</span>, recursive <span class='op'>=</span> <span class='cn'>T</span>, full.names <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></span>
+<span class='r-in'><span class='co'># import the population counts:</span></span>
+<span class='r-in'><span class='fu'>wsx_get_popstats</span><span class='op'>(</span>ws <span class='op'>=</span> <span class='va'>ws</span><span class='op'>[[</span><span class='fl'>1</span><span class='op'>]</span><span class='op'>]</span><span class='op'>)</span></span>
+<span class='r-in'><span class='op'>}</span></span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

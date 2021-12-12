@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -54,6 +54,9 @@
   </a>
   <ul class="dropdown-menu" role="menu">
 <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
+    <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
     <li>
@@ -93,17 +96,18 @@
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></code></pre></div>
-<p>Many information are stored in flowjos wsp file which actually is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. <a href="https://www.barebones.com/products/bbedit/index.html">BB Edit</a> on a Mac) or read it with the XML2 package in R.<br>
-Based on the latter I wrote functions that extract relevant data from a flowjo 10 wsp (more precise 10.7.1). Let me know of conflicts with other versions. It is very simple and works as follows. After you gated your populations, save the wsp and run:</p>
+<p>Many information are stored in flowjos wsp file which is actually an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. <a href="https://www.barebones.com/products/bbedit/index.html">BB Edit</a> on a Mac) or read it with the XML2 package in R.<br>
+Based on the latter I wrote functions that extract information from a flowjo 10 wsp.It is very simple and works as follows. After you gated your populations, save the wsp and run the wsx_get_popstats function:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
-<p>ws is the file path (url) to the wsp on your disk (e.g. “/Users/vonskopnik/Documents/07-Oct-2021.wsp”). On a Mac you can copy this path with CMD+ALT+C. The prefix (fcexpr::) indicates the package a function comes from. This is important to avoid ambiguities in case there are two functions with equal names from different packages.<br>
-If there are calculated statistics we get a list of length 2. Index 1 hold a table (data.frame) with gated event counts, index 2 table with statistics.<br>
-The column names are very descriptive. eventsInside indicates if the events inside (1) or outside (0) were relevant for subsequent gates.</p>
+<code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="st">"/Users/user/Documents/07-Oct-2021.wsp"</span>, return_stats <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
+<span class="co"># also ps &lt;- wsx_get_popstats(ws = "/Users/user/Documents/07-Oct-2021.wsp") is possible</span></code></pre></div>
+<p>ws is the file path (url) to a wsp on your disk. The prefix fcexpr:: specifies the package a function comes from. With return_stats = TRUE a list of length 2 is returned.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
-<span class="co">#&gt; [1] 2</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
+<span class="co">#&gt; [1] 2</span></code></pre></div>
+<p>Index 1 holds a data frame with gated event counts. Index 2 holds, if calculated in flowjo, statistics like MFI. If not, then index 2 is NULL.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
 <span class="co">#&gt; [1] "counts" "stats"</span>
 <span class="co"># columns names</span>
 <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
@@ -114,14 +118,16 @@ The column names are very descriptive. eventsInside indicates if the events insi
 <span class="co">#&gt; [13] "ws"</span>
 <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
 <span class="co">#&gt; [1] "FileName"           "PopulationFullPath" "statistic"         </span>
-<span class="co">#&gt; [4] "channel"            "value"              "FilePath"</span>
-<span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span>
-<span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span></code></pre></div>
-<p>Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized way with <strong>fcexpr::sync_sampldescription</strong> (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_keywords.html">wsx_get_keywords</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
-<p>This returns a list of data frames. One list entry for every FCS file in the wsp. In this example there are 48 FCS files. The data.frame at index 1 (first FCS file) has 211 rows, one row for each keyword, and 2 columns, providing the name of the keyword and its value.</p>
+<span class="co">#&gt; [4] "channel"            "value"              "FilePath"</span></code></pre></div>
+<p>You may write the list-content to individual variables. This will allow to inspect the data frames manually in R studio.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span> <span class="co"># access by name</span>
+<span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span> <span class="co"># access by index</span></code></pre></div>
+<p>Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. One has to attach information about every fcs files like if it was a full stain, FMO or isotype control; or from which patient the sample material was derived; or what disease the patient suffered from; sex or age. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized, automized fashion with <strong>fcexpr::sync_sampldescription</strong> (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_keywords.html">wsx_get_keywords</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
+<p>This returns a list of data frames. One index for every FCS file in the wsp. In this example there are 48 FCS files. The data frame at index 1 (first FCS file) has 211 rows, one for each keyword, and 2 columns, providing the name of the keyword and its value.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>
 <span class="co">#&gt; [1] 48</span>
 <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
@@ -129,7 +135,7 @@ The column names are very descriptive. eventsInside indicates if the events insi
 <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
 <span class="co">#&gt; [1] "name"  "value"</span></code></pre></div>
 <p>To join the keywords to ps_counts or ps_stats we have to make it a data.frame first.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># make it a data.frame</span>
 <span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">keys</span><span class="op">)</span> <span class="co"># base R</span>
 <span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/bind.html">bind_rows</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span> <span class="co"># dplyr-style</span>
@@ -137,16 +143,16 @@ The column names are very descriptive. eventsInside indicates if the events insi
 <span class="va">keys_df</span><span class="op">$</span><span class="va">FileName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">keys</span>,<span class="va">nrow</span><span class="op">)</span><span class="op">)</span>
 <span class="co"># select relevant keywords</span>
 <span class="co"># example: Cytometer name ($CYT) and Operator ($OP)</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="va">keys_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">$</span><span class="va">name</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span>,<span class="op">]</span> <span class="co"># base R</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">keys_df</span>, <span class="va">name</span> <span class="op">%in%</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span> <span class="co"># dplyr-style</span>
-<span class="co"># make it wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="va">keys_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span>,<span class="op">]</span> <span class="co"># base R</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">keys_df</span>, <span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="co"># make it a wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)</span>
 <span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tidyr/man/pivot_wider.html">pivot_wider</a></span><span class="op">(</span><span class="va">keys_df</span>, names_from <span class="op">=</span> <span class="va">name</span>, values_from <span class="op">=</span> <span class="va">value</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
 <span class="co">#&gt; [1] 48</span>
 <span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
 <span class="co">#&gt; [1] "FileName" "$CYT"     "$OP"</span></code></pre></div>
-<p>Now we have one data.frame of two keywords for every FCS file. Join the meta data to phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join a sampledescription with more relevant meta data</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<p>Now we have one data frame of two keywords for every FCS file. Join these meta data to the phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join another table (variable sd) with more relevant meta data. In this case a transduction was established and putative relevant factors that influence the transduction efficiency have been varied (see the column names of sd below).</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html">merge</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># base R</span>
 <span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># dplyr-style</span>
 <span class="co">#&gt; Joining, by = "FileName"</span>
@@ -160,32 +166,32 @@ The column names are very descriptive. eventsInside indicates if the events insi
 <span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="va">sd</span><span class="op">)</span>
 <span class="co">#&gt; Joining, by = "FileName"</span></code></pre></div>
 <p>ps_counts2 which now holds meta data and phenotype data may be saved to excel for further processing.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="st">"/Users/vonskopnik/Documents/7-Oct-2021.xlsx"</span><span class="op">)</span></code></pre></div>
-<p>It is preferable though to continue in R. This can be done with base R or with functions from the <a href="https://www.tidyverse.org">tidyverse</a>. The possible operations and sometimes necessary steps to tidy up a data frame for plotting are too exhaustive to cover them here. Also, it requires a little bit of practice. Hence, arbitrary operations and plots are shown below.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="st">"/Users/user/Documents/7-Oct-2021.xlsx"</span><span class="op">)</span></code></pre></div>
+<p>It is preferable though to tidy up, filter, select and plot in R. This can be done with base R or with functions from the <a href="https://www.tidyverse.org">tidyverse</a>. It requires a little bit of practice. For a number of cases though there are a few standard procedures that you may learn quickly. Some arbitrary operations and plots are shown below.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># filter for the GFP+ population only</span>
 <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
 <span class="co">#&gt; [1] "root"   "RPTECs" "DAPI-"  "GFP+"</span>
 <span class="va">ps_counts2_plot</span> <span class="op">&lt;-</span>
-  <span class="va">ps_counts2</span> <span class="op">%&gt;%</span>
+  <span class="va">ps_counts2</span> <span class="op"><a href="https://rdrr.io/pkg/magrittr/man/pipe.html">%&gt;%</a></span>
   <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html">filter</a></span><span class="op">(</span><span class="va">Population</span> <span class="op">==</span> <span class="st">"GFP+"</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
 <span class="co">#&gt; [1] "GFP+"</span>
 <span class="co"># plot the frequency of GFP+ events with respect to the parent gate</span>
-<span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">incubation.time.h</span>, y <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_jitter</span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_bw</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">ylab</span><span class="op">(</span><span class="st">"% GFP+ in DAPI-"</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-10-1.png" width="768"></p>
-<p>The incubation time of viral supernatant (x) seems to play a role for the transduction rate (y). But there are more factors which may visualized in one plot.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">ggplot</span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">geom_tile</span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">theme_classic</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">scale_fill_viridis_c</span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu">facet_grid</span><span class="op">(</span>cols <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu">vars</span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">incubation.time.h</span>, y <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/geom_jitter.html">geom_jitter</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggtheme.html">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/labs.html">ylab</a></span><span class="op">(</span><span class="st">"% GFP+ in DAPI-"</span><span class="op">)</span></code></pre></div>
 <p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-1.png" width="768"></p>
+<p>The incubation time of viral supernatant (x-axis) seems to play a role for the transduction rate (y-axis). But there are more factors which can be visualized in another plot.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, y <span class="op">=</span> <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/geom_tile.html">geom_tile</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggtheme.html">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/scale_viridis.html">scale_fill_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/facet_grid.html">facet_grid</a></span><span class="op">(</span>cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/vars.html">vars</a></span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/vars.html">vars</a></span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-14-1.png" width="768"></p>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">

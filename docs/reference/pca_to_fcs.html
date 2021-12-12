@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription • fcexpr</title>
+<title>Add principle components (PCs) to FCS file — pca_to_fcs • fcexpr</title>
 
 
 <!-- jquery -->
@@ -39,16 +39,9 @@
 
 
 
-<meta property="og:title" content="Synchronize an excel file (sampledescription.xlsx) with FCS files — sync_sampledescription" />
-<meta property="og:description" content="Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered." />
+<meta property="og:title" content="Add principle components (PCs) to FCS file — pca_to_fcs" />
+<meta property="og:description" content="A PCA is calculated on selected events and selected channels with stats::prcomp.
+Resulting PCs are added as channels to a newly generated FCS file." />
 
 
 
@@ -129,74 +122,105 @@ is changed prefixes will be re-numbered." />
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>Synchronize an excel file (sampledescription.xlsx) with FCS files</h1>
+    <h1>Add principle components (PCs) to FCS file</h1>
     
-    <div class="hidden name"><code>sync_sampledescription.Rd</code></div>
+    <div class="hidden name"><code>pca_to_fcs.Rd</code></div>
     </div>
 
     <div class="ref-description">
-    <p>Five cases can be handled: (i) if no xlsx-file named file.name exists
-an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-When new FCS files are added to FCS.file.folder and the function is called
-they are added in order of acquisition to the xlsx-file. (iii) When file names
-in the FileName column of the xlsx-file are altered and the function is called
-the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered.</p>
+    <p>A PCA is calculated on selected events and selected channels with stats::prcomp.
+Resulting PCs are added as channels to a newly generated FCS file.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>sync_sampledescription</span><span class='op'>(</span>
-  <span class='va'>FCS.file.folder</span>,
-  file.name <span class='op'>=</span> <span class='st'>"sampledescription.xlsx"</span>,
-  exclude.folders <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"compensation"</span>, <span class='st'>"other_fcs_files"</span>, <span class='st'>"experiment.file"</span>,
-    <span class='st'>"deleted_fcs_files"</span><span class='op'>)</span>,
-  init.columns <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"AbCalcFile"</span>, <span class='st'>"AbCalcSheet"</span>, <span class='st'>"ExpProtocolFile"</span>, <span class='st'>"ExpPart"</span><span class='op'>)</span>,
-  write.log <span class='op'>=</span> <span class='cn'>T</span>
+    <pre class="usage"><span class='fu'>pca_to_fcs</span><span class='op'>(</span>
+  <span class='va'>file_path</span>,
+  which_lines <span class='op'>=</span> <span class='cn'>NULL</span>,
+  channels <span class='op'>=</span> <span class='cn'>NULL</span>,
+  compensate <span class='op'>=</span> <span class='cn'>T</span>,
+  <span class='va'>compMat</span>,
+  <span class='va'>timeChannel</span>,
+  logicle_trans <span class='op'>=</span> <span class='cn'>T</span>,
+  processed_channels_to_FCS <span class='op'>=</span> <span class='cn'>T</span>,
+  n_pca_dims <span class='op'>=</span> <span class='cn'>NULL</span>,
+  output_folder <span class='op'>=</span> <span class='cn'>NULL</span>,
+  new_file_suffix <span class='op'>=</span> <span class='st'>"pca"</span>
 <span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>FCS.file.folder</th>
-      <td><p>path to the folder which contains FCS files</p></td>
+      <th>file_path</th>
+      <td><p>character, path to a fcs file</p></td>
     </tr>
     <tr>
-      <th>file.name</th>
-      <td><p>name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv</p></td>
+      <th>which_lines</th>
+      <td><p>numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
+If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.</p></td>
     </tr>
     <tr>
-      <th>exclude.folders</th>
-      <td><p>character vector of folders to exclude when checking for FCS files</p></td>
+      <th>channels</th>
+      <td><p>character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3 or CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.</p></td>
     </tr>
     <tr>
-      <th>init.columns</th>
-      <td><p>additional columns to add to the initial file</p></td>
+      <th>compensate</th>
+      <td><p>logical, should compensation be applied before PC calculation</p></td>
     </tr>
     <tr>
-      <th>write.log</th>
-      <td><p>write a hidden (not hidden on windows) log file every time changes take place</p></td>
+      <th>compMat</th>
+      <td><p>matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have those matrices copied to fcs files.</p></td>
+    </tr>
+    <tr>
+      <th>timeChannel</th>
+      <td><p>character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.</p></td>
+    </tr>
+    <tr>
+      <th>logicle_trans</th>
+      <td><p>logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied befor PCA calculation. Recommendation: yes.</p></td>
+    </tr>
+    <tr>
+      <th>processed_channels_to_FCS</th>
+      <td><p>logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved to the newly generated fcs file?
+Respective channels are suffixed by _comp, _lgcl, or _comp_logl depend upon the selections above.</p></td>
+    </tr>
+    <tr>
+      <th>compMat</th>
+      <td><p>matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.</p></td>
+    </tr>
+    <tr>
+      <th>timeChannel</th>
+      <td><p>character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.</p></td>
+    </tr>
+    <tr>
+      <th>logicle_trans</th>
+      <td><p>logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied before PCA calculation. Recommendation: yes.</p></td>
+    </tr>
+    <tr>
+      <th>processed_channels_to_FCS</th>
+      <td><p>logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved as extra channels to the newly generated fcs file?
+Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the selections above.</p></td>
+    </tr>
+    <tr>
+      <th>n_pca_dims</th>
+      <td><p>numeric, the number of PCs to add to the newly generated fcs file. Default: all.</p></td>
+    </tr>
+    <tr>
+      <th>output_folder</th>
+      <td><p>character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).</p></td>
+    </tr>
+    <tr>
+      <th>new_file_suffix</th>
+      <td><p>character, the suffix to add to the the newly generated fcs file. Default is _pca.</p></td>
     </tr>
     </table>
 
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p>No return value. Instead sampledescription.xlsx and FCS files are synced.</p>
-    <h2 class="hasAnchor" id="details"><a class="anchor" href="#details"></a>Details</h2>
+    <p>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</p>
+<p>=======
+list of pca-object and appended flowFrame which is also saved as fcs file
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; dev</p>
 
-    <p>The xlsx-file will always be written to the root of the FCS.file.folder.
-Preferentially, do not have the xlsx-files open in excel when calling the the function.
-Never edit the 'identity' column in the xlsx-file manually.
-Never mix up rows of FileName and identity.
-The identity column contain a concatenated string of the $FIL keyword, the number of events
-and the acquisition date time of the FCS file.</p>
-
-    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
-    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
-<span class='r-in'><span class='fu'>sync_sampledescription</span><span class='op'>(</span>FCS.file.folder <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/file.path.html'>file.path</a></span><span class='op'>(</span><span class='va'>wd</span>, <span class='st'>'FCS_files'</span><span class='op'>)</span><span class='op'>)</span></span>
-<span class='r-in'><span class='op'>}</span></span>
-</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

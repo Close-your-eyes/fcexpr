@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9500</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
       </span>
     </div>
 
@@ -94,6 +94,9 @@
     <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
+    </li>
     <li>
       <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
     </li>
@@ -127,7 +130,12 @@
     <p>Retrieve groups within a flowjo workspace and associated samples (sampleID)</p>
     </div>
 
-    <pre class="usage"><span class='fu'>wsx_get_groups</span><span class='op'>(</span><span class='va'>ws</span>, filter_AllSamples <span class='op'>=</span> <span class='cn'>T</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>wsx_get_groups</span><span class='op'>(</span>
+  <span class='va'>ws</span>,
+  filter_AllSamples <span class='op'>=</span> <span class='cn'>T</span>,
+  collapse_groups <span class='op'>=</span> <span class='cn'>T</span>,
+  collapse_to <span class='op'>=</span> <span class='st'>"list"</span>
+<span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -138,7 +146,15 @@
     </tr>
     <tr>
       <th>filter_AllSamples</th>
-      <td><p>filter the All Samples Group if the fcs file is also part of another group</p></td>
+      <td><p>logical whether to filter the All Samples Group in case the fcs file is also part of another group</p></td>
+    </tr>
+    <tr>
+      <th>collapse_groups</th>
+      <td><p>logical whether to collapse multiple group-belongings of samples into a list-column in the data frame</p></td>
+    </tr>
+    <tr>
+      <th>collapse_to</th>
+      <td><p>string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '<em>-</em>'</p></td>
     </tr>
     </table>
 
@@ -146,6 +162,11 @@
 
     <p>a data frame</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
+<span class='r-in'><span class='fu'>wsx_get_groups</span><span class='op'>(</span><span class='va'>ws</span><span class='op'>)</span></span>
+<span class='r-in'><span class='op'>}</span></span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">
