@@ -2,7 +2,7 @@
 % Please edit documentation in R/wsx_compMats_to_fcs.R
 \name{wsx_compMats_to_fcs}
 \alias{wsx_compMats_to_fcs}
-\title{Write the compensation matrices generated in a FlowJo workspace to the SPILL keywords of respective FCS files}
+\title{Write the compensation matrices generated in a flowjo workspace to the SPILL keywords of respective FCS files}
 \usage{
 wsx_compMats_to_fcs(ws, ...)
 }
@@ -19,4 +19,9 @@ The compensation matrices generated or optimized in FlowJo only exist in the wor
 This is part of FlowJos philosophy, FCS remain original all the time. This is actually not a bad procedure but reduces flexibility in some cases.
 This function saves the associated compensation matrices to the FCS files - the matrices are written into the SPILL keyword. That makes
 them easily and unambiguously available for other calculations outside of FlowJo (e.g. in R) when compensated channels are required.
+}
+\examples{
+\dontrun{
+wsx_compMats_to_fcs(ws = "mypath/my.wsp")
+}
 }

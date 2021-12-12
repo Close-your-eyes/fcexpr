@@ -21,6 +21,9 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' pf <- pca_to_fcs(file_path = "mypath/file.fcs")
+#' }
 pca_to_fcs <- function(file_path,
                        which_lines = NULL,
                        channels = NULL,

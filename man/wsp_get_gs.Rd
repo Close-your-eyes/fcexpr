@@ -18,7 +18,7 @@ wsp_get_gs(
 \item{wsp}{vector of paths to flowjo workspaces}
 
 \item{FCS.file.folder}{path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-if not provided fcs file paths are derived individually from the wsp (xml)}
+if not provided (NULL) fcs file paths are derived individually from wsps (xml)}
 
 \item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 if NULL samples from all groups are read}
@@ -37,4 +37,9 @@ list of gatingsets
 }
 \description{
 Get (subsetted) gatingsets from flowjo workspaces
+}
+\examples{
+\dontrun{
+gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp")
+}
 }

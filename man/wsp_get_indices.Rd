@@ -19,7 +19,7 @@ wsp_get_indices(
 \item{wsp}{vector of paths to flowjo workspaces}
 
 \item{FCS.file.folder}{path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-if not provided fcs file paths are derived individually from the wsp (xml)}
+if not provided (NULL) fcs file paths are derived individually from wsps (xml)}
 
 \item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 if NULL samples from all groups are read}
@@ -48,4 +48,9 @@ in order to obtain subsetted flowfframes representing gated populations in flowj
 Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.
 This process may take a while depend upon size of fcs files as a .h5 file is written to disk for every fcs file before indices can be derived. Hence, it is recommended
 to save the indices-matrices to disk in case of large FCS files.
+}
+\examples{
+\dontrun{
+ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+}
 }

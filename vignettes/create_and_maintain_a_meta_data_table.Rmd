@@ -65,13 +65,13 @@ To initiate a sampledescription run sync_sampledescription. The respective file 
 ```{r}
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), init.columns = c())
 ```
-All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously. Check the file on your disk.  
+All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously. Check the sampledescription file on your disk!   
 **sampledescription:**
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 ```
 
-Also the actual FCS files have a prefix now. **The names of the FCS files and the entries in the sampledescription have been synchronized.**
+Also, FCS files have been renamed with a prefix. **The names of the FCS files and the entries in the sampledescription have been synchronized.**
 ```{r}
 list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
 ```
@@ -79,7 +79,7 @@ list.files(file.path(wd, "FCS_files", "Part_1"))[1:5]
 
 ## Add meta data
 
-Additional columns with meta data can be added. **These columns serve to document the content of FCS files and one can use them group the data when plotting.**
+Additional columns with meta data may be added. **These columns serve to document the content of FCS files. Simultaneously, one can use them to group or arrange data when plotting.**
 ```{r, echo=F,include=F}
 sd <- openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx"))
 sd$Patient_ID <- sort(rep(1:5, 2))
@@ -109,7 +109,7 @@ knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 fcexpr::sync_sampledescription(FCS.file.folder = file.path(wd, "FCS_files"), write.log = F)
 ```
 
-The prefixed continuous number is added automatically as well as the .fcs-suffix.  
+The prefixed continuous number and the .fcs-suffix are obligatory and are added automatically.
 **sampledescription:**
 ```{r, echo=F}
 knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))

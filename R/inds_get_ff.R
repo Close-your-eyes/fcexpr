@@ -9,10 +9,14 @@
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
-#' @return
+#' @return list of flow frames, one for each ind_mat
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+#' inds <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
+#' }
 inds_get_ff <- function(ind_mat,
                         population,
                         alias_attr_name = "short_names",

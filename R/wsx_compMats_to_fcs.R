@@ -1,4 +1,4 @@
-#' Write the compensation matrices generated in a FlowJo workspace to the SPILL keywords of respective FCS files
+#' Write the compensation matrices generated in a flowjo workspace to the SPILL keywords of respective FCS files
 #'
 #' The compensation matrices generated or optimized in FlowJo only exist in the workspace. The underlying FCS files remain unchanged.
 #' This is part of FlowJos philosophy, FCS remain original all the time. This is actually not a bad procedure but reduces flexibility in some cases.
@@ -12,6 +12,9 @@
 #' @export
 #'
 #' @examples
+#'\dontrun{
+#' wsx_compMats_to_fcs(ws = "mypath/my.wsp")
+#'}
 wsx_compMats_to_fcs <- function(ws, ...) {
 
   if (!requireNamespace("CytoML", quietly = T)){

@@ -33,8 +33,14 @@ inds_get_ff(
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
-
+list of flow frames, one for each ind_mat
 }
 \description{
 Get (subsetted) flowFrames from FCS files
+}
+\examples{
+\dontrun{
+ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+inds <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
+}
 }

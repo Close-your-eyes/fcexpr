@@ -147,7 +147,7 @@
     <tr>
       <th>FCS.file.folder</th>
       <td><p>path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-if not provided fcs file paths are derived individually from the wsp (xml)</p></td>
+if not provided (NULL) fcs file paths are derived individually from wsps (xml)</p></td>
     </tr>
     <tr>
       <th>groups</th>
@@ -177,6 +177,11 @@ if NULL all samples (from selected groups) are read</p></td>
 
     <p>list of gatingsets</p>
 
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><span class='r-in'><span class='kw'>if</span> <span class='op'>(</span><span class='cn'>FALSE</span><span class='op'>)</span> <span class='op'>{</span></span>
+<span class='r-in'><span class='va'>gs_list</span> <span class='op'>&lt;-</span> <span class='fu'>fcexpr</span><span class='fu'>::</span><span class='fu'>wsp_get_gs</span><span class='op'>(</span>wsp <span class='op'>=</span> <span class='st'>"mypath/my.wsp"</span><span class='op'>)</span></span>
+<span class='r-in'><span class='op'>}</span></span>
+</pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <nav id="toc" data-toggle="toc" class="sticky-top">

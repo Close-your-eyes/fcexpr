@@ -119,7 +119,7 @@
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/sync_sampledescription.html">sync_sampledescription</a></span><span class="op">(</span>FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, init.columns <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt; [1] "sampledescription.xlsx initiated."</span></code></pre></div>
-<p>All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously. Check the file on your disk.<br><strong>sampledescription:</strong></p>
+<p>All FCS files have been entered as rows. The FileNames are prefixed with a continuous number to make them unique. The identity column is necessary for the function to identify the FCS unambiguously. Check the sampledescription file on your disk!<br><strong>sampledescription:</strong></p>
 <table class="table">
 <colgroup>
 <col width="39%">
@@ -172,7 +172,7 @@
 </tr>
 </tbody>
 </table>
-<p>Also the actual FCS files have a prefix now. <strong>The names of the FCS files and the entries in the sampledescription have been synchronized.</strong></p>
+<p>Also, FCS files have been renamed with a prefix. <strong>The names of the FCS files and the entries in the sampledescription have been synchronized.</strong></p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span>, <span class="st">"Part_1"</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span>
 <span class="co">#&gt; [1] "0001_-_Specimen_001_Tube_001_001.fcs"</span>
@@ -184,7 +184,7 @@
 <div id="add-meta-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#add-meta-data" class="anchor"></a>Add meta data</h2>
-<p>Additional columns with meta data can be added. <strong>These columns serve to document the content of FCS files and one can use them group the data when plotting.</strong></p>
+<p>Additional columns with meta data may be added. <strong>These columns serve to document the content of FCS files. Simultaneously, one can use them to group or arrange data when plotting.</strong></p>
 <p><strong>sampledescription:</strong></p>
 <table class="table">
 <colgroup>
@@ -373,7 +373,7 @@
 <span class="co">#&gt;            FileName                     PreviousFileName</span>
 <span class="co">#&gt; 1 0002_-_File_2.fcs 0002_-_Specimen_001_Tube_002_002.fcs</span>
 <span class="co">#&gt; 2 0005_-_File_5.fcs 0005_-_Specimen_001_Tube_005_005.fcs</span></code></pre></div>
-<p>The prefixed continuous number is added automatically as well as the .fcs-suffix.<br><strong>sampledescription:</strong></p>
+<p>The prefixed continuous number and the .fcs-suffix are obligatory and are added automatically. <strong>sampledescription:</strong></p>
 <table class="table">
 <colgroup>
 <col width="29%">

@@ -50,13 +50,13 @@ position of gates.
 **So, I want to make a plea for workflow (ii) and provide tools to
 easily accomplish it.**
 
-The suggested concept of the fcexpr-package is actually not a major
-deal. It is 100 % derived though from a user-perspective and may exactly
-suit what you need to organize your flow experiments in a consistent
-way. It will make it convenient to create a merged data frame of
-statistics directly from the flowjo workspace and meta data describing
-what the fcs files represent. Such data frame may then be subject to
-common procedures of tidying and plotting data with tools from the
+The suggested concept of the fcexpr-package is 100 % derived from a
+flow-user perspective and may exactly suit what you need to organize
+your flow experiments in a consistent way. It will make it convenient to
+create a merged data frame of statistics directly from the flowjo
+workspace and meta data describing what the fcs files represent. Such
+data frame may then be subject to common procedures of tidying and
+plotting data with tools from the
 [tidyverse](https://www.tidyverse.org).
 
 **In comparison to other packages, values from flowjo workspaces can be

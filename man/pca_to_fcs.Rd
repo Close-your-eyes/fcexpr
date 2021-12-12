@@ -50,3 +50,8 @@ list of pca-object and appended flowFrame which is also saved as fcs file
 A PCA is calculated on selected events and selected channels with stats::prcomp.
 Resulting PCs are added as channels to a newly generated FCS file.
 }
+\examples{
+\dontrun{
+pf <- pca_to_fcs(file_path = "mypath/file.fcs")
+}
+}

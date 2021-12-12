@@ -53,3 +53,8 @@ a list of flowframes
 \description{
 Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces
 }
+\examples{
+\dontrun{
+ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+}
+}

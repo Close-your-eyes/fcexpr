@@ -22,6 +22,9 @@
 #' @export
 #'
 #' @examples
+#'\dontrun{
+#' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+#'}
 wsp_get_ff <- function(wsp,
                        FCS.file.folder = NULL,
                        groups = NULL,

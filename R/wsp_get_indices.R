@@ -11,7 +11,7 @@
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-#' if not provided fcs file paths are derived individually from the wsp (xml)
+#' if not provided (NULL) fcs file paths are derived individually from wsps (xml)
 #' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 #' if NULL samples from all groups are read
 #' @param invert_groups logical whether to invert group selection
@@ -25,6 +25,9 @@
 #' @export
 #'
 #' @examples
+#'\dontrun{
+#' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+#'}
 wsp_get_indices <- function(wsp,
                             FCS.file.folder = NULL,
                             groups = NULL,
