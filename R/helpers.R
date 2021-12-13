@@ -123,10 +123,8 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
     y <- do.call(rbind, lapply(unique(y$sampleID), function(zz) {
       if (length(y[which(y$sampleID== zz),"group"]) > 1) {
         y[intersect(which(y$sampleID == zz), which(y$group != "All Samples")), ]
-      } else if (y[which(y$sampleID == zz),"group"] == "All Samples") {
-        y[which(y$sampleID == zz), ]
       } else {
-        stop("group error occured.")
+        y[which(y$sampleID == zz), ]
       }
     }))
     # remove other duplicates (multiple groups)
