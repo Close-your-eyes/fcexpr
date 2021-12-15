@@ -28,7 +28,7 @@
 #'    xlab(gg[1,"x.lab"]) +
 #'    ylab(gg[1,"y.lab"]) +
 #'    ggcyto_par_set(limits = list(x = c(gg[1,"x.low.lim"], gg[1,"x.up.lim"]), y = c(gg[1,"y.low.lim"], gg[1,"y.up.lim"]))) +
-#'    scale_fill_gradientn(colours = colour.scale.function("spectral"), trans = "pseudo_log") +
+#'    scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
 #'    theme(legend.position = "none", strip.background = element_rect(fill = "white"), text = element_text(family = "Courier"), panel.grid = element_blank(), axis.text = element_blank()) +
 #'    facet_grid(cols = vars(Patient, TCR), rows = vars(stimulus)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
   ## loop through multiple lines of gg for gates
