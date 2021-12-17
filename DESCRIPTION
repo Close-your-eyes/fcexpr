@@ -25,13 +25,13 @@ Imports:
     xml2,
     dplyr,
     stringr,
-    BiocGenerics,
     magrittr,
     fuzzyjoin,
     readODS,
     scales
 Suggests: 
     rmarkdown,
+    BiocGenerics,
     knitr,
     ggplot2,
     tidyverse,
