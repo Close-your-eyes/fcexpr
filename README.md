@@ -11,17 +11,7 @@ R and to overcome a few limitations from FlowJo.
 
 ## Installation
 
-Please install optional packages from bioconductor. Some functions can
-be used without them though.
-
-``` r
-install.packages("BiocManager")
-BiocManager::install("flowCore")
-BiocManager::install("flowWorkspace")
-BiocManager::install("CytoML")
-```
-
-Please install fcexpr from GitHub. This requires devtools.
+Install fcexpr from GitHub. This requires devtools.
 
 ``` r
 install.packages("devtools")
@@ -82,7 +72,16 @@ Alternatively, you may only be interested in obtaining the statistics
 from your flowjo workspace, then use:
 
 ``` r
-fcexpr::wsx_get_popstats(ws = "myfolder/my.wsp")
+# read data from .wsp-file independent of FCS files
+ps <- fcexpr::wsx_get_popstats(ws = "myfolder/my.wsp")
+# get population counts
+ps_counts <- ps[[1]]
+# get statistics, like MFIs
+ps_stats <- ps[[2]]
+# save to excel
+openxlsx::write.xlsx(x = ps_counts, file = "myfolder/my_counts.xlsx")
+# or to an open format
+write.table(x = ps_counts, file = "myfolder/my_counts.tsv", sep = "\t", row.names = F)
 ```
 
 ## Vignettes (tutorials)

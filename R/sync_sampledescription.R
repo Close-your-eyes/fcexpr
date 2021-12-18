@@ -1,20 +1,23 @@
 #' Synchronize a meta data table (sampledescription) with FCS files
 #'
-#' Five cases can be handled: (i) if no xlsx-file named file.name exists
-#' an xlsx-file is initiated based on the FCS files in FCS.file.folder. (ii)
-#' When new FCS files are added to FCS.file.folder and the function is called
-#' they are added in order of acquisition to the xlsx-file. (iii) When file names
-#' in the FileName column of the xlsx-file are altered and the function is called
-#' the FCS files in FCS.file.folder are renamed accordingly. (iv) If FCS files
-#' are to be excluded or removed, the entry in the FileName column has to be left
+#' When running this function the rows in the 'file.name' (e.g. 'sampledescription.xlsx') and FCS files
+#' in the FCS.files.folder are synchronized. When new FCS files are added the sampledescription is appended.
+#' When entries in the FileName column of sampledescription are changed, FCS files are renamed accordingly.
+#' Always, sampledescription is written to the parent folder of FCS.file.folder.
+#' See Details below of the cases that can be handled.
+#'
+#' Five cases can be handled: (i) if no 'file.name'-file exists, one will be initiated based on
+#' FCS files in 'FCS.file.folder'. (ii) When new FCS files are added to 'FCS.file.folder'
+#' these are added in order of acquisition to the 'file.name'-file. (iii) When file names
+#' in the FileName column of the 'file.name'-file are altered, FCS files in FCS.file.folder
+#' are renamed accordingly. (iv) If FCS files are to be excluded or removed, the entry in the FileName column has to be left
 #' blank and the function has to be called. (v) When the order of rows in the xlsx-file
 #' is changed prefixes will be re-numbered.
 #'
-#' The xlsx-file will always be written to the root of the FCS.file.folder.
-#' Preferentially, do not have the xlsx-files open in excel when calling the the function.
-#' Never edit the 'identity' column in the xlsx-file manually.
+#' Preferentially, do not have the file.name'-file open in another program when calling the the function.
+#' Never edit the 'identity' column in the 'file.name'-file manually.
 #' Never mix up rows of FileName and identity.
-#' The identity column contain a concatenated string of the $FIL keyword, the number of events
+#' The identity column contains a concatenated string of the $FIL keyword from FCS files, the number of events ($TOT)
 #' and the acquisition date time of the FCS file.
 #'
 #' @param FCS.file.folder path to the folder which contains FCS files
@@ -23,7 +26,7 @@
 #' @param init.columns additional columns to add to the initial file
 #' @param write.log write a hidden (not hidden on windows) log file every time changes take place
 #'
-#' @return No return value. Instead sampledescription table and FCS files are synced.
+#' @return No return value. Instead sampledescription table and FCS files are synchronized.
 #' @export
 #'
 #' @examples
