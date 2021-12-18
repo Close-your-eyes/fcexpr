@@ -194,7 +194,8 @@ sync_sampledescription <- function(FCS.file.folder,
             sd[, "FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[, "FileName"])), paste0(sd[, "FileName"], ".fcs"), sd[, "FileName"])
             sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
 
-            print(data.frame(FileName = sd[, "FileName"], PreviousFileName = basename(fcs.files)))
+            rows <- which(sd[, "FileName"] != basename(fcs.files))
+            print(data.frame(FileName = sd[rows, "FileName"], PreviousFileName = basename(fcs.files)[rows]))
             if (interactive()) {
                 choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
             } else {
@@ -290,7 +291,7 @@ sync_sampledescription <- function(FCS.file.folder,
     }
 
     if (length(fcs.file.paths) == 0) {
-        stop("No FCS files found or left over after filtering for exclusion folders.")
+        stop("No FCS files found or left after filtering for exclusion folders.")
     }
 
     fcs.files <- sapply(fcs.file.paths, function(x) {
