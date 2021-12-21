@@ -7,6 +7,7 @@
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
 #' @param groups which flowjo groups to include
+#' @param ... arguments passed to wsx_get_groups
 #'
 #' @return data frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
@@ -21,7 +22,10 @@
 #' # import the population counts:
 #' wsx_get_popstats(ws = ws[[1]])
 #' }
-wsx_get_popstats <- function(ws, groups = NULL, return_stats = T) {
+wsx_get_popstats <- function(ws,
+                             groups = NULL,
+                             return_stats = T,
+                             ...) {
 
   ws <- check_ws(ws)
 
@@ -134,7 +138,7 @@ wsx_get_popstats <- function(ws, groups = NULL, return_stats = T) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
   }
   gates_out <- do.call(rbind, gates_list)
-  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, collapse_to = "list"), by = "sampleID")
+  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, ...), by = "sampleID")
   if (!is.null(groups)) {
     gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
     gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
