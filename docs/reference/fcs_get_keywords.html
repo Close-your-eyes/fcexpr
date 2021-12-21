@@ -74,7 +74,7 @@ Otherwise it only exists in the flowjo workspace. In order to pull out keywords 
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
       </span>
     </div>
 
@@ -155,7 +155,7 @@ Otherwise it only exists in the flowjo workspace. In order to pull out keywords 
 <span class='r-in'><span class='fu'>fcs_get_keywords</span><span class='op'>(</span><span class='va'>x</span><span class='op'>)</span></span>
 <span class='r-in'><span class='op'>}</span><span class='op'>)</span></span>
 <span class='r-in'><span class='co'># convert the lists of data frames to one wide data frame</span></span>
-<span class='r-in'><span class='va'>keys</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/tidyr/man/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/do.call.html'>do.call</a></span><span class='op'>(</span><span class='va'>rbind</span>, <span class='va'>keys</span><span class='op'>)</span>, names_from <span class='op'>=</span> <span class='va'>keyword</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span></span>
+<span class='r-in'><span class='va'>keys</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://tidyr.tidyverse.org/reference/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/do.call.html'>do.call</a></span><span class='op'>(</span><span class='va'>rbind</span>, <span class='va'>keys</span><span class='op'>)</span>, names_from <span class='op'>=</span> <span class='va'>keyword</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span></span>
 <span class='r-in'><span class='op'>}</span></span>
 </pre>
   </div>

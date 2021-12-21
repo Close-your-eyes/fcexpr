@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
       </span>
     </div>
 
@@ -83,16 +83,10 @@
 <div id="installation" class="section level2">
 <h2 class="hasAnchor">
 <a href="#installation" class="anchor"></a>Installation</h2>
-<p>Please install optional packages from bioconductor. Some functions can be used without them though.</p>
+<p>Install fcexpr from GitHub. This requires devtools.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowCore"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowWorkspace"</span><span class="op">)</span>
-<span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"CytoML"</span><span class="op">)</span></code></pre></div>
-<p>Please install fcexpr from GitHub. This requires devtools.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="the-idea" class="section level2">
 <h2 class="hasAnchor">
@@ -113,12 +107,21 @@
 <h2 class="hasAnchor">
 <a href="#how-to-start" class="anchor"></a>How to start</h2>
 <p>You may adopt the whole concept of organizing flow cytometric experiments by creating a default folder as follows.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my_path"</span>, name <span class="op">=</span> <span class="st">"my_folder_name"</span><span class="op">)</span></code></pre></div>
 <p>Then copy your fcs files to the FCS_files folder and see the vignette below of how to set up a meta data table (sampledescription).</p>
 <p>Alternatively, you may only be interested in obtaining the statistics from your flowjo workspace, then use:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="st">"myfolder/my.wsp"</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># read data from .wsp-file independent of FCS files</span>
+<span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="st">"myfolder/my.wsp"</span><span class="op">)</span>
+<span class="co"># get population counts</span>
+<span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span>
+<span class="co"># get statistics, like MFIs</span>
+<span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>
+<span class="co"># save to excel</span>
+<span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.xlsx"</span><span class="op">)</span>
+<span class="co"># or to an open format</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/write.table.html">write.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.tsv"</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></code></pre></div>
 </div>
 <div id="vignettes-tutorials" class="section level2">
 <h2 class="hasAnchor">

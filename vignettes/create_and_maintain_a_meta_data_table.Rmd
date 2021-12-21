@@ -184,6 +184,27 @@ knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
 
 By default a log file is written (write.log = T) which documents all changes to sampledescription. On Mac/linux it is hidden, on Windows it is not.
 
+## Others
+
+Add the sub-folders which FCS files are in to sampledescription:
+```{r}
+sd <- openxlsx::read.xlsx(xlsxFile = file.path(wd, "sampledescription.xlsx"))
+files <- list.files(file.path(wd, "FCS_files"), pattern = "\\.fcs", recursive = T, ignore.case = T)
+files_table <- data.frame(FileName = basename(files), Folder = dirname(files))
+sd <- dplyr::left_join(sd, files_table)
+# then save
+openxlsx::write.xlsx(sd, file.path(wd, "sampledescription.xlsx"), overwrite = T)
+```
+**sampledescription:**
+```{r, echo=F}
+knitr::kable(openxlsx::read.xlsx(file.path(wd, "sampledescription.xlsx")))
+```
+
+
 ```{r, echo=F}
 unlink(wd, recursive = T)
 ```
+
+
+
+

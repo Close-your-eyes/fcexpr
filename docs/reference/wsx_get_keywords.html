@@ -75,7 +75,7 @@ Also, when you decide to put the same FCS files into another workspace the keywo
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
       </span>
     </div>
 
@@ -159,13 +159,13 @@ Also, when you decide to put the same FCS files into another workspace the keywo
 <span class='r-in'><span class='co'># do not use kk$FileName &lt;- rownames(kk) as rownames have a suffix to make them unique</span></span>
 <span class='r-in'><span class='co'># select keywords and make it a wider data.frame for subsequent joining with the sampledescription</span></span>
 <span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='va'>kk</span><span class='op'>[</span><span class='fu'><a href='https://rdrr.io/r/base/which.html'>which</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>$</span><span class='va'>name</span> <span class='op'><a href='https://rdrr.io/r/base/match.html'>%in%</a></span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='st'>"$CYT"</span>, <span class='st'>"$OP"</span><span class='op'>)</span><span class='op'>)</span>,<span class='op'>]</span></span>
-<span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/tidyr/man/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='va'>kk</span>, names_from <span class='op'>=</span> <span class='va'>name</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span></span>
+<span class='r-in'><span class='va'>kk</span> <span class='op'>&lt;-</span> <span class='fu'>tidyr</span><span class='fu'>::</span><span class='fu'><a href='https://tidyr.tidyverse.org/reference/pivot_wider.html'>pivot_wider</a></span><span class='op'>(</span><span class='va'>kk</span>, names_from <span class='op'>=</span> <span class='va'>name</span>, values_from <span class='op'>=</span> <span class='va'>value</span><span class='op'>)</span></span>
 <span class='r-in'><span class='co'># make valid column names (general)</span></span>
 <span class='r-in'><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/make.names.html'>make.names</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span></span>
 <span class='r-in'><span class='co'># or in this special case</span></span>
 <span class='r-in'><span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span> <span class='op'>&lt;-</span> <span class='fu'><a href='https://rdrr.io/r/base/grep.html'>gsub</a></span><span class='op'>(</span><span class='st'>"\\$"</span>, <span class='st'>""</span>, <span class='fu'><a href='https://rdrr.io/r/base/names.html'>names</a></span><span class='op'>(</span><span class='va'>kk</span><span class='op'>)</span><span class='op'>)</span></span>
 <span class='r-in'><span class='co'># sd is your sampledescription</span></span>
-<span class='r-in'><span class='va'>sd</span> <span class='op'>&lt;-</span> <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://rdrr.io/pkg/dplyr/man/mutate-joins.html'>left_join</a></span><span class='op'>(</span><span class='va'>sd</span>, <span class='va'>kk</span>, by <span class='op'>=</span> <span class='st'>"FileName"</span><span class='op'>)</span></span>
+<span class='r-in'><span class='va'>sd</span> <span class='op'>&lt;-</span> <span class='fu'>dplyr</span><span class='fu'>::</span><span class='fu'><a href='https://dplyr.tidyverse.org/reference/mutate-joins.html'>left_join</a></span><span class='op'>(</span><span class='va'>sd</span>, <span class='va'>kk</span>, by <span class='op'>=</span> <span class='st'>"FileName"</span><span class='op'>)</span></span>
 <span class='r-in'><span class='op'>}</span></span>
 </pre>
   </div>

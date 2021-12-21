@@ -31,7 +31,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9910</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
       </span>
     </div>
 
@@ -90,7 +90,7 @@
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span>
 <span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/BiocManager/man/install.html">install</a></span><span class="op">(</span><span class="st">"flowCore"</span><span class="op">)</span>
 <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
 <p>In order to plot data from a flowjo workspace (event counts or MFIs) meta data about the FCS files have to be provided. To avoid that respective tables are created individually (~with different formats) for every single experiment the sync_sampledescription function may be used. The respective table containing meta data will be referred to as ‘sampledescription’.</p>
 <div id="please-follow-the-steps-of-the-vignette-with-arbitrary-data-fcs-files-of-your-own-and-observe-what-happens-on-your-disk-" class="section level3">
@@ -572,17 +572,13 @@
 </table>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/sync_sampledescription.html">sync_sampledescription</a></span><span class="op">(</span>FCS.file.folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, write.log <span class="op">=</span> <span class="cn">F</span><span class="op">)</span>
-<span class="co">#&gt;                                FileName                     PreviousFileName</span>
-<span class="co">#&gt; 1  0001_-_Specimen_001_Tube_001_001.fcs 0001_-_Specimen_001_Tube_001_001.fcs</span>
-<span class="co">#&gt; 2                     0002_-_File_2.fcs                    0002_-_File_2.fcs</span>
-<span class="co">#&gt; 3  0003_-_Specimen_001_Tube_009_009.fcs 0009_-_Specimen_001_Tube_009_009.fcs</span>
-<span class="co">#&gt; 4  0004_-_Specimen_001_Tube_010_010.fcs 0010_-_Specimen_001_Tube_010_010.fcs</span>
-<span class="co">#&gt; 5                     0005_-_File_5.fcs                    0005_-_File_5.fcs</span>
-<span class="co">#&gt; 6  0006_-_Specimen_001_Tube_006_006.fcs 0006_-_Specimen_001_Tube_006_006.fcs</span>
-<span class="co">#&gt; 7  0007_-_Specimen_001_Tube_003_003.fcs 0003_-_Specimen_001_Tube_003_003.fcs</span>
-<span class="co">#&gt; 8  0008_-_Specimen_001_Tube_004_004.fcs 0004_-_Specimen_001_Tube_004_004.fcs</span>
-<span class="co">#&gt; 9  0009_-_Specimen_001_Tube_007_007.fcs 0007_-_Specimen_001_Tube_007_007.fcs</span>
-<span class="co">#&gt; 10 0010_-_Specimen_001_Tube_008_008.fcs 0008_-_Specimen_001_Tube_008_008.fcs</span></code></pre></div>
+<span class="co">#&gt;                               FileName                     PreviousFileName</span>
+<span class="co">#&gt; 1 0003_-_Specimen_001_Tube_009_009.fcs 0009_-_Specimen_001_Tube_009_009.fcs</span>
+<span class="co">#&gt; 2 0004_-_Specimen_001_Tube_010_010.fcs 0010_-_Specimen_001_Tube_010_010.fcs</span>
+<span class="co">#&gt; 3 0007_-_Specimen_001_Tube_003_003.fcs 0003_-_Specimen_001_Tube_003_003.fcs</span>
+<span class="co">#&gt; 4 0008_-_Specimen_001_Tube_004_004.fcs 0004_-_Specimen_001_Tube_004_004.fcs</span>
+<span class="co">#&gt; 5 0009_-_Specimen_001_Tube_007_007.fcs 0007_-_Specimen_001_Tube_007_007.fcs</span>
+<span class="co">#&gt; 6 0010_-_Specimen_001_Tube_008_008.fcs 0008_-_Specimen_001_Tube_008_008.fcs</span></code></pre></div>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span>, <span class="st">"Part_1"</span><span class="op">)</span><span class="op">)</span>
 <span class="co">#&gt;  [1] "0001_-_Specimen_001_Tube_001_001.fcs"</span>
@@ -1011,6 +1007,152 @@
 <h2 class="hasAnchor">
 <a href="#the-log-file" class="anchor"></a>The log file</h2>
 <p>By default a log file is written (write.log = T) which documents all changes to sampledescription. On Mac/linux it is hidden, on Windows it is not.</p>
+</div>
+<div id="others" class="section level2">
+<h2 class="hasAnchor">
+<a href="#others" class="anchor"></a>Others</h2>
+<p>Add the sub-folders which FCS files are in to sampledescription:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/read.xlsx.html">read.xlsx</a></span><span class="op">(</span>xlsxFile <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span><span class="op">)</span>
+<span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html">list.files</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"FCS_files"</span><span class="op">)</span>, pattern <span class="op">=</span> <span class="st">"\\.fcs"</span>, recursive <span class="op">=</span> <span class="cn">T</span>, ignore.case <span class="op">=</span> <span class="cn">T</span><span class="op">)</span>
+<span class="va">files_table</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html">data.frame</a></span><span class="op">(</span>FileName <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html">basename</a></span><span class="op">(</span><span class="va">files</span><span class="op">)</span>, Folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/basename.html">dirname</a></span><span class="op">(</span><span class="va">files</span><span class="op">)</span><span class="op">)</span>
+<span class="va">sd</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">sd</span>, <span class="va">files_table</span><span class="op">)</span>
+<span class="co">#&gt; Joining, by = "FileName"</span>
+<span class="co"># then save</span>
+<span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">sd</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html">file.path</a></span><span class="op">(</span><span class="va">wd</span>, <span class="st">"sampledescription.xlsx"</span><span class="op">)</span>, overwrite <span class="op">=</span> <span class="cn">T</span><span class="op">)</span></code></pre></div>
+<p><strong>sampledescription:</strong></p>
+<table class="table">
+<colgroup>
+<col width="28%">
+<col width="42%">
+<col width="8%">
+<col width="6%">
+<col width="9%">
+<col width="5%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">FileName</th>
+<th align="left">identity</th>
+<th align="left">Patient_ID</th>
+<th align="left">Staining</th>
+<th align="left">Patient_sex</th>
+<th align="left">Folder</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">0001_-_Specimen_001_Tube_001_001.fcs</td>
+<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.06-18.30.04</td>
+<td align="left">1</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="even">
+<td align="left">0002_-_File_2.fcs</td>
+<td align="left">Specimen_001_Tube_002_002.fcs_-<em>1</em>-_2021.02.06-18.31.33</td>
+<td align="left">1</td>
+<td align="left">full</td>
+<td align="left">M</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="odd">
+<td align="left">0003_-_Specimen_001_Tube_009_009.fcs</td>
+<td align="left">Specimen_001_Tube_009_009.fcs_-<em>1</em>-_2021.02.06-18.38.51</td>
+<td align="left">5</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="even">
+<td align="left">0004_-_Specimen_001_Tube_010_010.fcs</td>
+<td align="left">Specimen_001_Tube_010_010.fcs_-<em>1</em>-_2021.02.06-18.39.39</td>
+<td align="left">5</td>
+<td align="left">full</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="odd">
+<td align="left">0005_-_File_5.fcs</td>
+<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.06-18.34.49</td>
+<td align="left">3</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="even">
+<td align="left">0006_-_Specimen_001_Tube_006_006.fcs</td>
+<td align="left">Specimen_001_Tube_006_006.fcs_-<em>1</em>-_2021.02.06-18.35.39</td>
+<td align="left">3</td>
+<td align="left">full</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="odd">
+<td align="left">0007_-_Specimen_001_Tube_003_003.fcs</td>
+<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.06-18.33.06</td>
+<td align="left">2</td>
+<td align="left">FMO</td>
+<td align="left">M</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="even">
+<td align="left">0008_-_Specimen_001_Tube_004_004.fcs</td>
+<td align="left">Specimen_001_Tube_004_004.fcs_-<em>1</em>-_2021.02.06-18.34.01</td>
+<td align="left">2</td>
+<td align="left">full</td>
+<td align="left">M</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="odd">
+<td align="left">0009_-_Specimen_001_Tube_007_007.fcs</td>
+<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.06-18.36.52</td>
+<td align="left">4</td>
+<td align="left">FMO</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="even">
+<td align="left">0010_-_Specimen_001_Tube_008_008.fcs</td>
+<td align="left">Specimen_001_Tube_008_008.fcs_-<em>1</em>-_2021.02.06-18.38.03</td>
+<td align="left">4</td>
+<td align="left">full</td>
+<td align="left">F</td>
+<td align="left">Part_1</td>
+</tr>
+<tr class="odd">
+<td align="left">0011_-_Specimen_001_Tube_001_001.fcs</td>
+<td align="left">Specimen_001_Tube_001_001.fcs_-<em>1</em>-_2021.02.13-10.52.35</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">Part_2</td>
+</tr>
+<tr class="even">
+<td align="left">0012_-_Specimen_001_Tube_003_003.fcs</td>
+<td align="left">Specimen_001_Tube_003_003.fcs_-<em>1</em>-_2021.02.13-10.55.58</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">Part_2</td>
+</tr>
+<tr class="odd">
+<td align="left">0013_-_Specimen_001_Tube_005_005.fcs</td>
+<td align="left">Specimen_001_Tube_005_005.fcs_-<em>1</em>-_2021.02.13-10.58.34</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">Part_2</td>
+</tr>
+<tr class="even">
+<td align="left">0014_-_Specimen_001_Tube_007_007.fcs</td>
+<td align="left">Specimen_001_Tube_007_007.fcs_-<em>1</em>-_2021.02.13-11.00.06</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left">Part_2</td>
+</tr>
+</tbody>
+</table>
 </div>
   </div>
 
