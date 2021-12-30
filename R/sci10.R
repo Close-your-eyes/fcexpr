@@ -21,9 +21,7 @@ sci10 <- function(x) {
       }
       if (y >= 100) {
         return(gsub("1e\\+", "10^", scales::scientific_format()(y)))
-      } else if (y == 0) {
-        return(0)
-      } else if (y < 1) {
+      } else if (y < 1 && y != 0) {
         return(gsub("1e", "10^", scales::scientific_format()(y)))
       } else {
         return(y)
@@ -36,9 +34,7 @@ sci10 <- function(x) {
       }
       if (y >= 100) {
         return(gsub("e\\+", "%*%10^", scales::scientific_format()(y)))
-      } else if (y == 0) {
-        return(0)
-      } else if (y < 1) {
+      } else if (y < 1 && y != 0) {
         return(gsub("e", "%*%10^", scales::scientific_format()(y)))
       } else {
         return(y)
