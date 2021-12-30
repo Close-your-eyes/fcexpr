@@ -15,11 +15,35 @@
 #' # or pass to ggplot2::scale_y_log10(label = sci10)
 sci10 <- function(x) {
   if (all(substr(formatC(x[which(!is.na(x))], format = "e"),1,1) == "1")) {
-    x[which(x>=100)] <- gsub("1e\\+", "10^", scales::scientific_format()(x[which(x>=100)]))
-    x[which(x<1)] <- gsub("1e", "10^", scales::scientific_format()(x[which(x<1)]))
+    sapply(x, function(y) {
+      if (y>=100) {
+        gsub("1e\\+", "10^", scales::scientific_format()(y))
+      } else if (y<1) {
+        gsub("1e", "10^", scales::scientific_format()(y))
+      } else {
+        y
+      }
+    })
   } else if (any(substr(as.character(x[which(!is.na(x))]),1,1) != "1")) {
-    x[which(x>=100)] <- gsub("e\\+", "%*%10^", scales::scientific_format()(x[which(x>=100)]))
-    x[which(x<1)] <- gsub("e", "%*%10^", scales::scientific_format()(x[which(x<1)]))
+    sapply(x, function(y) {
+      if (y>=100) {
+        gsub("e\\+", "%*%10^", scales::scientific_format()(y))
+      } else if (y<1) {
+        gsub("e", "%*%10^", scales::scientific_format()(y))
+      } else {
+        y
+      }
+    })
   }
   parse(text = x)
 }
+
+
+
+
+
+
+
+
+
+
