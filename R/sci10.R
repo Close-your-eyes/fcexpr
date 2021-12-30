@@ -14,27 +14,31 @@
 #' sci10(c(NA,1,10,30))
 #' # or pass to ggplot2::scale_y_log10(label = sci10)
 sci10 <- function(x) {
-  if (all(substr(formatC(x[which(!is.na(x))], format = "e"),1,1) == "1")) {
+  if (!any(substr(formatC(x[which(!is.na(x))], format = "e"),1,1) %in% c("0", "1"))) {
     x <- sapply(x, function(y) {
       if (is.na(y)) {
         return(NA)
       }
-      if (y>=100) {
+      if (y >= 100) {
         return(gsub("1e\\+", "10^", scales::scientific_format()(y)))
-      } else if (y<1) {
+      } else if (y == 0) {
+        return(0)
+      } else if (y < 1) {
         return(gsub("1e", "10^", scales::scientific_format()(y)))
       } else {
         return(y)
       }
     })
-  } else if (any(substr(formatC(x[which(!is.na(x))], format = "e"),1,1) != "1")) {
+  } else {
     x <- sapply(x, function(y) {
       if (is.na(y)) {
         return(NA)
       }
-      if (y>=100) {
+      if (y >= 100) {
         return(gsub("e\\+", "%*%10^", scales::scientific_format()(y)))
-      } else if (y<1) {
+      } else if (y == 0) {
+        return(0)
+      } else if (y < 1) {
         return(gsub("e", "%*%10^", scales::scientific_format()(y)))
       } else {
         return(y)
@@ -43,9 +47,6 @@ sci10 <- function(x) {
   }
   parse(text = x)
 }
-
-
-
 
 
 
