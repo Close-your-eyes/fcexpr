@@ -38,7 +38,9 @@ inds_get_ff <- function(ind_mat,
                         get_ff2,
                         downsample = downsample,
                         population = population,
-                        inverse_transform = inverse_transform)
+                        inverse_transform = inverse_transform,
+                        alias_attr_name = alias_attr_name,
+                        path_attr_name = path_attr_name)
 
   ind_mat <- ind_mat[which(!sapply(ff.list, is.null))]
   ff.list <- ff.list[which(!sapply(ff.list, is.null))]

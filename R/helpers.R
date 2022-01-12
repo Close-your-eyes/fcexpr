@@ -259,7 +259,7 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
 }
 
 
-get_ff2 <- function(x, downsample, population = population, inverse_transform) {
+get_ff2 <- function(x, downsample, population = population, inverse_transform, alias_attr_name, path_attr_name) {
 
   if (!path_attr_name %in% names(attributes(x))) {
     print(paste0(path_attr_name, " not found in attributes."))
