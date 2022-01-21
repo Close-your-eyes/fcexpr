@@ -310,6 +310,7 @@ get_gs <- function(x, remove_redundant_channels) {
                                     name = unique(x$group),
                                     path = unique(x$FCS.file.folder),
                                     subset = `$FIL` == x$FIL && `$BEGINDATA` == x$BEGINDATA && `$TOT` == x$TOT,
+                                    #`$FIL` == x$FIL[1:10] && `$BEGINDATA` == x$BEGINDATA[1:10] && `$TOT` == x$TOT[1:10]
                                     truncate_max_range = F,
                                     keywords = c("$FIL", "$BEGINDATA", "$TOT"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))

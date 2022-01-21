@@ -267,7 +267,7 @@ sync_sampledescription <- function(FCS.file.folder,
     }, error = function(e) {
       new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
       print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-      utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep)
+      utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, na = "")
     })
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
