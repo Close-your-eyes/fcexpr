@@ -260,6 +260,9 @@ sync_sampledescription <- function(FCS.file.folder,
       print(paste0("Is ", file.name, " still open in Excel? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
       openxlsx::write.xlsx(named.sheet.list, file = new, firstRow = T, colWidths = "auto")
     })
+
+    ## to do: read the file again and check if it is equal to named.sheet.list; if not: send warning and ask to close excel.
+
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
     tryCatch({
