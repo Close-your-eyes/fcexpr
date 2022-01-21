@@ -263,7 +263,7 @@ sync_sampledescription <- function(FCS.file.folder,
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
     tryCatch({
-      utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F)
+      utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
     }, error = function(e) {
       new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
       print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
@@ -330,7 +330,8 @@ sync_sampledescription <- function(FCS.file.folder,
     sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
-    sd <- as.data.frame(utils::read.table(file = file.path(wd, file.name), header = T, sep = file.sep))
+    sd <- as.data.frame(utils::read.table(file = file.path(wd, file.name), header = T, sep = file.sep, check.names = F))
+    sd[is.na(sd)] <- ""
     if (ncol(sd) == 1) {
       stop("sampledescription has only one column. Did you provide the wrong seperator (file.sep)?")
     }
