@@ -252,6 +252,7 @@ sync_sampledescription <- function(FCS.file.folder,
 }
 
 .write.sd <- function(named.sheet.list, wd, file.name, file.sep) {
+  ## make repetitive elements more compact
   if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
     tryCatch({
       openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
@@ -261,7 +262,19 @@ sync_sampledescription <- function(FCS.file.folder,
       openxlsx::write.xlsx(named.sheet.list, file = new, firstRow = T, colWidths = "auto")
     })
 
-    ## to do: read the file again and check if it is equal to named.sheet.list; if not: send warning and ask to close excel.
+    ## read the putative updated file and check if FileNames are updated
+    if (!identical(named.sheet.list[[1]][,"FileName",drop=T],openxlsx::read.xlsx(xlsxFile = file.path(wd, file.name))[,"FileName",drop=T])) {
+      choice <- utils::menu(c("Yes", "No"), title = paste0("FileNames in sampledescription seem to not have changed. Is the file still opened? If so, close it and give saving an updated version another try (1) or not (2)?"))
+    }
+    if (choice == 1) {
+      tryCatch({
+        openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
+      }, error = function(e) {
+        new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
+        print(paste0("Is ", file.name, " still open in Excel? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
+        openxlsx::write.xlsx(named.sheet.list, file = new, firstRow = T, colWidths = "auto")
+      })
+    }
 
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
@@ -270,8 +283,24 @@ sync_sampledescription <- function(FCS.file.folder,
     }, error = function(e) {
       new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
       print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-      utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, na = "")
+      utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, row.names = F, na = "")
     })
+
+    ## read the putative updated file and check if FileNames are updated
+    if (!identical(named.sheet.list[[1]][,"FileName",drop=T],utils::read.table(file = file.path(wd, file.name), header = T, sep = file.sep, check.names = F)[,"FileName",drop=T])) {
+      choice <- utils::menu(c("Yes", "No"), title = paste0("FileNames in sampledescription seem to not have changed. Is the file still opened? If so, close it and give saving an updated version another try (1) or not (2)?"))
+    }
+    if (choice == 1) {
+      tryCatch({
+        utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
+      }, error = function(e) {
+        new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
+        print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
+        utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, row.names = F, na = "")
+      })
+    }
+
+
   }
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
     #to do
