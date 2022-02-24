@@ -406,7 +406,31 @@ sync_sampledescription <- function(FCS.file.folder,
     stop("No FCS files found or left after filtering for exclusion folders.")
   }
 
-  fcs.files <- sapply(fcs.file.paths, function(x) {
+
+  out <- flowCore::read.FCSheader(fcs.file.paths)
+  dd <- sapply(out, "[", "$DATE")
+  tt <- sapply(out, "[", "$BTIM")
+  et <- sapply(out, "[", "$ETIM")
+  if (any(nchar(tt) - nchar(gsub(":", "", tt)) > 2)) {
+    tt_fix_ind <- which(nchar(tt) - nchar(gsub(":", "", tt)) > 2)
+    tt[tt_fix_ind] <- paste(rev(rev(strsplit(tt[tt_fix_ind], ":")[[1]])[-1]), collapse = ":")
+  }
+  datetime <- paste0(dd, "-", tt)
+  # if analysis starts at 23:5x and ends at 00:xx then date of the next day is assigned - this is problematic though for ordering of samples and has
+  # to be corrected; subtract the number of seconds of one day (86400) to get the correct date for ordering samples
+  sub <- ifelse(grepl("^2[[:digit:]]", tt) && grepl("^0[[:digit:]]", et), 86400, 0)
+  datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
+                                                                     "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
+
+  if (any(is.na(datetime))) {
+    print(paste0("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer."))
+  }
+  fcs.files <- stats::setNames(paste0(sapply(out, "[", "$FIL"), "_-_", trimws(sapply(out, "[", "$TOT")), "_-_", datetime), nm = fcs.file.paths)
+
+
+
+'  fcs.files <- sapply(fcs.file.paths, function(x) {
+    # read FCS header! make vectorized
     ff <- flowCore::read.FCS(x, which.lines = 1, emptyValue = F, truncate_max_range = F)
     dd <- flowCore::keyword(ff)[["$DATE"]]
     tt <- flowCore::keyword(ff)[["$BTIM"]]
@@ -428,7 +452,7 @@ sync_sampledescription <- function(FCS.file.folder,
     }
     identity <- paste0(flowCore::keyword(ff)[["$FIL"]], "_-_", trimws(flowCore::keyword(ff)[["$TOT"]]), "_-_", datetime)
     return(identity)
-  })
+  })'
 
   if (length(unique(fcs.files)) != length(fcs.files)) {
     stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs.files[duplicated(fcs.files) |
