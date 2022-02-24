@@ -221,14 +221,13 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
     path <- x$FCS.file.folder
   }
 
-
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,
-                                    subset = `$FIL` == x$FIL && `$BEGINDATA` == x$BEGINDATA && `$TOT` == x$TOT,
+                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, #&& `$TOT` == x$TOT, #&& `$BEGINDATA` == x$BEGINDATA
                                     truncate_max_range = F,
-                                    keywords = c("$FIL", "$BEGINDATA", "$TOT"),
-                                    additional.keys = c("$TOT", "$BEGINDATA"))
+                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"), # , "$BEGINDATA"
+                                    additional.keys = c("$TOT", "$BEGINDATA")) # "$BEGINDATA"
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
@@ -248,7 +247,6 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
     which(inds)
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
-
 
   for (i in seq_along(ex)) {
     ex[[i]] <- subset(ex[[i]], inds)
@@ -323,4 +321,66 @@ get_gs <- function(x, remove_redundant_channels) {
   }
 
   return(gs)
+}
+
+.get.channels <- function(ff,
+                          timeChannel = NULL,
+                          channels = NULL,
+                          return = c("names", "inds")) {
+  return <- match.arg(return, c("names", "inds"))
+  if (!is.null(timeChannel)) {
+    if (!timeChannel %in% colnames(flowCore::exprs(ff))) {
+      stop("timeChannel not found in exprs of flowFrame.")
+    }
+  } else {
+    timeChannel <- flowCore:::findTimeChannel(ff)
+    print(paste0("time channel detected: ", timeChannel))
+  }
+
+  if (is.null(channels)) {
+    channels <- colnames(flowCore::exprs(ff))
+    channels <- channels[which(channels != timeChannel)]
+  } else {
+
+    channels <- trimws(channels)
+    inds <- unique(c(which(flowCore::pData(flowCore::parameters(ff))$name %in% channels),
+                     which(flowCore::pData(flowCore::parameters(ff))$desc %in% channels)))
+    notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
+                                   which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
+    if (length(notfound) > 0) {
+      print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
+    }
+    channels <- stats::setNames(names(channels), channels)
+    channels <- channels[flowCore::pData(flowCore::parameters(ff))$name[inds]]
+    channels <- stats::setNames(names(channels), channels)
+    browser()
+    names(channels[which(is.na(names(channels)))]) <-
+    channels <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name[inds], nm = flowCore::pData(flowCore::parameters(ff))$desc[inds])
+  }
+  if (length(channels) == 0) {
+    stop("no channels matched to those in the flowFrame.")
+  }
+  if (return == "inds") {
+    return(inds)
+  }
+  if (return == "names") {
+    return(channels)
+  }
+}
+
+.check.ff.list <- function(ff.list) {
+
+  sapply(ff.list, function (ff) {
+    if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
+      print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
+      stop("Not all channels of flowFrames have the same name. Please fix.")
+    }
+  })
+
+  sapply(ff.list, function (ff) {
+    if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
+      print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
+      stop("Not all channel descriptions of flowFrames are equal. Please fix.")
+    }
+  })
 }

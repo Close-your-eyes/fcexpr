@@ -29,7 +29,7 @@ pca_to_fcs <- function(file_path,
                        channels = NULL,
                        compensate = T,
                        compMat,
-                       timeChannel,
+                       timeChannel = NULL,
                        logicle_trans = T,
                        processed_channels_to_FCS = T,
                        n_pca_dims = NULL,
@@ -54,7 +54,10 @@ pca_to_fcs <- function(file_path,
   }
 
   # which.lines slow; filter afterwards?!
-  ff_orig <- flowCore::read.FCS(file_path, which.lines = which_lines, truncate_max_range = F, emptyValue = F)
+  ff_orig <- flowCore::read.FCS(file_path,
+                                which.lines = which_lines,
+                                truncate_max_range = F,
+                                emptyValue = F)
 
   if (compensate) {
     if (missing(compMat)) {
@@ -75,31 +78,9 @@ pca_to_fcs <- function(file_path,
     print("No compensation applied.")
   }
 
-  if(!missing(timeChannel)) {
-    if (!timeChannel %in% colnames(flowCore::exprs(ff))) {
-      stop("timeChannel not found in exprs of flowFrame.")
-    }
-  } else {
-    timeChannel <- flowCore:::findTimeChannel(ff)
-    print(paste0("time channel detected: ", timeChannel))
-  }
-
-  if (is.null(channels)) {
-    channels <- colnames(flowCore::exprs(ff))
-    channels <- channels[which(channels != timeChannel)]
-  } else {
-    inds <- unique(which(flowCore::pData(flowCore::parameters(ff))$name %in% channels),
-                   which(flowCore::pData(flowCore::parameters(ff))$desc %in% channels))
-    notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
-                                   which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
-    if (length(notfound) > 0) {
-      print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
-    }
-    channels <- flowCore::pData(flowCore::parameters(ff))$name[inds]
-  }
-  if (length(channels) == 0) {
-    stop("no channels matched to those in the flowFrame.")
-  }
+  channels <- .get.channels(ff = ff,
+                            timeChannel = timeChannel,
+                            channels = channels)
 
   if (logicle_trans) {
     ff <- lgcl_trsfrm_ff(ff, channels = channels)

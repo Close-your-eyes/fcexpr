@@ -40,5 +40,8 @@ Suggests:
     CytoML,
     flowCore,
     flowWorkspace,
+    Biobase,
+    flowClust,
+    leiden,
     irlba
 VignetteBuilder: knitr

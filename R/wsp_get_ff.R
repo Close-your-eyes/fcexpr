@@ -21,6 +21,8 @@
 #' @return a list of flowframes
 #' @export
 #'
+#' @importFrom magrittr "%>%"
+#'
 #' @examples
 #'\dontrun{
 #' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
@@ -49,7 +51,6 @@ wsp_get_ff <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-
   checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
@@ -70,7 +71,8 @@ wsp_get_ff <- function(wsp,
     wsx_get_poppaths(x, collapse = F)
   }))
   pp <- pp[which(pp$FileName %in% smpl$FileName),]
-  pp <- pp %>%
+  pp <-
+    pp %>%
     dplyr::group_by(PopulationFullPath, Population, ws) %>%
     dplyr::summarise(FileName = list(FileName), .groups = "drop")
   pp <- as.data.frame(pp)
@@ -86,8 +88,7 @@ wsp_get_ff <- function(wsp,
                         inverse_transform = inverse_transform,
                         downsample = downsample,
                         remove_redundant_channels = remove_redundant_channels,
-                        population = population,
-                        ...)
+                        population = population)
 
   ffs <- sapply(ff.list, "[", 1)
   names(ffs) <- smpl$FileName
