@@ -14,6 +14,8 @@
 #' @return
 #' @export
 #'
+#' @importFrom magrittr "%>%"
+#'
 #' @examples
 ab_panel_to_fcs <- function(sampledescription,
                             FileNames,
@@ -73,26 +75,29 @@ ab_panel_to_fcs <- function(sampledescription,
                     c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
   }
 
-  # sd_grouped
+  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = x, recursive = T, full.names = T))
+  sd[,"config"] <- sapply(flowCore::read.FCSheader(fcs.paths), "[", "CYTOMETER CONFIG NAME")
+
+  # sd grouped by sheet and cytometers
   sd <-
     sd %>%
-    dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col)) %>%
+    dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col), config) %>%
     dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
     as.data.frame()
 
   # loop though ab info files
-  for (i in 1:nrow(sd)) {
-    file <- file.path(dirname(FCS.file.folder), protocols.folder, sd[i,AbCalcFile_col])
+  out <- lapply(split(sd, 1:nrow(sd)), function(x) {
+    file <- file.path(dirname(FCS.file.folder), protocols.folder, x[,AbCalcFile_col])
     if (!file.exists(file)) {
       warning(paste0("File '", file, "' not found."))
     } else {
-      if (!sd[i,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
-        warning(paste0("Sheet '", sd[i,AbCalcSheet_col], "' not found in ", file, "."))
+      if (!x[,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
+        warning(paste0("Sheet '", x[,AbCalcSheet_col], "' not found in ", file, "."))
       } else {
-        sh <- openxlsx::read.xlsx(file, sheet = sd[i,AbCalcSheet_col])
+        sh <- openxlsx::read.xlsx(file, sheet = x[,AbCalcSheet_col])
         # check columns
-        if (any(!c("Conjugate", "Antigen") %in% names(sh))) { #Antigen
-          warning(paste0("Conjugate and/or Antigen columns not found in Sheet '", sd[i,AbCalcSheet_col], "' in '", sd[i,AbCalcFile_col], "'."))
+        if (any(!c("Conjugate", "Antigen") %in% names(sh))) {
+          warning(paste0("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'."))
         } else {
           # check other_keywords
           if (length(!other_keywords %in% names(sh)) > 0) {
@@ -103,42 +108,54 @@ ab_panel_to_fcs <- function(sampledescription,
           sh <- sh[which(!is.na(sh[,"Antigen"])),c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker")]
           if (is.na(sh[1,"LiveDeadMarker"])) {
             message("No LiveDeadMarker entered.")
+          } else {
+            ## allow more than one LiveDeadMarker, separated by comma
+            rrr <- nrow(sh)+1
+            for (z in trimws(strsplit(sh[1,"LiveDeadMarker"], ",")[[1]])) {
+              sh[rrr,"Conjugate"] <- z
+              sh[rrr,"Antigen"] <- "LiveDead"
+              rrr <- rrr + 1
+            }
+            sh[1,"LiveDeadMarker"] <- NA
           }
-          sh[,"LiveDeadMarker"] <- sh[1,"LiveDeadMarker"]
           sh <- sh[,colSums(is.na(sh))<nrow(sh)]
           other_keywords <- intersect(other_keywords, names(sh))
-
-
-          if (length(unique(sh[,"Antigen"])) != length(sh[,"Antigen"])) {
-            warning(paste0("Duplicate Antigen found in Ab.calc.sheet (",  sd[i,AbCalcSheet_col], "). ",  "Please check."))
+          # exclude LiveDead from duplicate check as it may be in 2 channels
+          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
+            warning(paste0("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check."))
           } else {
-            ## read FCS here, then call the ccm function (create such function first)
-            for (j in sd[i,"FileNames"][[1]]) {
+            ## read FCS here, then call the ccm function
+            # for loop as sh is modified by the first FCS file
+            for (j in x[,"FileNames"][[1]]) {
               fcs.path <- list.files(FCS.file.folder, pattern = j, recursive = T, full.names = T)
               ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
               channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
               channels.inv <- stats::setNames(names(channels),channels)
 
-              matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm)
-              if (any(duplicated(matches))) {
-                message("At least on channel used by more than one marker.")
+              if (j == x[,"FileNames"][[1]][1]) {
+                matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm)
+                if (any(duplicated(matches))) {
+                  message("At least on channel used by more than one marker.")
+                }
+                sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
+                if (any(is.na(matches))) {
+                  warning(paste0("Conjugates not found in ccm: ", paste(sh[which(is.na(sh[,"channel"])),"Conjugate"], collapse = ",")))
+                  sh <- sh[which(!is.na(sh[,"channel"])),]
+                }
+                sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")
+                # collapse multiple information for same channel
+                collapse.fun <- function(x) paste0(x, collapse = ", ")
+                sh <-
+                  sh %>%
+                  dplyr::group_by(channel) %>%
+                  dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, all_of(other_keywords)), collapse.fun), .groups = "drop")
+                sh <- as.data.frame(sh)
+
+                # same order
+                sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
+                sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
+                print(sh)
               }
-              sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
-
-              # join; create a helper column. not all mistypings will be rescued.
-              sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")
-              # collapse multiple information for same channel
-              collapse.fun <- function(x) paste0(x, collapse = ", ")
-              sh <-
-                sh %>%
-                dplyr::group_by(channel) %>%
-                dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, all_of(other_keywords)), collapse.fun), .groups = "drop")
-              sh <- as.data.frame(sh)
-
-              # same order
-              sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
-              sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
-              print(sh)
 
               if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
                 flowCore::pData(flowCore::parameters(ff))[,"desc"] <- NA
@@ -161,13 +178,13 @@ ab_panel_to_fcs <- function(sampledescription,
               # save fcs file (overwrite original)
               flowCore::write.FCS(ff, fcs.path)
               print(fcs.path)
-
             }
           }
         }
       }
     }
-  }
+    return(NULL)
+  })
 }
 
 
