@@ -1,0 +1,215 @@
+#' Title
+#'
+#' @param sampledescription
+#' @param FileNames
+#' @param FCS.file.folder
+#' @param channel_conjugate_match_file
+#' @param AbCalcFile_col
+#' @param AbCalcSheet_col
+#' @param conjugate_to_desc
+#' @param other_keywords
+#' @param clear_previous
+#' @param protocols.folder
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ab_panel_to_fcs <- function(sampledescription,
+                            FileNames,
+                            FCS.file.folder,
+                            channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr"),
+                            AbCalcFile_col = "AbCalcFile",
+                            AbCalcSheet_col = "AbCalcSheet",
+                            protocols.folder = "Protocols",
+                            conjugate_to_desc = T,
+                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+                            clear_previous = T) {
+
+  # how to handle non-fluorochrome conjugates?
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("CytoML", quietly = T)){
+    BiocManager::install("CytoML")
+  }
+  if (!requireNamespace("flowWorkspace", quietly = T)){
+    BiocManager::install("flowWorkspace")
+  }
+  if (missing(FCS.file.folder)) {
+    stop("FCS.file.folder missing. Please provide.")
+  }
+  if (missing(FileNames)) {
+    stop("FileNames missing. Please provide.")
+  }
+
+  ## check sd for columns
+  sd <- as.data.frame(sampledescription, stringsAsFactors = F)
+  if (!"FileName" %in% names(sd)) {
+    stop("Column 'FileName' has to exist in sampledescription.")
+  }
+  if (!AbCalcFile_col %in% names(sd)) {
+    stop(paste0(AbCalcFile_col, " not found in sampledescription columns."))
+  }
+  if (!AbCalcSheet_col %in% names(sd)) {
+    stop(paste0(AbCalcSheet_col, " not found in sampledescription columns."))
+  }
+
+  ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
+
+  # select cols
+  sd <- sd[which(sd[,"FileName"] %in% FileNames), c("FileName", AbCalcFile_col, AbCalcSheet_col)]
+  if (nrow(sd) == 0) {
+    stop("Non of FileNames found in sampledescription.")
+  }
+
+  # check for empty cells
+  if (length(unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
+                    c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == "")))) > 0) {
+    message(paste0("AbCalcFile_col and/or AbCalcSheet_col empty or missing for: ", paste(sd[unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
+                                                                                                   c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == ""))), "FileName"], collapse = ", ")))
+
+    sd <- sd[unique(c(which(!is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) != "")),
+                    c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
+  }
+
+  # sd_grouped
+  sd <-
+    sd %>%
+    dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col)) %>%
+    dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
+    as.data.frame()
+
+  # loop though ab info files
+  for (i in 1:nrow(sd)) {
+    file <- file.path(dirname(FCS.file.folder), protocols.folder, sd[i,AbCalcFile_col])
+    if (!file.exists(file)) {
+      warning(paste0("File '", file, "' not found."))
+    } else {
+      if (!sd[i,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
+        warning(paste0("Sheet '", sd[i,AbCalcSheet_col], "' not found in ", file, "."))
+      } else {
+        sh <- openxlsx::read.xlsx(file, sheet = sd[i,AbCalcSheet_col])
+        # check columns
+        if (any(!c("Conjugate", "Antigen") %in% names(sh))) { #Antigen
+          warning(paste0("Conjugate and/or Antigen columns not found in Sheet '", sd[i,AbCalcSheet_col], "' in '", sd[i,AbCalcFile_col], "'."))
+        } else {
+          # check other_keywords
+          if (length(!other_keywords %in% names(sh)) > 0) {
+            print(paste0(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files."))
+            other_keywords <- intersect(other_keywords, names(sh))
+          }
+          # check for "channel" in other_keywords
+          sh <- sh[which(!is.na(sh[,"Antigen"])),c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker")]
+          if (is.na(sh[1,"LiveDeadMarker"])) {
+            message("No LiveDeadMarker entered.")
+          }
+          sh[,"LiveDeadMarker"] <- sh[1,"LiveDeadMarker"]
+          sh <- sh[,colSums(is.na(sh))<nrow(sh)]
+          other_keywords <- intersect(other_keywords, names(sh))
+
+
+          if (length(unique(sh[,"Antigen"])) != length(sh[,"Antigen"])) {
+            warning(paste0("Duplicate Antigen found in Ab.calc.sheet (",  sd[i,AbCalcSheet_col], "). ",  "Please check."))
+          } else {
+            ## read FCS here, then call the ccm function (create such function first)
+            for (j in sd[i,"FileNames"][[1]]) {
+              fcs.path <- list.files(FCS.file.folder, pattern = j, recursive = T, full.names = T)
+              ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
+              channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
+              channels.inv <- stats::setNames(names(channels),channels)
+
+              matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm)
+              if (any(duplicated(matches))) {
+                message("At least on channel used by more than one marker.")
+              }
+              sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
+
+              # join; create a helper column. not all mistypings will be rescued.
+              sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")
+              # collapse multiple information for same channel
+              collapse.fun <- function(x) paste0(x, collapse = ", ")
+              sh <-
+                sh %>%
+                dplyr::group_by(channel) %>%
+                dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, all_of(other_keywords)), collapse.fun), .groups = "drop")
+              sh <- as.data.frame(sh)
+
+              # same order
+              sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
+              sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
+              print(sh)
+
+              if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
+                flowCore::pData(flowCore::parameters(ff))[,"desc"] <- NA
+              }
+              if (conjugate_to_desc) {
+                flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen.Conjugate"]
+              } else {
+                flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen"]
+              }
+
+              # other meta data about the antibody used
+              for (m in other_keywords) {
+                for (k in 1:nrow(sh)) {
+                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && sh[k,m] != "") {
+                    flowCore::keyword(ff)[paste0(sh[k,"channel.name"],"_",m)] <- sh[k,m]
+                  }
+                }
+              }
+
+              # save fcs file (overwrite original)
+              flowCore::write.FCS(ff, fcs.path)
+              print(fcs.path)
+
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+
+conjugate_to_channel <- function(conjugates,
+                                 channels,
+                                 channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr")) {
+
+  ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
+  matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
+  matches <- unique(matches[,c("Conjugate","channel")])
+  matches <- stats::setNames(matches[,"channel"], nm = matches[,"Conjugate"])
+  names(matches) <- unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T))
+  matches <- matches[conjugates]
+  return(matches)
+}
+
+.check.and.get.ccm <- function(ccm) {
+
+  if (is.character(ccm)) {
+    if (length(ccm) != 1) {
+      stop("ccm has to be length 1 (only one file path).")
+    }
+    if (!file.exists(ccm)) {
+      stop(paste0(ccm, " not found."))
+    }
+    if ("matches" %in% openxlsx::getSheetNames(ccm)) {
+      ccm <- openxlsx::read.xlsx(ccm, sheet = "matches")
+    } else {
+      ccm <- openxlsx::read.xlsx(ccm)
+    }
+  } else if (is.data.frame(ccm)) {
+    ## tibble or data.frame; is.data.frame(tibble) is TRUE
+    ccm <- as.data.frame(ccm)
+  } else {
+    stop("ccm has to be a file.path or data frame.")
+  }
+
+  if (!all(grepl(c("conjugate|channel|machine"), names(ccm), ignore.case = T))) {
+    stop("Column names of the ccm have to be conjugte, channel, machine.")
+  }
+  for (i in c("Conjugte", "channel", "machine")) {
+    names(ccm)[which(grepl(i, names(ccm), ignore.case = T))] <- i
+  }
+  return(ccm)
+}
