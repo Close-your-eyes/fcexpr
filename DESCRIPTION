@@ -39,5 +39,6 @@ Suggests:
     magick,
     CytoML,
     flowCore,
-    flowWorkspace
+    flowWorkspace,
+    irlba
 VignetteBuilder: knitr

@@ -6,7 +6,7 @@
 #' @param file_path character, path to a fcs file
 #' @param which_lines numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
 #' If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.
-#' @param channels character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3 or CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.
+#' @param channels character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3, CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.
 #' @param compensate logical, should compensation be applied before PC calculation
 #' @param compMat matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.
 #' @param timeChannel character, optional; name of the time channel. If not provided flowCore:::findTimeChannel() is used to derive the time channel.
@@ -45,11 +45,15 @@ pca_to_fcs <- function(file_path,
   if (!requireNamespace("BiocGenerics", quietly = T)){
     BiocManager::install("BiocGenerics")
   }
+  if (!requireNamespace("irlba", quietly = T)){
+    utils::install.packages("irlba")
+  }
 
   if (!file.exists(file_path)) {
     stop(paste0(file_path, " not found."))
   }
 
+  # which.lines slow; filter afterwards?!
   ff_orig <- flowCore::read.FCS(file_path, which.lines = which_lines, truncate_max_range = F, emptyValue = F)
 
   if (compensate) {
@@ -103,7 +107,17 @@ pca_to_fcs <- function(file_path,
   exprs <- flowCore::exprs(ff)
   exprs <- exprs[,which(colnames(exprs) %in% channels)]
 
+  #https://slowkow.com/notes/pca-benchmark/#irlbairlba
+'  mat_irlba2 <- irlba::irlba(
+    A      = t(mat),
+    nv     = n_pcs,
+    center = Matrix::rowMeans(mat),
+    scale  = proxyC::rowSds(mat)
+  )
+  mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
+  '
   pca <- stats::prcomp(exprs, center = T, scale. = T)
+
   if (is.null(n_pca_dims)) {
     n_pca_dims <- ncol(pca[["x"]])
   }

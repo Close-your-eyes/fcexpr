@@ -34,20 +34,33 @@ fcs_get_voltages <- function(file_path) {
         BiocManager::install("flowCore")
     }
 
-    if (!file.exists(file_path)) {
-        stop(paste0(file_path, " not found."))
+    if (!any(file.exists(file_path))) {
+        warning("Not all files found.")
+        file_path <- file_path[which(file.exists(file_path))]
+        if (length(file_path) == 0) {
+            stop("None of files found.")
+        }
     }
 
-    ff <- flowCore::read.FCS(file_path, which.lines = 1, emptyValue = F, truncate_max_range = F)
-    f <- suppressWarnings(utils::stack(flowCore::keyword(ff)[names(flowCore::keyword(ff)) != "SPILL"]))
-    f[, "ind"] <- as.character(f[, "ind"])
-    f <- f[which(grepl("\\$P[[:digit:]]", f[, "ind"]) & !grepl("flowCore", f[, "ind"])), ]
-    f[, "ind"] <- gsub("\\$", "", f[, "ind"])
-    f[, "type"] <- sapply(sapply(strsplit(f[, "ind"], ""), rev), "[", 1)
-    f[, "ind"] <- gsub("[[:alpha:]]$", "", f[, "ind"])
+    ff <- flowCore::read.FCSheader(file_path)
+    names(ff) <- basename(file_path)
+    out <- do.call(rbind, lapply(names(ff), function(x) {
+        y <- ff[[x]]
+        y <- y[which(names(y) != "SPILL")]
+        f <- suppressWarnings(utils::stack(y))
 
-    f <- tidyr::pivot_wider(f, names_from = "type", values_from = "values")
-    f <- f[which(f[, "N"] != "Time"), ]
+        f[, "ind"] <- as.character(f[, "ind"])
+        f <- f[which(grepl("\\$P[[:digit:]]", f[, "ind"]) & !grepl("flowCore", f[, "ind"])), ]
+        f[, "ind"] <- gsub("\\$", "", f[, "ind"])
+        f[, "type"] <- sapply(sapply(strsplit(f[, "ind"], ""), rev), "[", 1)
+        f[, "ind"] <- gsub("[[:alpha:]]$", "", f[, "ind"])
 
-    return(as.data.frame(f))
+        f <- tidyr::pivot_wider(f, names_from = "type", values_from = "values")
+        f <- f[which(f[, "N"] != "Time"), ]
+        f[,"FileName"] <- x
+        f <- f[order(as.numeric(gsub("[^0-9.]", "", f$ind))),]
+        return(f)
+    }))
+
+    return(as.data.frame(out))
 }
