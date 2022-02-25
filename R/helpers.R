@@ -160,8 +160,8 @@ check_in <- function(wsp, samples, groups, FCS.file.folder, inverse_transform) {
   }
   if (!is.null(FCS.file.folder)) {
     if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
-    if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
     if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
+    if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
   }
 
   if (!length(inverse_transform) %in% c(1,2)) {
@@ -268,6 +268,10 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform, a
     return(NULL)
   }
 
+  if (length(population) > 1) {
+    stop("Only provide one population.")
+  }
+
   if (population %in% colnames(x)) {
     inds <- x[,which(colnames(x) == population)]
   } else if (alias_attr_name %in% names(attributes(x)) && all(names(attr(x,alias_attr_name)) == colnames(x)) && population %in% attr(x,alias_attr_name)) {
@@ -289,14 +293,18 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform, a
   # which.lines with which(inds) argument is much slower!
   ff <- subset(flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F), inds)
 
-  if (F %in% inverse_transform) {
+  if (length(inverse_transform) == 2) {
     if (which(inverse_transform) == 1) {
       ff <- list(ff, fcexpr:::lgcl_trsfrm_ff(ff))
     } else {
       ff <- list(fcexpr:::lgcl_trsfrm_ff(ff), ff)
     }
   } else {
-    ff <- fcexpr:::lgcl_trsfrm_ff(ff)
+    if (!inverse_transform) {
+      ff <- list(fcexpr:::lgcl_trsfrm_ff(ff))
+    } else {
+      ff <- list(ff)
+    }
   }
 
   return(ff)
@@ -307,8 +315,7 @@ get_gs <- function(x, remove_redundant_channels) {
   gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
                                     name = unique(x$group),
                                     path = unique(x$FCS.file.folder),
-                                    subset = `$FIL` == x$FIL && `$BEGINDATA` == x$BEGINDATA && `$TOT` == x$TOT,
-                                    #`$FIL` == x$FIL[1:10] && `$BEGINDATA` == x$BEGINDATA[1:10] && `$TOT` == x$TOT[1:10]
+                                    subset = `$FIL` == x$FIL & `$BEGINDATA` == x$BEGINDATA & `$TOT` == x$TOT,
                                     truncate_max_range = F,
                                     keywords = c("$FIL", "$BEGINDATA", "$TOT"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))

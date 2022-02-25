@@ -60,9 +60,9 @@ wsp_get_gs <- function(wsp,
         path <- dirname(path)
         n <- length(unique(path))
       }
+      print(paste0("Common FCS.file.folder determined: ", unique(path), "."))
+      x$FCS.file.folder <- path
     }
-    print(paste0("Common FCS.file.folder determined: ", unique(path), "."))
-    x$FCS.file.folder <- path
     return(x)
   })
 

@@ -15,7 +15,7 @@
 #' @examples
 #' \dontrun{
 #' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
-#' inds <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
+#' ff <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
 #' }
 inds_get_ff <- function(ind_mat,
                         population,
@@ -32,6 +32,9 @@ inds_get_ff <- function(ind_mat,
   if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
+  if (length(population) > 1) {
+    stop("Only provide one population.")
+  }
   lapply_fun <- match.fun(lapply_fun)
   check_in(wsp = "wsp", samples = NULL, groups = NULL, FCS.file.folder = NULL, inverse_transform = inverse_transform)
   ff.list <- lapply_fun(ind_mat,
@@ -45,8 +48,10 @@ inds_get_ff <- function(ind_mat,
   ind_mat <- ind_mat[which(!sapply(ff.list, is.null))]
   ff.list <- ff.list[which(!sapply(ff.list, is.null))]
 
+  # maybe not necessary
   names(ff.list) <- unname(sapply(ind_mat, function(x) basename(attr(x, path_attr_name))))
-  ffs <- lapply(seq_along(ff.list[[1]]), function(x) {
+
+  ffs <- lapply(seq_along(inverse_transform), function(x) {
     sapply(ff.list, "[", x, simplify = T)
   })
   names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
