@@ -46,8 +46,7 @@
 #'
 #' @examples
 dr_to_fcs <- function(ff.list,
-                      channels = NULL, # names vector
-                      #channel.desc = NULL,
+                      channels = NULL, # named vector
                       timeChannel = "Time",
                       add.sample.info,
                       scale.whole = "z.score",
@@ -94,9 +93,16 @@ dr_to_fcs <- function(ff.list,
   if (run.MUDAN && !requireNamespace("MUDAN", quietly = T)) devtools::install_github("JEFworks/MUDAN")
 
   if (!"logicle" %in% names(ff.list)) stop("logicle has to be in ff.list.")
-  if (umap.ret_model && length(umap.n_neighbors) > 1) stop("UMAP can only be returned if length(umap.n_neighbors) == 1. Set umap.ret_model = F or provide only one value for umap.n_neighbors")
+  if (umap.ret_model && length(umap.n_neighbors) > 1) {
+    message("UMAP model can only be returned if length(umap.n_neighbors) == 1. umap.ret_model is set to F.")
+    umap.ret_model <- F
+  }
   if (n.pca.dims < 0) run.pca <- F
-  save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
+
+  if (!is.null(save.to.disk)) {
+    save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
+  }
+
 
   if (length(ff.list) == 1 && names(ff.list) == "logicle" && check.channels) {
     print("ff.list only contains logicle. FSC and SSC and Time are removed from exclude.extra.channels. If not desired like this, set check.channels = F.")
@@ -142,20 +148,22 @@ dr_to_fcs <- function(ff.list,
   # check if channel names and desc are equal
   .check.ff.list(ff.list = ff.list)
 
-
   channels <- .get.channels(ff = ff.list[["logicle"]][[1]],
                             timeChannel = timeChannel,
-                            channels = channels,
-                            return = "inds")
-  browser()
-  # set channel.desc if provided; which is used later then
-  if (!is.null(channel.desc)) {
-    for (i in seq_along(ff.list[["logicle"]])) {
-      ff.list[["logicle"]][[i]]@parameters@data[["desc"]][channels] <- channel.desc
+                            channels = channels)
+
+  # overwrite channel desc in ffs
+  # correct order is important, as provided by .get.channels
+  for (i in seq_along(ff.list[["logicle"]])) {
+    ff.list[["logicle"]][[i]]@parameters@data[["desc"]][which(ff.list[["logicle"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
+  }
+  if ("inverse" %in% names(ff.list)) {
+    for (i in seq_along(ff.list[["inverse"]])) {
+      ff.list[["inverse"]][[i]]@parameters@data[["desc"]][which(ff.list[["inverse"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
     }
   }
 
-  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {scale.samples(flowCore::exprs(x)[,channels.index])})))
+  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) scale.samples(flowCore::exprs(x)[,channels]))))
 
   # run harmony
   # if harmony is run with do_pca = T a subsequent pca should not be computed
@@ -182,7 +190,7 @@ dr_to_fcs <- function(ff.list,
   if (run.pca) {
     if (n.pca.dims == 0) {n.pca.dims <- ncol(expr.select) - 1} else if (n.pca.dims > 0) {n.pca.dims <- min(ncol(expr.select), n.pca.dims)}
     print(paste0("Calculating PCA. Start: ", Sys.time()))
-    pca.result <- prcomp(expr.select, scale. = F, center = F)
+    pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.matrix <- pca.result[["x"]]
     expr.select <- pca.matrix[,1:n.pca.dims]
     print(paste0("Done. ", Sys.time()))
@@ -213,8 +221,7 @@ dr_to_fcs <- function(ff.list,
 
   if (run.tsne) {
     print(paste0("Calculating tSNE. Start: ", Sys.time()))
-    tsne <- Rtsne(expr.select, verbose = T, pca = F, normalize = F, theta = tsne.theta)
-    tsne.dims <- tsne$Y
+    tsne.dims <- Rtsne::Rtsne(expr.select, verbose = T, pca = F, normalize = F, theta = tsne.theta)$Y
     colnames(tsne.dims) <- c("tSNE_1", "tSNE_2")
     print(paste0("Done. ", Sys.time()))
   }
@@ -231,7 +238,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (write.scaled.channels.to.FCS) {
-    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {scale.samples(flowCore::exprs(x)[,channels.index])})))
+    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {scale.samples(flowCore::exprs(x)[,channels])})))
     scaled.expr <- scaled.expr[,which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
     colnames(scaled.expr) <- paste0(colnames(scaled.expr), "_scaled")
     dim.red.data <- do.call(cbind, list(dim.red.data, scaled.expr))
@@ -250,10 +257,10 @@ dr_to_fcs <- function(ff.list,
   # find communities (clusters)
   tryCatch(
     if (run.louvain) {
-      print(paste0("Finding clusters with Seurats implementation of the Louvain algorithm and mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      print(paste0("Finding clusters with Seurats implementation of the Louvain algorithm andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
       rownames(expr.select) <- 1:nrow(expr.select)
       snn <- Seurat::FindNeighbors(expr.select, annoy.metric = "cosine")
-      clust_idents <- as.matrix(do.call(cbind, mclapply(louvain_cluster_resolutions, function (x) {
+      clust_idents <- as.matrix(do.call(cbind,parallel::mclapply(louvain_cluster_resolutions, function (x) {
         as.data.frame(apply(Seurat::FindClusters(snn$snn, resolution = x, verbose = T, algorithm = 1), 2, as.numeric))
       }, mc.cores = mc.cores)))
       colnames(clust_idents) <- paste0("louvain.", colnames(clust_idents))
@@ -265,12 +272,12 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.leiden) {
-      print(paste0("Finding clusters leiden algorithm and mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      print(paste0("Finding clusters leiden algorithm andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
       rownames(expr.select) <- 1:nrow(expr.select)
       if (!exists("snn")) {
         snn <- Seurat::FindNeighbors(expr.select, annoy.metric = "cosine")
       }
-      clust_idents <- as.matrix(do.call(cbind, mclapply(leiden_cluster_resolutions, function (x) {
+      clust_idents <- as.matrix(do.call(cbind,parallel::mclapply(leiden_cluster_resolutions, function (x) {
         leiden::leiden(snn$snn, resolution_parameter = x, n_iterations = 10, seed = 0)
       }, mc.cores = mc.cores)))
       colnames(clust_idents) <- paste0("leiden.res.", leiden_cluster_resolutions)
@@ -282,8 +289,8 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.kmeans) {
-      print(paste0("Finding clusters with kmeans and mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
-      ks <- do.call(cbind, mclapply(n_cluster, function(x) {
+      print(paste0("Finding clusters with kmeans andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      ks <- do.call(cbind,parallel::mclapply(n_cluster, function(x) {
         kmeans(expr.select, centers = x)$cluster
       }, mc.cores = mc.cores))
       colnames(ks) <- paste0("kmean.", n_cluster)
@@ -307,8 +314,8 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.flowClust) {
-      print(paste0("Finding clusters with flowClust and mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
-      ks <- do.call(cbind, mclapply(n_cluster, function(x) {
+      print(paste0("Finding clusters with flowClust andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      ks <- do.call(cbind,parallel::mclapply(n_cluster, function(x) {
         flowClust::flowClust(expr.select, K = x)@label
       }, mc.cores = mc.cores))
       colnames(ks) <- paste0("flowClust.", n_cluster)
@@ -317,7 +324,6 @@ dr_to_fcs <- function(ff.list,
     },
     error=function(e) print("run.flowClust with error"))
 
-
   tryCatch(
     if (run.MUDAN) {
       print(paste0("Finding clusters with MUDAN.",  Sys.time()))
@@ -325,29 +331,6 @@ dr_to_fcs <- function(ff.list,
       print(paste0("End: ", Sys.time()))
     },
     error=function(e) print("run.flowClust with error"))
-
-
-  '  if (run.flowsom) {
-    #fsom <- FlowSOM::ReadInput(flowSet(ff.list[["logicle"]]))
-    #fsom <- FlowSOM::BuildSOM(fsom = fsom, colsToUse = channels.index)
-    #fsom <- FlowSOM::BuildMST(fsom = fsom)
-    #metacl <- FlowSOM::MetaClustering(fsom$data, "metaClustering_consensus", max = max(flowsom_n.cluster))
-    browser()
-    print(paste0("Finding clusters with flowSOMs hierachical clustering and mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
-    ks <- do.call(cbind, mclapply(n_cluster, function(x) {
-      FlowSOM::metaClustering_consensus(expr.select, k = x)
-    }, mc.cores = mc.cores))
-
-    library(pbapply)
-    ks <- do.call(cbind, pblapply(n_cluster, function(x) {
-      FlowSOM::metaClustering_consensus(expr.select, k = x)
-      metacl <- FlowSOM::MetaClustering(expr.select, "metaClustering_consensus", max = max(n_cluster))
-    }))
-
-    colnames(ks) <- paste0("flowSOM.", n_cluster)
-    dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-    print(paste0("End: ", Sys.time()))
-  }'
 
   if (!missing(extra.cols)) {
     if (nrow(extra.cols) == nrow(dim.red.data)) {
@@ -424,6 +407,6 @@ dr_to_fcs <- function(ff.list,
       flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))
     }
   }
-  return(dim.red.data)
+  return(list(df = dim.red.data, desc = channel.desc))
 }
 

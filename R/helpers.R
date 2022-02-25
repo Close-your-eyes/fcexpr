@@ -325,9 +325,7 @@ get_gs <- function(x, remove_redundant_channels) {
 
 .get.channels <- function(ff,
                           timeChannel = NULL,
-                          channels = NULL,
-                          return = c("names", "inds")) {
-  return <- match.arg(return, c("names", "inds"))
+                          channels = NULL) {
   if (!is.null(timeChannel)) {
     if (!timeChannel %in% colnames(flowCore::exprs(ff))) {
       stop("timeChannel not found in exprs of flowFrame.")
@@ -341,31 +339,34 @@ get_gs <- function(x, remove_redundant_channels) {
     channels <- colnames(flowCore::exprs(ff))
     channels <- channels[which(channels != timeChannel)]
   } else {
-
     channels <- trimws(channels)
     inds <- unique(c(which(flowCore::pData(flowCore::parameters(ff))$name %in% channels),
                      which(flowCore::pData(flowCore::parameters(ff))$desc %in% channels)))
     notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
                                    which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
     if (length(notfound) > 0) {
-      print(paste0(paste(notfound, collapse = ", "), " channels not found in flowFrame."))
+      warning(paste0(paste("These channels were not found in all flowFrames: ", notfound, collapse = ", "), "."))
     }
-    channels <- stats::setNames(names(channels), channels)
-    channels <- channels[flowCore::pData(flowCore::parameters(ff))$name[inds]]
-    channels <- stats::setNames(names(channels), channels)
-    browser()
-    names(channels[which(is.na(names(channels)))]) <-
-    channels <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name[inds], nm = flowCore::pData(flowCore::parameters(ff))$desc[inds])
+
+    channels_ff <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name[inds], nm = flowCore::pData(flowCore::parameters(ff))$desc[inds])
+    channels_match_inds <- unique(c(which(channels %in% channels_ff),
+                                    which(channels %in% names(channels_ff)),
+                                    which(names(channels) %in% channels_ff),
+                                    which(names(channels) %in% names(channels_ff))))
+    channels <- channels[channels_match_inds]
+    na_inds <- which(is.na(names(channels)))
+    names(channels)[na_inds] <- stats::setNames(names(channels_ff), nm = channels_ff)[channels[na_inds]]
+    diff_inds <- which(!channels %in% channels_ff)
+    channels[diff_inds] <- channels_ff[names(channels[diff_inds])]
+
+    # order by ff, important!
+    channels <- channels[order(match(channels, flowCore::pData(flowCore::parameters(ff))$name))]
+
   }
   if (length(channels) == 0) {
     stop("no channels matched to those in the flowFrame.")
   }
-  if (return == "inds") {
-    return(inds)
-  }
-  if (return == "names") {
-    return(channels)
-  }
+  return(channels)
 }
 
 .check.ff.list <- function(ff.list) {
@@ -373,14 +374,14 @@ get_gs <- function(x, remove_redundant_channels) {
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
       print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
-      stop("Not all channels of flowFrames have the same name. Please fix.")
+      stop("Channels of flowFrames do not have the same names. This cannot be handled.")
     }
   })
 
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
       print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
-      stop("Not all channel descriptions of flowFrames are equal. Please fix.")
+      warning("Channel description are not equal across flowFrames")
     }
   })
 }
