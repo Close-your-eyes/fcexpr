@@ -197,7 +197,10 @@ conjugate_to_channel <- function(conjugates,
   matches <- unique(matches[,c("Conjugate","channel")])
   matches <- stats::setNames(matches[,"channel"], nm = matches[,"Conjugate"])
   names(matches) <- unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T))
-  matches <- matches[conjugates]
+  if (any(duplicated(names(matches)))) {
+    warning("Duplicate matches in ccm. Did you pass channels from multiple Flow Cytometers at once?")
+  }
+  matches <- matches[order(match(names(matches), conjugates))]
   return(matches)
 }
 
