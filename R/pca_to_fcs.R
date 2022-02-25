@@ -53,6 +53,7 @@ pca_to_fcs <- function(file_path,
     stop(paste0(file_path, " not found."))
   }
 
+  ## also allow to pass a subsetted flowFrame (gate from flowjo)
   # which.lines slow; filter afterwards?!
   ff_orig <- flowCore::read.FCS(file_path,
                                 which.lines = which_lines,
@@ -89,7 +90,7 @@ pca_to_fcs <- function(file_path,
   exprs <- exprs[,which(colnames(exprs) %in% channels)]
 
   #https://slowkow.com/notes/pca-benchmark/#irlbairlba
-'  mat_irlba2 <- irlba::irlba(
+  '  mat_irlba2 <- irlba::irlba(
     A      = t(mat),
     nv     = n_pcs,
     center = Matrix::rowMeans(mat),
