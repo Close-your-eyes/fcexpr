@@ -3,8 +3,8 @@
 #' A PCA is calculated on selected events and selected channels with stats::prcomp.
 #' Resulting PCs are added as channels to a newly generated FCS file.
 #'
-#' @param file_path character, path to a fcs file
-#' @param which_lines numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
+#' @param file character, path to a fcs file or a flowFrame read with flowCore::read.FCS()
+#' @param which_lines numeric vector, which events to keep; every line in a fcs file is one acquired event.
 #' If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.
 #' @param channels character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3, CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.
 #' @param compensate logical, should compensation be applied before PC calculation
@@ -14,17 +14,17 @@
 #' @param processed_channels_to_FCS logical, should the processed fluorescence intensities (compensation and/or logicle transformation) be saved as extra channels to the newly generated fcs file?
 #' Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the selections above.
 #' @param n_pca_dims numeric, the number of PCs to add to the newly generated fcs file. Default: all.
-#' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).
-#' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _pca.
+#' @param output_folder character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file).
+#' @param new_file_suffix character, the suffix to add to the the newly generated fcs file. Default is _pca.; Set this one to NULL as well as output_folder to overwrite the original file.
 #'
 #' @return list of pca-object and appended flowFrame which is also saved as fcs file
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' pf <- pca_to_fcs(file_path = "mypath/file.fcs")
+#' pf <- pca_to_fcs(file = "mypath/file.fcs")
 #' }
-pca_to_fcs <- function(file_path,
+pca_to_fcs <- function(file,
                        which_lines = NULL,
                        channels = NULL,
                        compensate = T,
@@ -49,16 +49,29 @@ pca_to_fcs <- function(file_path,
     utils::install.packages("irlba")
   }'
 
-  if (!file.exists(file_path)) {
-    stop(paste0(file_path, " not found."))
+  if (is.character(file)) {
+    if (length(file) > 1) {
+      warning(paste0("Please only provide one file path. Only the first element of file will be used: ", file[1], "."))
+    }
+    if (!file.exists(file)) {
+      stop(paste0(file, " not found."))
+    }
+    # which.lines is slow - filter afterwards
+    ff_orig <- flowCore::read.FCS(file,
+                                  truncate_max_range = F,
+                                  emptyValue = F)
+  } else if (class(file) == "flowFrame") {
+    ff_orig <- file
+  } else {
+    stop("file must be a path to a fcs file on disk or a flowFrame read with flowCore::read.fcs().")
   }
 
-  ## also allow to pass a subsetted flowFrame (gate from flowjo)
-  # which.lines slow; filter afterwards?!
-  ff_orig <- flowCore::read.FCS(file_path,
-                                which.lines = which_lines,
-                                truncate_max_range = F,
-                                emptyValue = F)
+  if (!is.null(which_lines)) {
+    if (!is.numeric(which_lines)) {
+      warning("which_lines has to be a numeric vector. It will be ignored as it is now.")
+    }
+    ff_orig <- ff_orig[which_lines,]
+  }
 
   if (compensate) {
     if (missing(compMat)) {
@@ -172,10 +185,15 @@ pca_to_fcs <- function(file_path,
   if (!is.null(output_folder)) {
     dir.create(output_folder, recursive = T, showWarnings = F)
   } else {
-    output_folder <- dirname(file_path)
+    output_folder <- dirname(file)
   }
 
-  flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file_path)), "_", new_file_suffix, ".fcs")))
+  if (!is.null(new_file_suffix)) {
+    flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file)), "_", new_file_suffix, ".fcs")))
+  } else {
+    flowCore::write.FCS(ff_new, file.path(output_folder, paste0(gsub("\\.fcs$", "", basename(file)), ".fcs")))
+  }
+
   return(list(pca = pca, ff = ff_new))
 }
 
