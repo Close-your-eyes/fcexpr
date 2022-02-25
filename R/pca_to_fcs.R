@@ -45,9 +45,9 @@ pca_to_fcs <- function(file_path,
   if (!requireNamespace("BiocGenerics", quietly = T)){
     BiocManager::install("BiocGenerics")
   }
-  if (!requireNamespace("irlba", quietly = T)){
+'  if (!requireNamespace("irlba", quietly = T)){
     utils::install.packages("irlba")
-  }
+  }'
 
   if (!file.exists(file_path)) {
     stop(paste0(file_path, " not found."))
