@@ -137,8 +137,11 @@ wsx_get_popstats <- function(ws,
   for (y in seq_along(gates_list)) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
   }
+
   gates_out <- do.call(rbind, gates_list)
   gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, ...), by = "sampleID")
+  # could filtering for groups be done at the very beginning? may improve speed only when there is a huge!! workspace, otherwise speed improvement will be low due to vecotrized processing
+  # checking all gates (gg) (bottom to top) is required anyway
   if (!is.null(groups)) {
     gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
     gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
@@ -150,9 +153,13 @@ wsx_get_popstats <- function(ws,
   gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
 
   if (return_stats) {
-    stats_out <- do.call(rbind, lapply(seq_along(xml2::xml_children(xml2::xml_child(ws, "SampleList"))), function(n) {
+    ids <- wsx_get_groups(ws)
+    ids <- ids[which(ids$group %in% groups),"sampleID"]
+    stat_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
+    stat_nodes <- stat_nodes[which(sapply(seq_along(stat_nodes), function(x) xml2::xml_attrs(xml2::xml_child(stat_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
 
-      node <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))[n]
+    stats_out <- do.call(rbind, lapply(seq_along(stat_nodes), function(n) {
+      node <- stat_nodes[n] #xml2::xml_children(xml2::xml_child(ws, "SampleList"))[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
 
       stats_df <- do.call(rbind, lapply(stats, function(x) {
