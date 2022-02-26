@@ -30,6 +30,9 @@ wsx_get_popstats <- function(ws,
   ws <- check_ws(ws)
 
   ids <- wsx_get_groups(ws)
+  if (is.null(groups)) {
+    groups <- unique(ids[,"group", drop=T])
+  }
   ids <- ids[which(ids$group %in% groups),"sampleID"]
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]

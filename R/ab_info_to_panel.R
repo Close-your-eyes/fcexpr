@@ -61,8 +61,11 @@ ab_info_to_panel <- function(panel_file,
 
   panel_add <-
     panel %>%
-    fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>%
-    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>%
+    dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))) %>%
+    dplyr::left_join(ab.list %>% dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))), by = c("antigen_case", "conjugate_case")) %>%
+    dplyr::select(-c(antigen_case, conjugate_case)) %>%
+    #fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>% # this would match CD45RO and CD4 - not useful
+    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>% # take over names from Ab list
     dplyr::select(-c(Antigen.x, Conjugate.x)) %>%
     dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) %>%
     dplyr::filter(is.na(Box.x) | Box.x == Box.y) %>%
