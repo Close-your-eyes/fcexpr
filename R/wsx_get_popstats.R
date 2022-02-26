@@ -29,14 +29,21 @@ wsx_get_popstats <- function(ws,
 
   ws <- check_ws(ws)
 
-  gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
-  gates <- lapply(seq_along(gg), function(n) {
+  ids <- wsx_get_groups(ws)
+  ids <- ids[which(ids$group %in% groups),"sampleID"]
+  rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
+  rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
+  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
 
+  #gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
+  gates <- lapply(seq_along(gg), function(n) {
 
     prnts <- xml2::xml_parents(gg[n])
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
+    #if (!sampleID %in% ids) return(NULL) # return NULL if sampleID is not in groups (see procedure in return_stats)
+
     FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri"))
     FileName <- basename(FilePath)
 
@@ -91,7 +98,7 @@ wsx_get_popstats <- function(ws,
     )
   })
 
-  roots <- do.call(rbind, lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(y) {
+  roots <- do.call(rbind, lapply(rel_nodes, function(y) {
     data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                PopulationFullPath = "root",
                Parent = NA,
@@ -140,12 +147,12 @@ wsx_get_popstats <- function(ws,
 
   gates_out <- do.call(rbind, gates_list)
   gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, ...), by = "sampleID")
-  # could filtering for groups be done at the very beginning? may improve speed only when there is a huge!! workspace, otherwise speed improvement will be low due to vecotrized processing
+  # could filtering for groups be done at the very beginning...
   # checking all gates (gg) (bottom to top) is required anyway
-  if (!is.null(groups)) {
+'  if (!is.null(groups)) {
     gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
     gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
-  }
+  }'
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
@@ -153,13 +160,8 @@ wsx_get_popstats <- function(ws,
   gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
 
   if (return_stats) {
-    ids <- wsx_get_groups(ws)
-    ids <- ids[which(ids$group %in% groups),"sampleID"]
-    stat_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
-    stat_nodes <- stat_nodes[which(sapply(seq_along(stat_nodes), function(x) xml2::xml_attrs(xml2::xml_child(stat_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
-
-    stats_out <- do.call(rbind, lapply(seq_along(stat_nodes), function(n) {
-      node <- stat_nodes[n] #xml2::xml_children(xml2::xml_child(ws, "SampleList"))[n]
+    stats_out <- do.call(rbind, lapply(seq_along(rel_nodes), function(n) {
+      node <- rel_nodes[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
 
       stats_df <- do.call(rbind, lapply(stats, function(x) {
