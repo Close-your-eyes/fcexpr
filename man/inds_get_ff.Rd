@@ -41,6 +41,6 @@ Get (subsetted) flowFrames from FCS files
 \examples{
 \dontrun{
 ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
-inds <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
+ff <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
 }
 }

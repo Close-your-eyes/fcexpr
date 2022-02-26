@@ -36,3 +36,7 @@ Necessary columns in panel_file and antibody_list used for matching are Antigen,
 If they do not exist this function cannot be used, yet. Columns added to the panel_file will appear just right to
 the LiveDeadMarker column. Anything written there will be overwritten.
 }
+\details{
+The following typos in Antigen and Conjugate are rescued (matching may still work with the ab list):
+Space, special characters (e.g. hyphen), case.
+}

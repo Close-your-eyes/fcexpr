@@ -5,12 +5,12 @@
 \title{Add principle components (PCs) to FCS file}
 \usage{
 pca_to_fcs(
-  file_path,
+  file,
   which_lines = NULL,
   channels = NULL,
   compensate = T,
   compMat,
-  timeChannel,
+  timeChannel = NULL,
   logicle_trans = T,
   processed_channels_to_FCS = T,
   n_pca_dims = NULL,
@@ -19,12 +19,12 @@ pca_to_fcs(
 )
 }
 \arguments{
-\item{file_path}{character, path to a fcs file}
+\item{file}{character, path to a fcs file or a flowFrame read with flowCore::read.FCS()}
 
-\item{which_lines}{numeric vector, passed to flowCore::read.FCS(..., which.lines = which_lines); every line in a fcs file is one acquired event.
+\item{which_lines}{numeric vector, which events to keep; every line in a fcs file is one acquired event.
 If you know your events (~lines) of interest (e.g. a subpopulation to select or outliers to exclude) these events may be selected.}
 
-\item{channels}{character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3 or CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.}
+\item{channels}{character vector, which channels to use for PC calculation. Either channels names (e.g. v-450/50-F-A) or descriptions (e.g. CD3, CD4-PECy7) may be provided. Also a mixture is possible. If not provided, all channels (scatter and fluorescence) except for the Time channel are used.}
 
 \item{compensate}{logical, should compensation be applied before PC calculation}
 
@@ -39,9 +39,9 @@ Respective channels are suffixed by _comp, _lgcl, or _comp_lgcl depend upon the 
 
 \item{n_pca_dims}{numeric, the number of PCs to add to the newly generated fcs file. Default: all.}
 
-\item{output_folder}{character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).}
+\item{output_folder}{character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file).}
 
-\item{new_file_suffix}{character, the suffix to add to the the newly generated fcs file. Default is _pca.}
+\item{new_file_suffix}{character, the suffix to add to the the newly generated fcs file. Default is _pca.; Set this one to NULL as well as output_folder to overwrite the original file.}
 }
 \value{
 list of pca-object and appended flowFrame which is also saved as fcs file
@@ -52,6 +52,6 @@ Resulting PCs are added as channels to a newly generated FCS file.
 }
 \examples{
 \dontrun{
-pf <- pca_to_fcs(file_path = "mypath/file.fcs")
+pf <- pca_to_fcs(file = "mypath/file.fcs")
 }
 }
