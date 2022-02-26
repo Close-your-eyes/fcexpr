@@ -8,6 +8,9 @@
 #' If they do not exist this function cannot be used, yet. Columns added to the panel_file will appear just right to
 #' the LiveDeadMarker column. Anything written there will be overwritten.
 #'
+#' The following typos in Antigen and Conjugate are rescued (matching may still work with the ab list):
+#' Space, special characters (e.g. hyphen), case.
+#'
 #' @param panel_file character, path to the xlsx file in which the antibody panel was calculated
 #' @param panel_sheet character, the name of the sheet in the panel_file
 #' @param antibody_list character, path to the xlsx file representing the antibody list with additional information for the used antibodies
