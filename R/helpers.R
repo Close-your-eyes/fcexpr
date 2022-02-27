@@ -360,12 +360,13 @@ get_gs <- function(x, remove_redundant_channels) {
                                     which(channels %in% names(channels_ff)),
                                     which(names(channels) %in% channels_ff),
                                     which(names(channels) %in% names(channels_ff))))
-    channels <- channels[channels_match_inds]
+    channels <- channels_ff[channels_match_inds]
     na_inds <- which(is.na(names(channels)))
     names(channels)[na_inds] <- stats::setNames(names(channels_ff), nm = channels_ff)[channels[na_inds]]
     diff_inds <- which(!channels %in% channels_ff)
-    channels[diff_inds] <- channels_ff[names(channels[diff_inds])]
-
+    if (length(diff_inds) > 0) {
+      channels[diff_inds] <- channels_ff[names(channels[diff_inds])]
+    }
     # order by ff, important!
     channels <- channels[order(match(channels, flowCore::pData(flowCore::parameters(ff))$name))]
 
