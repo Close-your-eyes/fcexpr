@@ -11,8 +11,9 @@
 #' e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))
 #' @param scale.whole if and how to scale channels after concatenation of flowframes in ff.list
 #' @param scale.samples if and how to scale channels of flowframes in ff.list individually before concatenation
-#' @param run.harmony attempt batch correction using harmony::HarmonyMatrix;
-#' @param run.pca run principle component analysis before dimension reduction
+#' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
+#' is conducted before run.pca
+#' @param run.pca run principle component analysis before dimension reduction (after optional run.harmony)
 #' @param n.pca.dims number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
 #' e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
 #' and simply select all available channels, PCA will select the most relevant number of dimensions for you
