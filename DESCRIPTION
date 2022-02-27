@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Manage and Analzye flow cytometry experiments
-Version: 0.0.0.9915
+Version: 0.0.0.9920
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",

@@ -343,7 +343,7 @@ get_gs <- function(x, remove_redundant_channels) {
   }
 
   if (is.null(channels)) {
-    channels <- colnames(flowCore::exprs(ff))
+    channels <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name, flowCore::pData(flowCore::parameters(ff))$desc)
     channels <- channels[which(channels != timeChannel)]
   } else {
     channels <- trimws(channels)
@@ -392,3 +392,32 @@ get_gs <- function(x, remove_redundant_channels) {
     }
   })
 }
+
+
+min.max.normalization <- function (x, min.val = 0, max.val = 1) {
+  if (is.matrix(x) || is.data.frame(x)) {
+    if (is.data.frame(x)) {
+      if (!all(apply(x, 2, is.numeric))) {
+        stop("Please make sure that all columns of the data frame are numeric.")
+      }
+    }
+    return(apply(x, 2, function (y) min.val + ((y- min(y)) * (max.val- min.val) / (max(y)-min(y)))))
+  } else {
+    return(min.val + ((x- min(x)) * (max.val- min.val) / (max(x)-min(x))))
+  }
+}
+
+
+shift.to.positive <- function(x, rm.na = F) {
+  if (rm.na) {
+    x <- x[which(!is.na(x))]
+  }
+  if (min(x) <= 0) {
+    return(x + abs(min(x - 1)))
+  } else {
+    return(x)
+  }
+  #one-liner: apply(x, 2, function(z){ if (min(z) < 0) {z + abs(min(z - 1))} else {z}})
+}
+
+
