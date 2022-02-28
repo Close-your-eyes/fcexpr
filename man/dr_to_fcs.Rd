@@ -7,30 +7,24 @@
 dr_to_fcs(
   ff.list,
   channels = NULL,
-  timeChannel = "Time",
   add.sample.info,
-  scale.whole = "z.score",
-  scale.samples = "none",
+  scale.whole = c("z.score", "min.max", "none"),
+  scale.samples = c("none", "z.score", "min.max"),
   run.harmony = F,
-  harmony.subsets,
   run.pca = F,
+  run.lda = F,
   run.umap = T,
   run.tsne = F,
+  run.som = T,
+  run.gqtsom = T,
   run.louvain = T,
   run.kmeans = F,
   run.leiden = F,
   run.hclust = F,
   run.flowClust = F,
   run.MUDAN = F,
-  MUDAN.k = 30,
   n.pca.dims = 0,
-  umap.n_neighbors = 15,
-  umap.n_epochs = 300,
-  umap.metric = "cosine",
-  tsne.theta = 0.1,
-  louvain_cluster_resolutions = c(seq(0.3, 0.5, 0.1)),
-  leiden_cluster_resolutions = c(seq(0.3, 0.5, 0.1)),
-  n_cluster = c(5:10),
+  n_clusters = c(5:10),
   extra.cols,
   mc.cores = 1,
   save.to.disk = c("fcs", "rds"),
@@ -39,15 +33,85 @@ dr_to_fcs(
   exclude.extra.channels = "FSC|SSC|Time|cluster.id",
   write.scaled.channels.to.FCS = T,
   check.channels = T,
-  umap.ret_model = F,
+  timeChannel = "Time",
   ...
 )
 }
 \arguments{
+\item{ff.list}{a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
+as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)}
+
+\item{channels}{a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7)
+names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used}
+
 \item{add.sample.info}{named list of additional channels to identify samples or group them in flowjo;
 e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))}
 
-\item{...}{}
+\item{scale.whole}{if and how to scale channels after concatenation of flowframes in ff.list}
+
+\item{scale.samples}{if and how to scale channels of flowframes in ff.list individually before concatenation}
+
+\item{run.harmony}{attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
+is conducted before run.pca}
+
+\item{run.pca}{run principle component analysis before dimension reduction (after optional run.harmony)}
+
+\item{run.lda}{run Linear Discriminant Analysis before dimension reduction;
+should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
+has to be provided in ...}
+
+\item{run.umap}{calculate UMAP dimension reduction with uwot::umap}
+
+\item{run.tsne}{calculate tsne dimension reduction with Rtsne::Rtsne}
+
+\item{run.som}{calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
+
+\item{run.gqtsom}{calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
+
+\item{run.louvain}{detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
+
+\item{run.kmeans}{detect n_clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!}
+
+\item{run.leiden}{detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
+
+\item{run.hclust}{detect n_clusters with stats::hclust and stats::cutree}
+
+\item{run.flowClust}{detect n_clusters with flowClust::flowClust}
+
+\item{run.MUDAN}{detect clusters with MUDAN::getComMembership (k = as.numeric(names(run.MUDAN))); e.g. run.MUDAN = setNames(TRUE, 8)}
+
+\item{n.pca.dims}{number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
+e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
+and simply select all available channels, PCA will select the most relevant number of dimensions for you}
+
+\item{n_clusters}{number of clusters to expect; used for run.kmeans, run.hclust, run.flowClust}
+
+\item{extra.cols}{vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
+has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
+channel names in the FCS file}
+
+\item{mc.cores}{mc.cores to calculate clusterings, limited to parallel::detectCores()-1}
+
+\item{save.to.disk}{what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list}
+
+\item{save.path}{where to save elements specified in save.to.disk; set to NULL to have nothing written to disk}
+
+\item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be completely redundant
+and will only occupy disk space, those are specified here; matched with grepl}
+
+\item{write.scaled.channels.to.FCS}{do save scaled channels (scale.whole, scale.samples) to FCS file}
+
+\item{check.channels}{logical, when only logicle-transformed flowframes are provided in ff.list, some values from exclude.extra.channels
+may be unintended and are hence retain; set check.channels = F to avoid that (not so important overall)}
+
+\item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
+to be detected automatically}
+
+\item{...}{additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony;
+provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
+see respected help files to get to know which arguments can be passed:
+uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix,
+louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.}
 }
 \value{
 
