@@ -7,7 +7,7 @@
 #' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
-#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun
 #'
 #' @return list of flow frames, one for each ind_mat
 #' @export
@@ -43,7 +43,8 @@ inds_get_ff <- function(ind_mat,
                         population = population,
                         inverse_transform = inverse_transform,
                         alias_attr_name = alias_attr_name,
-                        path_attr_name = path_attr_name)
+                        path_attr_name = path_attr_name,
+                        ...)
 
   ind_mat <- ind_mat[which(!sapply(ff.list, is.null))]
   ff.list <- ff.list[which(!sapply(ff.list, is.null))]

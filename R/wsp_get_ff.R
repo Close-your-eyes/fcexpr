@@ -82,13 +82,13 @@ wsp_get_ff <- function(wsp,
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
 
-  # writing h5 files to disk may be the limiting factor, so doing this by multicore may not improve speed
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
                         inverse_transform = inverse_transform,
                         downsample = downsample,
                         remove_redundant_channels = remove_redundant_channels,
-                        population = population)
+                        population = population,
+                        ...)
 
   ffs <- sapply(ff.list, "[", 1)
   names(ffs) <- smpl$FileName
