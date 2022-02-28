@@ -407,7 +407,7 @@ sync_sampledescription <- function(FCS.file.folder,
   }
 
 
-  out <- flowCore::read.FCSheader(fcs.file.paths)
+  out <- flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
   dd <- sapply(out, "[", "$DATE")
   tt <- sapply(out, "[", "$BTIM")
   et <- sapply(out, "[", "$ETIM")
