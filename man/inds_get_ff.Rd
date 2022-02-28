@@ -30,7 +30,7 @@ inds_get_ff(
 
 \item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
-\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
+\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun}
 }
 \value{
 list of flow frames, one for each ind_mat

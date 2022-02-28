@@ -12,7 +12,8 @@
 #' @param scale.whole if and how to scale channels after concatenation of flowframes in ff.list
 #' @param scale.samples if and how to scale channels of flowframes in ff.list individually before concatenation
 #' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
-#' is conducted before run.pca
+#' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npca. Set run.pca = F
+#' when a pca is calculated in harmony.
 #' @param run.pca run principle component analysis before dimension reduction (after optional run.harmony)
 #' @param n.pca.dims number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
 #' e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
@@ -44,11 +45,12 @@
 #' may be unintended and are hence retain; set check.channels = F to avoid that (not so important overall)
 #' @param timeChannel name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 #' to be detected automatically
-#' @param ... additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony;
+#' @param ... additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
 #' provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 #' see respected help files to get to know which arguments can be passed:
-#' uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix,
+#' uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
 #' louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
+#' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans
 #'
 #' @return
 #' @export
@@ -98,107 +100,129 @@ dr_to_fcs <- function(ff.list,
   # harmony could be done at beginning (e.g unbiased or based on detected clusters)
 
   ## preprocessCore::normalize.quantiles() - allow to normalize channel of ffs within defined groups
+  # but this can put a really strong bias on the data:
+  'df <- data.frame(x1 = c(rnorm(1e5,0,1), rnorm(1e4,15,1)),
+                   x2 = c(rnorm(1e5,1,1), rnorm(1e4,9,1)),
+                   x3 = c(rnorm(1e4,-1,4), rnorm(1e5,30,5)))
+  df <- as.data.frame(preprocessCore::normalize.quantiles(as.matrix(df)))
+  names(df) <- paste0("x", 1:ncol(df))
+  df <-
+    df %>%
+    tidyr::pivot_longer(names_to = "name", values_to = "value", cols = c(x1,x2,x3))
+
+
+  ggplot(df, aes(x = value, y = name))+
+    ggridges::geom_density_ridges() +
+    ggridges::theme_ridges()'
 
   ## allow to provide expr.select directly instead of ff.list
 
-  if (!requireNamespace("Rtsne", quietly = T))
-    utils::install.packages("Rtsne")
-  if (run.umap &&
-      !requireNamespace("uwot", quietly = T))
+  if (!requireNamespace("Rtsne", quietly = T)) utils::install.packages("Rtsne")
+  if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
-  if (run.leiden &&
-      !requireNamespace("Seurat", quietly = T))
+  }
+  if (run.leiden && !requireNamespace("Seurat", quietly = T)) {
     utils::install.packages("Seurat")
-  if (!requireNamespace("parallel", quietly = T))
+  }
+  if (!requireNamespace("parallel", quietly = T)) {
     utils::install.packages("parallel")
-  if (run.leiden &&
-      !requireNamespace("leiden", quietly = T))
+  }
+  if (run.leiden &&!requireNamespace("leiden", quietly = T)) {
     utils::install.packages("leiden")
-  if (!requireNamespace("Biobase", quietly = T))
+  }
+  if (!requireNamespace("Biobase", quietly = T)) {
     BiocManager::install("Biobase")
-  if (run.flowClust &&
-      !requireNamespace("flowClust", quietly = T))
+  }
+  if (run.flowClust && !requireNamespace("flowClust", quietly = T)) {
     BiocManager::install("flowClust")
-  if (!requireNamespace("devtools", quietly = T))
+  }
+  if (!requireNamespace("devtools", quietly = T)) {
     utils::install.packages("devtools")
-  if (run.harmony &&
-      !requireNamespace("run.harmony", quietly = T))
+  }
+  if (run.harmony && !requireNamespace("run.harmony", quietly = T)) {
     devtools::install_github("immunogenomics/harmony")
-  if (run.MUDAN &&
-      !requireNamespace("MUDAN", quietly = T))
+  }
+  if (run.MUDAN && !requireNamespace("MUDAN", quietly = T)) {
     devtools::install_github("JEFworks/MUDAN")
-  if (!"logicle" %in% names(ff.list))
+  }
+  if (!"logicle" %in% names(ff.list)) {
     stop("logicle transformed has to be in ff.list.")
+  }
 
   dots <- list(...)
 
-  for (par in c("louvain",
-                "leiden",
-                "umap",
-                "tsne",
-                "som",
-                "gqtsom",
-                "harmony")) {
-    if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&
-        !eval(rlang::sym(paste0("run.", par)))) {
+  if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
+    stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed)
+         and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")
+  }
+
+  if (length(unique(lengths(ff.list))) != 1) {
+    stop("number of flowframes in inverse and logicle has to be equal.")
+  }
+  # check if names in ff.list inverse and logicle are the same
+
+  for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony")) {
+    if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
       message(paste0(par, " parameters provided in ... but ", "'run.", par, " = F'."))
     }
   }
 
-  if (run.harmony &&
-      !any(grepl("^harmony__meta_data", names(dots)))) {
-    stop(
-      "When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix."
-    )
+  if (run.harmony && !any(grepl("^harmony__meta_data", names(dots)))) {
+    stop("When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix.")
   }
 
-  if (n.pca.dims < 0)
+  if (run.hclust && !any(grepl("^hclust__k", names(dots)))) {
+    stop("When 'run.hclust = T' hclust__k has to be provided in ..., see ?stats::cutree.")
+  }
+
+  if (run.flowClust && !any(grepl("^flowClust__K", names(dots)))) {
+    stop("When 'run.flowClust = T' flowClust__K has to be provided in ..., see ?flowClust::flowClust.")
+  }
+
+  if (run.MUDAN && !any(grepl("^MUDAN__k", names(dots)))) {
+    stop("When 'run.MUDAN = T' MUDAN__k (e.g. MUDAN__k = 30), has to be provided in ..., see ?MUDAN::getComMembership.")
+  }
+
+  if (run.kmeans && !any(grepl("^kmeans__centers", names(dots)))) {
+    stop("When 'run.kmeans = T' kmeans__centers, has to be provided in ..., see ?stats::kmeans")
+  }
+
+  if (n.pca.dims < 0) {
     run.pca <- F
+  }
 
   if (run.pca && run.lda) {
     stop("run.pca = T and run.lda = T at the same time is not possible.")
   }
 
-  if (run.MUDAN && is.null(names(run.MUDAN))) {
-    stop("When 'run.MUDAN=T', a name indication the k to use has to be provided, e.g. 'run.MUDAN = stats::setNames(T, 13)'.")
-  }
-
   if (is.logical(run.lda) && run.lda) {
-    stop(
-      "Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like louvain_0.4."
-    )
+    stop("Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like louvain_0.4.")
   }
 
   if (!is_logical(run.lda)) {
     # clustering columns need to follow the pattern name_resolution.
     if (!run.lda %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots)) {
-      stop(
-        "Value for run.lda not found in ... . They respective clustering to use for lda has to be computed! E.g. if
-           run.lda = 'louvain_0.9' then louvain__resolution = 0.9 has to be passed."
-      )
+      stop("Value for run.lda not found in ... . They respective clustering to use for lda has to be computed! E.g. if run.lda = 'louvain_0.9' then louvain__resolution = 0.9 has to be passed.")
     }
   }
 
+  if (run.harmony && any(grepl("^harmony__do_pca", names(dots))) && dots[["harmony__do_pca"]] == T && run.pca) {
+    warning("harmony is calculated with do_pca = T, hence a subsequnt pca (run.pca = T) is not required. Consider setting run.pca to FALSE.")
+  }
+
   if (!is.null(save.to.disk)) {
-    save.to.disk <-
-      match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
+    save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
   }
 
 
-  if (length(ff.list) == 1 &&
-      names(ff.list) == "logicle" && check.channels) {
-    print(
-      "ff.list only contains logicle. FSC and SSC and Time are removed from exclude.extra.channels. If not desired like this, set check.channels = F."
-    )
-    exclude.extra.channels <-
-      gsub("FSC\\|", "", exclude.extra.channels)
-    exclude.extra.channels <-
-      gsub("SSC\\|", "", exclude.extra.channels)
-    exclude.extra.channels <-
-      gsub("Time\\|", "", exclude.extra.channels)
+  if (length(ff.list) == 1 && names(ff.list) == "logicle" && check.channels) {
+    print("ff.list only contains logicle. FSC and SSC and Time are removed from exclude.extra.channels. If not desired like this, set check.channels = F.")
+    exclude.extra.channels <- gsub("FSC\\|", "", exclude.extra.channels)
+    exclude.extra.channels <- gsub("SSC\\|", "", exclude.extra.channels)
+    exclude.extra.channels <- gsub("Time\\|", "", exclude.extra.channels)
   }
 
-  mc.cores <- min(mc.cores,  parallel::detectCores() - 1)
+  mc.cores <- min(mc.cores, parallel::detectCores() - 1)
 
   if (!missing(extra.cols)) {
     if (!is.matrix(extra.cols)) {
@@ -215,136 +239,105 @@ dr_to_fcs <- function(ff.list,
       stop("add.sample.info has to be a list.")
     }
     if (is.null(names(add.sample.info))) {
-      stop(
-        "add.sample.info has to have names. These names become channel names in the FCS file."
-      )
+      stop("add.sample.info has to have names. These names become channel names in the FCS file.")
     }
-    if (!all(unlist(lapply(add.sample.info, function(x)
-      is.numeric(x))))) {
+    if (!all(unlist(lapply(add.sample.info, function(x) is.numeric(x))))) {
       stop("Please only provide numeric values as additional sample infos.")
     }
-    if (any(unlist(lapply(add.sample.info, function(x)
-      is.na(x))))) {
+    if (any(unlist(lapply(add.sample.info, function(x) is.na(x))))) {
       stop("NA found in sample infos.")
     }
   }
 
   if (!missing(add.sample.info)) {
-    if (!all(unlist(lapply(add.sample.info, function(x)
-      length(x) == length(ff.list[[1]]))))) {
-      stop(
-        paste0(
-          "Length of each additional sample information has to match the length of selected samples, which is: ",
-          length(ff.list[[1]]),
-          "."
-        )
+    if (!all(unlist(lapply(add.sample.info, function(x) length(x) == length(ff.list[[1]]))))) {
+      stop(paste0("Length of each additional sample information has to match the length of selected samples, which is: ", length(ff.list[[1]]),".")
       )
     }
   }
 
   scale.samples <-
-    switch(
-      match.arg(scale.samples, c("none", "z.score", "min.max")),
-      z.score = scale,
-      min.max = min.max.normalization,
-      none = function(x) {
-        return(x)
-      }
+    switch(match.arg(scale.samples, c("none", "z.score", "min.max")),
+           z.score = scale,
+           min.max = min.max.normalization,
+           none = function(x) {
+             return(x)
+           }
     )
 
   scale.whole <-
-    switch(
-      match.arg(scale.whole, c("z.score", "min.max", "none")),
-      z.score = scale,
-      min.max = min.max.normalization,
-      none = function(x) {
-        return(x)
-      }
+    switch(match.arg(scale.whole, c("z.score", "min.max", "none")),
+           z.score = scale,
+           min.max = min.max.normalization,
+           none = function(x) {
+             return(x)
+           }
     )
 
   # check if channel names and desc are equal
   .check.ff.list(ff.list = ff.list)
 
-  channels <-
-    .get.channels(ff = ff.list[["logicle"]][[1]],
-                  ## channel names from first ff
-                  timeChannel = timeChannel,
-                  channels = channels)
+  channels <- .get.channels(
+    ff = ff.list[["logicle"]][[1]],## channel names from first ff
+    timeChannel = timeChannel,
+    channels = channels
+  )
 
   # overwrite channel desc in ffs
   # correct order is important, as provided by .get.channels
   for (i in seq_along(ff.list[["logicle"]])) {
-    ff.list[["logicle"]][[i]]@parameters@data[["desc"]][which(ff.list[["logicle"]][[i]]@parameters@data[["name"]] %in% channels)] <-
-      names(channels)
+    ff.list[["logicle"]][[i]]@parameters@data[["desc"]][which(ff.list[["logicle"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
   }
   if ("inverse" %in% names(ff.list)) {
     for (i in seq_along(ff.list[["inverse"]])) {
-      ff.list[["inverse"]][[i]]@parameters@data[["desc"]][which(ff.list[["inverse"]][[i]]@parameters@data[["name"]] %in% channels)] <-
-        names(channels)
+      ff.list[["inverse"]][[i]]@parameters@data[["desc"]][which(ff.list[["inverse"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
     }
   }
 
   # first step to create matrix for fcs file; put here to allow early cluster calculation which then
   # allows for lda calculation before umap, som, etc.
   # prepare matrix for FCS file
-  expr.logicle <-
-    do.call(rbind, lapply(ff.list[["logicle"]], function(x) {
-      flowCore::exprs(x)
-    }))
-  expr.logicle <-
-    expr.logicle[, which(!grepl(exclude.extra.channels, colnames(expr.logicle)))]
-  colnames(expr.logicle) <-
-    paste0(colnames(expr.logicle), "_logicle")
+  expr.logicle <- do.call(rbind, lapply(ff.list[["logicle"]], function(x) flowCore::exprs(x)))
+  expr.logicle <- expr.logicle[, which(!grepl(exclude.extra.channels, colnames(expr.logicle)))]
+  colnames(expr.logicle) <- paste0(colnames(expr.logicle), "_logicle")
 
   if ("inverse" %in% names(ff.list)) {
-    dim.red.data <-
-      do.call(cbind, list(
-        do.call(rbind, lapply(ff.list[["inverse"]], function(x) {
-          flowCore::exprs(x)
-        })),
-        expr.logicle,
-        ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))
-      ))
+    dim.red.data <- do.call(cbind, list(do.call(rbind, lapply(ff.list[["inverse"]], function(x) flowCore::exprs(x))), expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
   } else {
-    dim.red.data <-
-      do.call(cbind, list(expr.logicle, ident = rep(
-        1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow)
-      )))
+    dim.red.data <- do.call(cbind, list(expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
   }
 
-
   ## apply scaling which was selected above and select channels to use for dimension reduction.
-  expr.select <-
-    scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x)
-      scale.samples(flowCore::exprs(x)[, channels]))))
+  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
+
+
+  ### allow to pass expr.select here.
+
 
   # run harmony
   # if harmony is run with do_pca = T a subsequent pca should not be computed
   if (run.harmony) {
-    temp_dots <-
-      dots[which(grepl("^harmony__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^harmony__", "", names(temp_dots), ignore.case = T)
+    # https://portals.broadinstitute.org/harmony/articles/quickstart.html
+    temp_dots <- dots[which(grepl("^harmony__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^harmony__", "", names(temp_dots), ignore.case = T)
     if (!any(grepl("do_pca", names(temp_dots)), ignore.case = T)) {
-      print("'do_pca = FALSE' by default in harmony::HarmonyMatrix.")
+      print("'do_pca set to FALSE' in harmony::HarmonyMatrix.")
       temp_dots <- c(temp_dots, do_pca = F)
     }
-    expr.select <-
-      do.call(harmony::HarmonyMatrix, args = c(list(data_mat = expr.select), temp_dots))
+    expr.select <- do.call(harmony::HarmonyMatrix, args = c(list(data_mat = expr.select), temp_dots))
   }
 
   pca.result <- NULL
   if (run.pca) {
     if (n.pca.dims == 0) {
-      n.pca.dims <-
-        ncol(expr.select) - 1
+      n.pca.dims <- ncol(expr.select) - 1
     } else if (n.pca.dims > 0) {
       n.pca.dims <- min(ncol(expr.select) - 1, n.pca.dims)
     }
     print(paste0("Calculating PCA. Start: ", Sys.time()))
     # https://slowkow.com/notes/pca-benchmark/
-    #mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
-    #mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
+    # mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
+    # mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.matrix <- pca.result[["x"]]
     expr.select <- pca.matrix[, 1:n.pca.dims]
@@ -355,29 +348,17 @@ dr_to_fcs <- function(ff.list,
   # find communities (clusters)
   tryCatch(
     if (run.louvain || run.leiden) {
-      temp_dots <-
-        dots[which(grepl("^louvain__|^leiden__", names(dots), ignore.case = T))]
-      names(temp_dots) <-
-        gsub("^louvain__|^leiden__",
-             "",
-             names(temp_dots),
-             ignore.case = T)
+      temp_dots <- dots[which(grepl("^louvain__|^leiden__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^louvain__|^leiden__", "", names(temp_dots), ignore.case = T)
 
       if (!any(grepl("annoy.metric", names(temp_dots), ignore.case = T))) {
         print("snn calculation with annoy.metric = 'cosine' by default.")
         temp_dots <- c(temp_dots, annoy.metric = "cosine")
       }
-
-      print(paste0(
-        "Calculating snn for louvain and/or leiden. Start: ",
-        Sys.time()
-      ))
+      print(paste0("Calculating snn for louvain and/or leiden. Start: ", Sys.time()))
       rownames(expr.select) <- 1:nrow(expr.select)
-      # Seurat::FindNeighbors ignores all 'wrong' arguments; suppress the warning though
-      snn <-
-        suppressMessages(suppressWarnings(do.call(
-          Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots)
-        )))
+      # Seurat::FindNeighbors ignores all 'wrong' arguments; suppress the warnings though
+      snn <- suppressMessages(suppressWarnings(do.call( Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots))))
       print(paste0("End: ", Sys.time()))
     },
     error = function(e) {
@@ -389,209 +370,157 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.louvain) {
-      temp_dots <-
-        dots[which(grepl("^louvain__", names(dots), ignore.case = T))]
-      names(temp_dots) <-
-        gsub("^louvain__", "", names(temp_dots), ignore.case = T)
-
-      print(
-        paste0(
-          "Finding clusters with Seurats implementation of the Louvain algorithm and parallel::mclapply using ",
-          mc.cores,
-          " cores. Start: ",
-          Sys.time()
-        )
-      )
+      temp_dots <- dots[which(grepl("^louvain__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^louvain__", "", names(temp_dots), ignore.case = T)
+      print(paste0("Finding clusters with Seurats implementation of the Louvain algorithm and parallel::mclapply using ", mc.cores," cores. Start: ",Sys.time()))
       if (any(grepl("resolution", names(temp_dots), ignore.case = T))) {
         temp_dots[["resolution"]] <- as.numeric(temp_dots[["resolution"]])
         if (any(is.na(temp_dots[["resolution"]]))) {
-          warning(
-            "Provide numeric values for louvain__resolution! Non numeric elements are ignored."
-          )
-          temp_dots[["resolution"]] <-
-            temp_dots[["resolution"]][which(!is.na(temp_dots[["resolution"]]))]
+          warning("Provide numeric values for louvain__resolution! Non numeric elements are ignored.")
+          temp_dots[["resolution"]] <-temp_dots[["resolution"]][which(!is.na(temp_dots[["resolution"]]))]
         }
-        clust_idents <-
-          do.call(cbind,
-                  parallel::mclapply(temp_dots[["resolution"]], function (x) {
-                    apply(do.call(Seurat::FindClusters, args = c(
-                      list(
-                        object = snn$snn,
-                        resolution = x,
-                        verbose = F,
-                        algorithm = 1
-                      ),
-                      temp_dots[which(names(temp_dots) != "resolution")]
-                    )), 2, as.numeric)
-                  }, mc.cores = mc.cores))
+        clust_idents <-do.call(cbind,parallel::mclapply(temp_dots[["resolution"]], function(x) {
+          apply(do.call(Seurat::FindClusters, args = c(list(object = snn$snn, resolution = x, verbose = F, algorithm = 1), temp_dots[which(names(temp_dots) != "resolution")])), 2, as.numeric)
+        }, mc.cores = mc.cores))
       } else {
-        clust_idents <-
-          apply(do.call(Seurat::FindClusters, args = c(
-            list(
-              object = snn$snn,
-              resolution = x,
-              verbose = F,
-              algorithm = 1
-            ),
-            temp_dots
-          )), 2, as.numeric)
+        clust_idents <- apply(do.call(Seurat::FindClusters, args = c(list(object = snn$snn, resolution = x, verbose = F, algorithm = 1), temp_dots)), 2, as.numeric)
       }
-      colnames(clust_idents) <-
-        paste0("louvain_", temp_dots[["resolution"]])
-      dim.red.data <-
-        do.call(cbind, list(dim.red.data, clust_idents))
-      print(apply(clust_idents, 2, function(x)
-        length(unique(x))))
+      colnames(clust_idents) <- paste0("louvain_", temp_dots[["resolution"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
+      print(apply(clust_idents, 2, function(x) length(unique(x))))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.louvain with error")
+    }
   )
 
   tryCatch(
     if (run.leiden) {
-      temp_dots <-
-        dots[which(grepl("^leiden__", names(dots), ignore.case = T))]
-      names(temp_dots) <-
-        gsub("^leiden__", "", names(temp_dots), ignore.case = T)
-      print(
-        paste0(
-          "Finding clusters with leiden algorithm and parallel::mclapply using ",
-          mc.cores,
-          " cores. Start: ",
-          Sys.time()
-        )
-      )
+      temp_dots <- dots[which(grepl("^leiden__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^leiden__", "", names(temp_dots), ignore.case = T)
+
+      print(paste0("Finding clusters with leiden algorithm and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+
       if (any(grepl("resolution_parameter", names(temp_dots), ignore.case = T))) {
-        temp_dots[["resolution_parameter"]] <-
-          as.numeric(temp_dots[["resolution_parameter"]])
+        temp_dots[["resolution_parameter"]] <- as.numeric(temp_dots[["resolution_parameter"]])
         if (any(is.na(temp_dots[["resolution_parameter"]]))) {
-          warning(
-            "Provide numeric values for leiden__resolution! Non numeric elements are ignored."
-          )
-          temp_dots[["resolution_parameter"]] <-
-            temp_dots[["resolution_parameter"]][which(!is.na(temp_dots[["resolution_parameter"]]))]
+          warning("Provide numeric values for leiden__resolution! Non numeric elements are ignored.")
+          temp_dots[["resolution_parameter"]] <- temp_dots[["resolution_parameter"]][which(!is.na(temp_dots[["resolution_parameter"]]))]
         }
-        clust_idents <-
-          do.call(cbind,
-                  parallel::mclapply(temp_dots[["resolution_parameter"]], function (x) {
-                    do.call(leiden::leiden, args = c(
-                      list(
-                        object = snn$snn,
-                        resolution_parameter = x
-                      ),
-                      temp_dots[which(names(temp_dots) != "resolution_parameter")]
-                    ))
-                  }, mc.cores = mc.cores))
+        clust_idents <- do.call(cbind, parallel::mclapply(temp_dots[["resolution_parameter"]], function(x) {
+          do.call(leiden::leiden, args = c( list(object = snn$snn, resolution_parameter = x), temp_dots[which(names(temp_dots) != "resolution_parameter")]))
+        }, mc.cores = mc.cores))
       } else {
-        clust_idents <-
-          do.call(leiden::leiden, args = c(list(object = snn$snn), temp_dots))
+        clust_idents <- do.call(leiden::leiden, args = c(list(object = snn$snn), temp_dots))
       }
-      colnames(clust_idents) <-
-        paste0("leiden_", temp_dots[["resolution_parameter"]])
-      dim.red.data <-
-        do.call(cbind, list(dim.red.data, clust_idents))
-      print(apply(clust_idents, 2, function(x)
-        length(unique(x))))
+      colnames(clust_idents) <- paste0("leiden_", temp_dots[["resolution_parameter"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
+      print(apply(clust_idents, 2, function(x) length(unique(x))))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.leiden with error")
+    }
   )
-
-  ### work on the 4 below!
 
   tryCatch(
     if (run.kmeans) {
-      print(
-        paste0(
-          "Finding clusters with kmeans andparallel::mclapply using ",
-          mc.cores,
-          " cores. Start: ",
-          Sys.time()
-        )
-      )
-      ks <-
-        do.call(cbind,
-                parallel::mclapply(n_clusters, function(x) {
-                  stats::kmeans(expr.select, centers = x)$cluster
-                }, mc.cores = mc.cores))
-      colnames(ks) <- paste0("kmeans_", n_clusters)
+      temp_dots <- dots[which(grepl("^kmeans__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^kmeans__", "", names(temp_dots), ignore.case = T)
+      print(paste0("Finding clusters with kmeans andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["centers"]], function(x) {
+        do.call(stats::kmeans, args = c(list(x = expr.select, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("kmeans_", temp_dots[["centers"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.kmeans with error")
+    }
   )
 
   tryCatch(
     if (run.hclust) {
+      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       print(paste0("Finding clusters with hclust. Start: ", Sys.time()))
-      h <- stats::hclust(dist(expr.select))
-      ks <-
-        do.call(cbind,
-                parallel::mclapply(n_clusters, function(x) {
-                  stats::cutree(h, k = x)
-                }, mc.cores = mc.cores))
-      colnames(ks) <- paste0("hclust_", n_clusters)
+
+      d <- do.call(stats::dist, args = c(list(x = expr.select), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
+      h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
+        stats::cutree(tree = h, k = x)
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.hclust with error")
+    }
   )
 
   tryCatch(
     if (run.flowClust) {
-      print(
-        paste0(
-          "Finding clusters with flowClust andparallel::mclapply using ",
-          mc.cores,
-          " cores. Start: ",
-          Sys.time()
-        )
-      )
-      ks <-
-        do.call(cbind,
-                parallel::mclapply(n_clusters, function(x) {
-                  flowClust::flowClust(expr.select, K = x)@label
-                }, mc.cores = mc.cores))
-      colnames(ks) <- paste0("flowClust_", n_clusters)
+
+      temp_dots <- dots[which(grepl("^flowClust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^flowClust__", "", names(temp_dots), ignore.case = T)
+
+      print(paste0("Finding clusters with flowClust andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["K"]], function(x) {
+        suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.select, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("flowClust_", temp_dots[["K"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.flowClust with error")
+    }
   )
 
   tryCatch(
     if (run.MUDAN) {
-      print(paste0("Finding clusters with MUDAN.",  Sys.time()))
-      dim.red.data <-
-        do.call(cbind, list(dim.red.data, data.frame(MUDAN = as.numeric(
-          MUDAN::getComMembership(t(expr.select), k = as.numeric(names(run.MUDAN)))
-        ))))
+
+      temp_dots <- dots[which(grepl("^MUDAN__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^MUDAN__", "", names(temp_dots), ignore.case = T)
+
+      print(paste0("Finding clusters with MUDAN.", Sys.time()))
+
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
+        ## documentation is wrong (mat: cells as rows and features as cols!)
+        do.call(MUDAN::getComMembership, args = c(list(mat = expr.select, k = x), temp_dots[which(names(temp_dots) != "k")]))
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("MUDAN_", temp_dots[["k"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       print(paste0("End: ", Sys.time()))
     },
-    error = function(e)
+    error = function(e) {
       print("run.MUDAN with error")
+    }
   )
 
+  ### optionally run MUDAN::clusterBasedBatchCorrect here
+  ## actually though harmony performs something similar with multiple iterations: https://portals.broadinstitute.org/harmony/articles/quickstart.html
+  ## MUDAN advertises harmony: http://htmlpreview.github.io/?https://github.com/immunogenomics/harmony/blob/master/docs/mudan.html
+
   if (!is.logical(run.lda)) {
-    # optimized embedding with LDA, so embedding biased by detected clusters. is that cheating or just the best way to separate cluster on the map?!
+    # optimized embedding with LDA, so embedding biased by detected clusters. is that cheating or just the best dimensions to separate clusters on a map?!
     # https://highdemandskills.com/lda-clustering/
-    ldam <-
-      MASS::lda(com ~ ., data = as.data.frame(cbind(expr.select, com = dim.red.data[, run.lda])))
-    expr.select <-
-      stats::predict(ldam, as.data.frame(cbind(expr.select, com = dim.red.data[, run.lda])))$x
+    ldam <- MASS::lda(com ~ ., data = as.data.frame(cbind(expr.select, com = dim.red.data[, run.lda])))
+    expr.select <- stats::predict(ldam, as.data.frame(cbind(expr.select, com = dim.red.data[, run.lda])))$x
   }
 
 
   if (run.umap) {
-    temp_dots <-
-      dots[which(grepl("^UMAP__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^UMAP__", "", names(temp_dots), ignore.case = T)
+    temp_dots <- dots[which(grepl("^UMAP__", names(dots), ignore.case = T))]
+    names(temp_dots) <-gsub("^UMAP__", "", names(temp_dots), ignore.case = T)
 
     if (!any(grepl("metric", names(temp_dots)), ignore.case = T)) {
       print("UMAP metric set to 'cosine' by default.")
@@ -599,38 +528,23 @@ dr_to_fcs <- function(ff.list,
     }
     print(paste0("Calculating UMAP. Start: ", Sys.time()))
     if (any(grepl("n_neighbors", names(temp_dots), ignore.case = T))) {
-      umap.dims <-
-        do.call(cbind,
-                parallel::mclapply(temp_dots[["n_neighbors"]], function(z) {
-                  out <-
-                    do.call(uwot::umap, args = c(
-                      list(
-                        X = expr.select,
-                        verbose = F,
-                        n_neighbors = z
-                      ),
-                      temp_dots[which(names(temp_dots) != "n_neighbors")]
-                    ))
-                  colnames(out) <-
-                    c(paste0("UMAP_1_", z), paste0("UMAP_2_", z))
-                  return(out)
-                }, mc.cores = mc.cores))
+      umap.dims <- do.call(cbind,parallel::mclapply(temp_dots[["n_neighbors"]], function(z) {
+        out <- do.call(uwot::umap, args = c(list(X = expr.select, verbose = F, n_neighbors = z),temp_dots[which(names(temp_dots) != "n_neighbors")]))
+        colnames(out) <- c(paste0("UMAP_1_", z), paste0("UMAP_2_", z))
+        return(out)
+      }, mc.cores = mc.cores))
     } else {
-      umap.dims <-
-        do.call(uwot::umap, args = c(list(X = expr.select), temp_dots))
+      umap.dims <- do.call(uwot::umap, args = c(list(X = expr.select), temp_dots))
     }
-    if (!any(grepl("n_neighbors", names(temp_dots), ignore.case = T)) ||
-        length(temp_dots[["n_neighbors"]]) == 1) {
+    if (!any(grepl("n_neighbors", names(temp_dots), ignore.case = T)) || length(temp_dots[["n_neighbors"]]) == 1) {
       colnames(umap.dims) <- c("UMAP_1", "UMAP_2")
     }
     print(paste0("End: ", Sys.time()))
   }
 
   if (run.tsne) {
-    temp_dots <-
-      dots[which(grepl("^tSNE__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^tSNE__", "", names(temp_dots), ignore.case = T)
+    temp_dots <- dots[which(grepl("^tSNE__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^tSNE__", "", names(temp_dots), ignore.case = T)
 
     if (run.pca) {
       print("As 'run.pca=T' inital pca in tSNE is not performed.")
@@ -643,28 +557,15 @@ dr_to_fcs <- function(ff.list,
 
     print(paste0("Calculating tSNE. Start: ", Sys.time()))
     if (any(grepl("perplexity", names(temp_dots), ignore.case = T))) {
-      tsne.dims <-
-        do.call(cbind,
-                parallel::mclapply(temp_dots[["perplexity"]], function(z) {
-                  out <-
-                    do.call(Rtsne::Rtsne, args = c(
-                      list(
-                        X = expr.select,
-                        verbose = F,
-                        perplexity = z
-                      ),
-                      temp_dots[which(names(temp_dots) != "perplexity")]
-                    ))$Y
-                  colnames(out) <-
-                    c(paste0("tSNE_1_", z), paste0("tSNE_2_", z))
-                  return(out)
-                }, mc.cores = mc.cores))
+      tsne.dims <- do.call(cbind, parallel::mclapply(temp_dots[["perplexity"]], function(z) {
+        out <- do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = F, perplexity = z), temp_dots[which(names(temp_dots) != "perplexity")]))$Y
+        colnames(out) <- c(paste0("tSNE_1_", z), paste0("tSNE_2_", z))
+        return(out)
+      }, mc.cores = mc.cores))
     } else {
-      tsne.dims <-
-        do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = T), temp_dots))$Y
+      tsne.dims <- do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = T), temp_dots))$Y
     }
-    if (!any(grepl("perplexity", names(temp_dots), ignore.case = T)) ||
-        length(temp_dots[["perplexity"]]) == 1) {
+    if (!any(grepl("perplexity", names(temp_dots), ignore.case = T)) || length(temp_dots[["perplexity"]]) == 1) {
       colnames(tsne.dims) <- c("tSNE_1", "tSNE_2")
     }
     print(paste0("End: ", Sys.time()))
@@ -672,48 +573,33 @@ dr_to_fcs <- function(ff.list,
 
 
   if (run.som) {
-    temp_dots <-
-      dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^SOM__", "", names(temp_dots), ignore.case = T)
-    map <-
-      do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+    temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    map <-do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
 
-    temp_dots <-
-      dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
-    som.dims <-
-      do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
+    temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
+    som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
   }
 
   if (run.gqtsom) {
-    temp_dots <-
-      dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
-    map <-
-      do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
+    temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
 
-    temp_dots <-
-      dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
-    names(temp_dots) <-
-      gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
-    gqtsom.dims <-
-      do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
+    temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
+    gqtsom.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(gqtsom.dims) <- c("GQTSOM_1", "GQTSOM_2")
   }
 
   if (write.scaled.channels.to.FCS) {
-    scaled.expr <-
-      scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {
-        scale.samples(flowCore::exprs(x)[, channels])
-      })))
-    scaled.expr <-
-      scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
-    colnames(scaled.expr) <-
-      paste0(colnames(scaled.expr), "_scaled")
+    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {
+      scale.samples(flowCore::exprs(x)[, channels])
+    })))
+    scaled.expr <- scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
+    colnames(scaled.expr) <- paste0(colnames(scaled.expr), "_scaled")
     dim.red.data <- do.call(cbind, list(dim.red.data, scaled.expr))
   }
 
@@ -747,22 +633,17 @@ dr_to_fcs <- function(ff.list,
   tryCatch(
     if (!missing(add.sample.info)) {
       for (i in names(add.sample.info)) {
-        dim.red.data <-
-          do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(
-            rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))
-          )))))
+        dim.red.data <- do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow)))))))
         names(dim.red.data)[length(dim.red.data)] <- i
       }
     },
-    error = function(e)
-      print(
-        "Addition of sample info failed due to an error. Check add.sample.info."
-      )
+    error = function(e) {
+      print("Addition of sample info failed due to an error. Check add.sample.info.")
+    }
   )
 
   # prepare channel desc
-  name.desc <-
-    setNames(ff.list[[1]][[1]]@parameters@data[["desc"]], ff.list[[1]][[1]]@parameters@data[["name"]])
+  name.desc <- setNames(ff.list[[1]][[1]]@parameters@data[["desc"]], ff.list[[1]][[1]]@parameters@data[["name"]])
   name.desc <- name.desc[which(!is.na(name.desc))]
   channel.desc <- rep("", ncol(dim.red.data))
   for (i in seq_along(name.desc)) {
@@ -795,57 +676,25 @@ dr_to_fcs <- function(ff.list,
     flowCore::pData(new_pars)$desc[new_p_number] <- new_p_desc
 
     new_kw["$PAR"] <- as.character(new_p_number)
-    new_kw[paste0("$P", as.character(new_p_number), "N")] <-
-      new_p_name
-    new_kw[paste0("$P", as.character(new_p_number), "S")] <-
-      new_p_desc
+    new_kw[paste0("$P", as.character(new_p_number), "N")] <- new_p_name
+    new_kw[paste0("$P", as.character(new_p_number), "S")] <- new_p_desc
     new_kw[paste0("$P", as.character(new_p_number), "E")] <- "0,0"
     new_kw[paste0("$P", as.character(new_p_number), "G")] <- "1"
-    new_kw[paste0("$P", as.character(new_p_number), "B")] <-
-      new_kw["$P1B"]
-    new_kw[paste0("$P", as.character(new_p_number), "R")] <-
-      max(dim.red.data[, z])
-    new_kw[paste0("$P", as.character(new_p_number), "DISPLAY")] <-
-      "LIN"
-    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmin")] <-
-      min(dim.red.data[, z])
-    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmax")] <-
-      max(dim.red.data[, z])
+    new_kw[paste0("$P", as.character(new_p_number), "B")] <- new_kw["$P1B"]
+    new_kw[paste0("$P", as.character(new_p_number), "R")] <- max(dim.red.data[, z])
+    new_kw[paste0("$P", as.character(new_p_number), "DISPLAY")] <- "LIN"
+    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmin")] <- min(dim.red.data[, z])
+    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmax")] <- max(dim.red.data[, z])
   }
-  ff <-
-    methods::new(
-      "flowFrame",
-      exprs = as.matrix(dim.red.data),
-      parameters = new_pars,
-      description = new_kw
-    )
+  ff <- methods::new("flowFrame", exprs = as.matrix(dim.red.data), parameters = new_pars, description = new_kw)
 
-  '
-  metadata <- data.frame(name = colnames(dim.red.data), desc = channel.desc, stringsAsFactors = F)
-  metadata$minRange <- apply(dim.red.data,2,min)
-  metadata$maxRange <- apply(dim.red.data,2,max)
-
-  # add meta data to flowFrame (FCS)
-  flowFrame.description <- list(channels = paste(channels, collapse = ", "), sample.idents = paste(as.character(1:length(ff.list[["logicle"]])), collapse = ","))
-  ff <- new("flowFrame", exprs = as.matrix(dim.red.data), parameters = Biobase::AnnotatedDataFrame(metadata), description = flowFrame.description) # exprs must be a matrix
-'
   # save results
-
   if (!is.null(save.path) && !is.na(save.path)) {
     print("Writing files to disk.")
-    t <-
-      format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"),
-             "%Y%m%d_%H%M%S")
+    t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
     dir.create(save.path, showWarnings = F)
     if ("rds" %in% save.to.disk) {
-      saveRDS(
-        list(
-          table = dim.red.data,
-          flowframe = ff,
-          pca = pca.result
-        ),
-        file.path(save.path, paste0(t, "_dr_ff_list.rds"))
-      )
+      saveRDS(list(table = dim.red.data, flowframe = ff, pca = pca.result), file.path(save.path, paste0(t, "_dr_ff_list.rds")))
     }
     if ("fcs" %in% save.to.disk) {
       flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))

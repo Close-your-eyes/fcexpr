@@ -52,7 +52,8 @@ e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2
 \item{scale.samples}{if and how to scale channels of flowframes in ff.list individually before concatenation}
 
 \item{run.harmony}{attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
-is conducted before run.pca}
+harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npca. Set run.pca = F
+when a pca is calculated in harmony.}
 
 \item{run.pca}{run principle component analysis before dimension reduction (after optional run.harmony)}
 
@@ -107,11 +108,12 @@ may be unintended and are hence retain; set check.channels = F to avoid that (no
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
 
-\item{...}{additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony;
+\item{...}{additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
 provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 see respected help files to get to know which arguments can be passed:
-uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix,
-louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.}
+uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
+louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
+hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans}
 }
 \value{
 
