@@ -318,6 +318,7 @@ dr_to_fcs <- function(ff.list,
   # if harmony is run with do_pca = T a subsequent pca should not be computed
   if (run.harmony) {
     # https://portals.broadinstitute.org/harmony/articles/quickstart.html
+    # https://portals.broadinstitute.org/harmony/advanced.html
     temp_dots <- dots[which(grepl("^harmony__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^harmony__", "", names(temp_dots), ignore.case = T)
     if (!any(grepl("do_pca", names(temp_dots)), ignore.case = T)) {
