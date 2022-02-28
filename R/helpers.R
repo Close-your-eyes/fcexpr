@@ -189,8 +189,13 @@ get_inds <- function(x) {
   } else {
     path <- x$FCS.file.folder
   }
-
-  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp), name = x$group, path = path, subset = `$FIL` == x$FIL, truncate_max_range = F, keywords = "$FIL")
+  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
+                                    name = x$group,
+                                    path = path,
+                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
+                                    truncate_max_range = F,
+                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"),
+                                    additional.keys = c("$TOT", "$BEGINDATA"))
   ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
   attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
   attr(ind_mat, "ws") <- x$wsp
@@ -224,10 +229,10 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,
-                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, #&& `$TOT` == x$TOT, #&& `$BEGINDATA` == x$BEGINDATA
+                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
                                     truncate_max_range = F,
-                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"), # , "$BEGINDATA"
-                                    additional.keys = c("$TOT", "$BEGINDATA")) # "$BEGINDATA"
+                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"),
+                                    additional.keys = c("$TOT", "$BEGINDATA"))
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
