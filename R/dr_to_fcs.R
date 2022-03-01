@@ -706,9 +706,9 @@ dr_to_fcs <- function(ff.list,
 
   # get cluster markers
   ## always used logicle transformed data?!?!
-  marker <- lapply(calc.cluster.markers, function(clust_col) {
-    dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(colnames(expr.select), "_logicle")), which(colnames(dim.red.data) == clust_col))]
-
+  marker <- lapply(calc.cluster.markers, function (clust_col) {
+    # do not use expr.select which may have become dimenions of LDA
+    dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, "_logicle")), which(colnames(dim.red.data) == clust_col))]
     split_var <- dat[,clust_col]
     split_var_levels <- sort(unique(split_var))
     ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
