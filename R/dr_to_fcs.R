@@ -359,7 +359,6 @@ dr_to_fcs <- function(ff.list,
     print(paste0("Done. ", Sys.time()))
   }
 
-
   # find communities (clusters)
   tryCatch(
     if (run.louvain || run.leiden) {
@@ -373,7 +372,7 @@ dr_to_fcs <- function(ff.list,
       print(paste0("Calculating snn for louvain and/or leiden. Start: ", Sys.time()))
       rownames(expr.select) <- 1:nrow(expr.select)
       # Seurat::FindNeighbors ignores all 'wrong' arguments; suppress the warnings though
-      snn <- suppressMessages(suppressWarnings(do.call( Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots))))
+      snn <- suppressMessages(suppressWarnings(do.call(Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots))))
       print(paste0("End: ", Sys.time()))
     },
     error = function(e) {
@@ -394,7 +393,7 @@ dr_to_fcs <- function(ff.list,
           warning("Provide numeric values for louvain__resolution! Non numeric elements are ignored.")
           temp_dots[["resolution"]] <-temp_dots[["resolution"]][which(!is.na(temp_dots[["resolution"]]))]
         }
-        clust_idents <-do.call(cbind,parallel::mclapply(temp_dots[["resolution"]], function(x) {
+        clust_idents <- do.call(cbind,parallel::mclapply(temp_dots[["resolution"]], function(x) {
           apply(do.call(Seurat::FindClusters, args = c(list(object = snn$snn, resolution = x, verbose = F, algorithm = 1), temp_dots[which(names(temp_dots) != "resolution")])), 2, as.numeric)
         }, mc.cores = mc.cores))
       } else {
