@@ -2,7 +2,7 @@
 % Please edit documentation in R/dr_to_fcs.R
 \name{dr_to_fcs}
 \alias{dr_to_fcs}
-\title{Title}
+\title{Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concanetated fcs file)}
 \usage{
 dr_to_fcs(
   ff.list,
@@ -24,15 +24,15 @@ dr_to_fcs(
   run.flowClust = F,
   run.MUDAN = F,
   n.pca.dims = 0,
-  n_clusters = c(5:10),
+  calc.cluster.markers = NULL,
   extra.cols,
   mc.cores = 1,
   save.to.disk = c("fcs", "rds"),
   save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-  exclude.extra.channels = "FSC|SSC|Time|cluster.id",
+  exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle",
+    "cluster.id", "FSC|SSC|Time|cluster.id"),
   write.scaled.channels.to.FCS = T,
-  check.channels = T,
   timeChannel = "Time",
   ...
 )
@@ -41,7 +41,7 @@ dr_to_fcs(
 \item{ff.list}{a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
 as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)}
 
-\item{channels}{a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7)
+\item{channels}{a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7 for example)
 names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used}
 
 \item{add.sample.info}{named list of additional channels to identify samples or group them in flowjo;
@@ -51,11 +51,12 @@ e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2
 
 \item{scale.samples}{if and how to scale channels of flowframes in ff.list individually before concatenation}
 
-\item{run.harmony}{attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
-harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npca. Set run.pca = F
+\item{run.harmony}{attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
+harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
 when a pca is calculated in harmony.}
 
-\item{run.pca}{run principle component analysis before dimension reduction (after optional run.harmony)}
+\item{run.pca}{run principle component analysis before dimension reduction. may not be necessary when less than 10 or so are provided in channels.
+on the other hand if you decide to pass all channels (including those without any actual staining), then pca will focus on the ones with highest variances.}
 
 \item{run.lda}{run Linear Discriminant Analysis before dimension reduction;
 should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
@@ -71,13 +72,13 @@ has to be provided in ...}
 
 \item{run.louvain}{detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
 
-\item{run.kmeans}{detect n_clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!}
+\item{run.kmeans}{detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!}
 
 \item{run.leiden}{detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
 
-\item{run.hclust}{detect n_clusters with stats::hclust and stats::cutree}
+\item{run.hclust}{detect clusters with stats::dist, stats::hclust and stats::cutree}
 
-\item{run.flowClust}{detect n_clusters with flowClust::flowClust}
+\item{run.flowClust}{detect clusters with flowClust::flowClust}
 
 \item{run.MUDAN}{detect clusters with MUDAN::getComMembership (k = as.numeric(names(run.MUDAN))); e.g. run.MUDAN = setNames(TRUE, 8)}
 
@@ -85,7 +86,10 @@ has to be provided in ...}
 e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
 and simply select all available channels, PCA will select the most relevant number of dimensions for you}
 
-\item{n_clusters}{number of clusters to expect; used for run.kmeans, run.hclust, run.flowClust}
+\item{calc.cluster.markers}{if NULL nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
+using matrixStats::col_wilcoxon_twosample every cluster is compared to all other cells as well as all clusters pairwise.
+respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
+and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).}
 
 \item{extra.cols}{vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
 has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
@@ -97,13 +101,10 @@ channel names in the FCS file}
 
 \item{save.path}{where to save elements specified in save.to.disk; set to NULL to have nothing written to disk}
 
-\item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be completely redundant
+\item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be redundant
 and will only occupy disk space, those are specified here; matched with grepl}
 
 \item{write.scaled.channels.to.FCS}{do save scaled channels (scale.whole, scale.samples) to FCS file}
-
-\item{check.channels}{logical, when only logicle-transformed flowframes are provided in ff.list, some values from exclude.extra.channels
-may be unintended and are hence retain; set check.channels = F to avoid that (not so important overall)}
 
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
@@ -119,5 +120,51 @@ hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::km
 
 }
 \description{
+Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concanetated fcs file)
+}
+\details{
 logicle trans: 2006 - Parks_A New Logicle Display Method Avoids Deceptive Effects of Logarithmic Scaling for Low Signals and Compensated Data
+}
+\examples{
+
+########################################
+### Plot cluster markers with ggplot ###
+########################################
+dr <- fcexpr::dr_to_fcs(ff.list = ffs,
+channels = channels,
+louvain__resolution = 0.5,
+run.lda = "louvain_0.5",
+calc.cluster.markers = c("louvain_0.5"),
+save.path = NULL)
+marker <- dr[[3]][[1]][[1]]
+marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)
+marker <-
+ marker \%>\%
+ dplyr::mutate(pvalue = ifelse(pvalue == 0, 1e-300, marker$pvalue))
+dplyr::group_by(channel_desc2) \%>\%
+ dplyr::mutate(mean_scaled = fcexpr:::min.max.normalization(mean))
+ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = -log10(pvalue))) +
+ geom_tile(color = "black") +
+ theme_bw() +
+ geom_text(aes(label = diff_sign)) +
+ scale_fill_viridis_c()
+ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_diff)) +
+ geom_tile(color = "black") +
+ theme_bw() +
+ geom_text(aes(label = diff_sign)) +
+ scale_fill_viridis_c()
+ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_scaled)) +
+ geom_tile(color = "black") +
+ theme_bw() +
+ scale_fill_viridis_c()
+ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + #color = channel_desc2,
+ geom_point() +
+ theme_bw() +
+ labs(title = "cluster markers (vs all other cells each)") +
+ ggrepel::geom_text_repel(max.overlaps = 20, show.legend = F) +
+ theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x = element_blank(), strip.background = element_rect(fill = "hotpink2")) +
+ geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
+ geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
+ facet_wrap(vars(cluster))
+
 }

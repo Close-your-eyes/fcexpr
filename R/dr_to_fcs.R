@@ -1,20 +1,23 @@
-#' Title
+#' Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concanetated fcs file)
+#'
+#'
 #'
 #'
 #'  logicle trans: 2006 - Parks_A New Logicle Display Method Avoids Deceptive Effects of Logarithmic Scaling for Low Signals and Compensated Data
 #'
 #' @param ff.list a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
 #' as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)
-#' @param channels a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7)
+#' @param channels a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7 for example)
 #' names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used
 #' @param add.sample.info named list of additional channels to identify samples or group them in flowjo;
 #' e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))
 #' @param scale.whole if and how to scale channels after concatenation of flowframes in ff.list
 #' @param scale.samples if and how to scale channels of flowframes in ff.list individually before concatenation
-#' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided indicating the groups to be batch corrected;
-#' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npca. Set run.pca = F
+#' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
+#' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
 #' when a pca is calculated in harmony.
-#' @param run.pca run principle component analysis before dimension reduction (after optional run.harmony)
+#' @param run.pca run principle component analysis before dimension reduction. may not be necessary when less than 10 or so are provided in channels.
+#' on the other hand if you decide to pass all channels (including those without any actual staining), then pca will focus on the ones with highest variances.
 #' @param n.pca.dims number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
 #' e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
 #' and simply select all available channels, PCA will select the most relevant number of dimensions for you
@@ -34,18 +37,16 @@
 #' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
 #' has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
 #' channel names in the FCS file
-#' @param calc.cluster.markers if NULL, nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
+#' @param calc.cluster.markers if NULL nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
 #' using matrixStats::col_wilcoxon_twosample every cluster is compared to all other cells as well as all clusters pairwise.
-#' respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided, calc.cluster.markers = louvain_0.5;
-#' and if in addtion leiden__resolution_parameter = 0.7, then calc.cluster.markers = c(louvain_0.5, leiden_0.7).
+#' respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
+#' and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).
 #' @param mc.cores mc.cores to calculate clusterings, limited to parallel::detectCores()-1
 #' @param save.to.disk what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list
 #' @param save.path where to save elements specified in save.to.disk; set to NULL to have nothing written to disk
-#' @param exclude.extra.channels when scaled and transform channels are written to FCS file, some channels may be completely redundant
+#' @param exclude.extra.channels when scaled and transform channels are written to FCS file, some channels may be redundant
 #' and will only occupy disk space, those are specified here; matched with grepl
 #' @param write.scaled.channels.to.FCS do save scaled channels (scale.whole, scale.samples) to FCS file
-#' @param check.channels logical, when only logicle-transformed flowframes are provided in ff.list, some values from exclude.extra.channels
-#' may be unintended and are hence retain; set check.channels = F to avoid that (not so important overall)
 #' @param timeChannel name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 #' to be detected automatically
 #' @param ... additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
@@ -58,7 +59,54 @@
 #' @return
 #' @export
 #'
+#' @importFrom magrittr "%>%"
+#'
 #' @examples
+#'\dontrun{
+#'########################################
+#'### Plot cluster markers with ggplot ###
+#'########################################
+#' dr <- fcexpr::dr_to_fcs(ff.list = ffs,
+#' channels = channels,
+#' louvain__resolution = 0.5,
+#' run.lda = "louvain_0.5",
+#' calc.cluster.markers = c("louvain_0.5"),
+#' save.path = NULL)
+#' marker <- dr[[3]][[1]][[1]]
+#'marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)
+#'marker <-
+#'  marker %>%
+#'  dplyr::mutate(pvalue = ifelse(pvalue == 0, 1e-300, marker$pvalue))
+#'dplyr::group_by(channel_desc2) %>%
+#'  dplyr::mutate(mean_scaled = fcexpr:::min.max.normalization(mean))
+
+#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = -log10(pvalue))) +
+#'  geom_tile(color = "black") +
+#'  theme_bw() +
+#'  geom_text(aes(label = diff_sign)) +
+#'  scale_fill_viridis_c()
+
+#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_diff)) +
+#'  geom_tile(color = "black") +
+#'  theme_bw() +
+#'  geom_text(aes(label = diff_sign)) +
+#'  scale_fill_viridis_c()
+
+#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_scaled)) +
+#'  geom_tile(color = "black") +
+#'  theme_bw() +
+#'  scale_fill_viridis_c()
+
+#'ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + #color = channel_desc2,
+#'  geom_point() +
+#'  theme_bw() +
+#'  labs(title = "cluster markers (vs all other cells each)") +
+#'  ggrepel::geom_text_repel(max.overlaps = 20, show.legend = F) +
+#'  theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x = element_blank(), strip.background = element_rect(fill = "hotpink2")) +
+#'  geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
+#'  geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
+#'  facet_wrap(vars(cluster))
+#'}
 dr_to_fcs <- function(ff.list,
                       channels = NULL,
                       add.sample.info,
@@ -83,9 +131,8 @@ dr_to_fcs <- function(ff.list,
                       mc.cores = 1,
                       save.to.disk = c("fcs", "rds"),
                       save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-                      exclude.extra.channels = "FSC|SSC|Time|cluster.id",
+                      exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle", "cluster.id", "FSC|SSC|Time|cluster.id"),
                       write.scaled.channels.to.FCS = T,
-                      check.channels = T,
                       timeChannel = "Time",
                       ...) {
   # batch effect correction: https://cytekbio.com/blogs/blog/how-to-identify-and-prevent-batch-effects-in-longitudinal-flow-cytometry-research-studies
@@ -227,13 +274,6 @@ dr_to_fcs <- function(ff.list,
 
   if (!is.null(save.to.disk)) {
     save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
-  }
-
-  if (length(ff.list) == 1 && names(ff.list) == "logicle" && check.channels) {
-    print("ff.list only contains logicle. FSC and SSC and Time are removed from exclude.extra.channels. If not desired like this, set check.channels = F.")
-    exclude.extra.channels <- gsub("FSC\\|", "", exclude.extra.channels)
-    exclude.extra.channels <- gsub("SSC\\|", "", exclude.extra.channels)
-    exclude.extra.channels <- gsub("Time\\|", "", exclude.extra.channels)
   }
 
   mc.cores <- min(mc.cores, parallel::detectCores() - 1)
