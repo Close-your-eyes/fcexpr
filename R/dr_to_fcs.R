@@ -27,14 +27,17 @@
 #' @param run.gqtsom calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
 #' @param run.louvain detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.leiden detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
-#' @param run.kmeans detect n_clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!
-#' @param run.hclust detect n_clusters with stats::hclust and stats::cutree
-#' @param run.flowClust detect n_clusters with flowClust::flowClust
+#' @param run.kmeans detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!
+#' @param run.hclust detect clusters with stats::dist, stats::hclust and stats::cutree
+#' @param run.flowClust detect clusters with flowClust::flowClust
 #' @param run.MUDAN detect clusters with MUDAN::getComMembership (k = as.numeric(names(run.MUDAN))); e.g. run.MUDAN = setNames(TRUE, 8)
-#' @param n_clusters number of clusters to expect; used for run.kmeans, run.hclust, run.flowClust
 #' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
 #' has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
 #' channel names in the FCS file
+#' @param calc.cluster.markers if NULL, nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
+#' using matrixStats::col_wilcoxon_twosample every cluster is compared to all other cells as well as all clusters pairwise.
+#' respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided, calc.cluster.markers = louvain_0.5;
+#' and if in addtion leiden__resolution_parameter = 0.7, then calc.cluster.markers = c(louvain_0.5, leiden_0.7).
 #' @param mc.cores mc.cores to calculate clusterings, limited to parallel::detectCores()-1
 #' @param save.to.disk what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list
 #' @param save.path where to save elements specified in save.to.disk; set to NULL to have nothing written to disk
@@ -75,13 +78,11 @@ dr_to_fcs <- function(ff.list,
                       run.flowClust = F,
                       run.MUDAN = F,
                       n.pca.dims = 0,
-                      n_clusters = c(5:10),
+                      calc.cluster.markers = NULL,
                       extra.cols,
                       mc.cores = 1,
                       save.to.disk = c("fcs", "rds"),
-                      save.path = file.path(getwd(), paste0(substr(gsub(
-                        "\\.", "", make.names(as.character(Sys.time()))
-                      ), 2, 15), "_FCS_dr")),
+                      save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
                       exclude.extra.channels = "FSC|SSC|Time|cluster.id",
                       write.scaled.channels.to.FCS = T,
                       check.channels = T,
@@ -187,6 +188,14 @@ dr_to_fcs <- function(ff.list,
     stop("When 'run.kmeans = T' kmeans__centers, has to be provided in ..., see ?stats::kmeans")
   }
 
+  if (run.louvain && !any(grepl("^louvain__resolution", names(dots)))) {
+    stop("When 'run.louvain = T' louvain__resolution, has to be provided in ..., see ?Seurat::FindClusters")
+  }
+
+  if (run.leiden && !any(grepl("^leiden__resolution_parameter", names(dots)))) {
+    stop("When 'run.leiden = T' leiden__resolution_parameter, has to be provided in ..., see ?leiden::leiden")
+  }
+
   if (n.pca.dims < 0) {
     run.pca <- F
   }
@@ -210,10 +219,15 @@ dr_to_fcs <- function(ff.list,
     warning("harmony is calculated with do_pca = T, hence a subsequnt pca (run.pca = T) is not required. Consider setting run.pca to FALSE.")
   }
 
+  if (!is.null(calc.cluster.markers)) {
+    if (!any(calc.cluster.markers %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots))) {
+      stop("calc.cluster.markers: ", calc.cluster.markers[which(!calc.cluster.markers %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots))], " not found in ... .")
+    }
+  }
+
   if (!is.null(save.to.disk)) {
     save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
   }
-
 
   if (length(ff.list) == 1 && names(ff.list) == "logicle" && check.channels) {
     print("ff.list only contains logicle. FSC and SSC and Time are removed from exclude.extra.channels. If not desired like this, set check.channels = F.")
@@ -660,6 +674,7 @@ dr_to_fcs <- function(ff.list,
   channel.desc_augment[which(channel.desc_augment == "")] <-
     colnames(dim.red.data)[which(channel.desc_augment == "")]
   channel.desc_augment <- make.names(channel.desc_augment)
+  names(channel.desc_augment) <- colnames(dim.red.data)
 
   # write FCS file
   new_p <- flowCore::parameters(ff.list[[1]][[1]])[1, ]
@@ -689,6 +704,66 @@ dr_to_fcs <- function(ff.list,
   }
   ff <- methods::new("flowFrame", exprs = as.matrix(dim.red.data), parameters = new_pars, description = new_kw)
 
+  # get cluster markers
+  ## always used logicle transformed data?!?!
+  marker <- lapply(calc.cluster.markers, function(clust_col) {
+    dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(colnames(expr.select), "_logicle")), which(colnames(dim.red.data) == clust_col))]
+
+    split_var <- dat[,clust_col]
+    split_var_levels <- sort(unique(split_var))
+    ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
+    dat_split <- split(dat, split_var)
+    dat <- as.matrix(dat)
+    dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col)]))
+    all_pairs <- combn(split_var_levels, 2, simplify = F)
+
+    ## all pairwise
+    pair_marker_table <- dplyr::bind_rows(lapply(all_pairs, function(x) {
+      out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
+      out[,"mean_1"] <- matrixStats::colMeans2(dat_split[[as.character(x[1])]])
+      out[,"mean_2"] <- matrixStats::colMeans2(dat_split[[as.character(x[2])]])
+      out[,"mean_diff"] <- out[,"mean_1"] - out[,"mean_2"]
+      out[,"diptest_p_1"] <- apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]])
+      out[,"diptest_p_2"] <- apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]])
+      out <- tibble::rownames_to_column(out, "channel")
+      out[,"cluster_1"] <- x[1]
+      out[,"cluster_2"] <- x[2]
+      out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+      out <- dplyr::select(out, channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_p_1, diptest_p_2)
+      out <- dplyr::arrange(out, pvalue)
+      return(out)
+    }))
+    pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
+
+    marker_table <- dplyr::bind_rows(lapply(split_var_levels, function(x) {
+      y <- dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)]
+      z <- dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)]
+      out <- matrixTests::col_wilcoxon_twosample(y, z)
+      out[,"mean"] <- round(matrixStats::colMeans2(y), 2)
+      out[,"mean_not"] <- round(matrixStats::colMeans2(z), 2)
+      out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
+      out[,"diptest_p"] <- round(apply(y, 2, function(x) diptest::dip.test(x)[["p.value"]]), 2)
+      out[,"diptest_not_p"] <- round(apply(z, 2, function(x) diptest::dip.test(x)[["p.value"]]), 2)
+      out <- tibble::rownames_to_column(out, "channel")
+      out[,"cluster"] <- x
+      out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+      out <- dplyr::select(out, channel, cluster, pvalue, mean, mean_not, mean_diff, diff_sign, diptest_p, diptest_not_p)
+      out <- dplyr::arrange(out, pvalue)
+      return(out)
+    }))
+    marker_table[,"channel_desc"] <- channel.desc_augment[marker_table[,"channel"]]
+    return(list(marker_table = marker_table, pairwise_marker_table = pair_marker_table))
+  })
+  names(marker) <- calc.cluster.markers
+
+  ## find out which contrasts are marked by a channel
+  #xxx <- dplyr::filter(pair_marker_table, mean_diff > 0) %>% dplyr::group_by(channel, cluster) %>% dplyr::slice_min(pvalue, n = 3)
+  ## group by cluster to find cluster markers
+  #yyy <- dplyr::filter(marker_table, mean_diff > 0) %>% dplyr::group_by(cluster) %>% dplyr::slice_min(pvalue, n = 3)
+  ## group by channel to find out which clusters they indicate
+  #zzz <- dplyr::filter(marker_table, mean_diff > 0) %>% dplyr::group_by(channel) %>% dplyr::slice_min(pvalue, n = 3)
+
+
   # save results
   if (!is.null(save.path) && !is.na(save.path)) {
     print("Writing files to disk.")
@@ -701,5 +776,5 @@ dr_to_fcs <- function(ff.list,
       flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))
     }
   }
-  return(list(df = dim.red.data, col_names = channel.desc_augment))
+  return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker))
 }
