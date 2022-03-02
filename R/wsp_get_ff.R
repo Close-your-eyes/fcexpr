@@ -100,5 +100,5 @@ wsp_get_ff <- function(wsp,
   inds <- sapply(ff.list, "[", 2)
   names(inds) <- smpl$FileName
 
-  return(list(ffs, inds))
+  return(list(flowFrams = ffs, indices = inds))
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/dr_to_fcs.R
 \name{dr_to_fcs}
 \alias{dr_to_fcs}
-\title{Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concanetated fcs file)}
+\title{Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concatenated fcs file)}
 \usage{
 dr_to_fcs(
   ff.list,
@@ -109,7 +109,7 @@ and will only occupy disk space, those are specified here; matched with grepl}
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
 
-\item{...}{additional parameters to calculations of UMAP, tSNE, som, gqtsom, EmbedSOM, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
+\item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
 provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 see respected help files to get to know which arguments can be passed:
 uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
@@ -120,13 +120,17 @@ hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::km
 
 }
 \description{
-Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concanetated fcs file)
+Prepare a list of flowframes with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
+The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is what you see in flowjo).
+For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation and additional scaling operations (scale.whole, scale.samples)
+may be written to resulting (concatenated) fcs file for manual inspection in flowjo.
 }
 \details{
-logicle trans: 2006 - Parks_A New Logicle Display Method Avoids Deceptive Effects of Logarithmic Scaling for Low Signals and Compensated Data
+Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
+Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
 }
 \examples{
-
+\dontrun{
 ########################################
 ### Plot cluster markers with ggplot ###
 ########################################
@@ -166,5 +170,5 @@ ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + 
  geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
  geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
  facet_wrap(vars(cluster))
-
+}
 }
