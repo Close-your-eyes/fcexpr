@@ -67,9 +67,9 @@
 #'
 #' @examples
 #'\dontrun{
-#'########################################
-#'### Plot cluster markers with ggplot ###
-#'########################################
+#'############################
+#'### Plot cluster markers ###
+#'############################
 #' dr <- fcexpr::dr_to_fcs(ff.list = ffs,
 #' channels = channels,
 #' louvain__resolution = 0.5,
@@ -110,6 +110,22 @@
 #'  geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
 #'  geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
 #'  facet_wrap(vars(cluster))
+#'
+#'  ##############################################
+#'  ### find clusters which may be subject #######
+#'  ### to bi- or multimodality in any channel ###
+#'  ##############################################
+#'  # make one data frame
+#'  marker_all <- dplyr::bind_rows(lapply(names(dr[["marker"]]), function(x) dplyr::mutate(dr[["marker"]][[x]][["marker_table"]], clustering = x)))
+#'
+#'  # sort by diptest p value; or low p indicates bi- or multimodality
+#'  marker_all <- dplyr::arrange(marker_all, diptest_p)
+#'  # see ?diptest::dip.test
+#'  # multimodality indicates heterogeneity within in the cluster
+#'  # and may justify to seperate that cluster further into sub-clusters
+#'  # this depends on the interpretation of the scientist though
+#'
+#'
 #'}
 dr_to_fcs <- function(ff.list,
                       channels = NULL,
@@ -122,9 +138,9 @@ dr_to_fcs <- function(ff.list,
                       run.umap = T,
                       run.tsne = F,
                       run.som = T,
-                      run.gqtsom = T,
-                      run.louvain = T,
-                      run.kmeans = F,
+                      run.gqtsom = F,
+                      run.louvain = F,
+                      run.kmeans = T,
                       run.leiden = F,
                       run.hclust = F,
                       run.flowClust = F,
@@ -144,7 +160,7 @@ dr_to_fcs <- function(ff.list,
   # check somewhen: https://github.com/casanova-lab/iMUBAC
   # harmony: https://github.com/immunogenomics/harmony
   # MUDAN: https://github.com/JEFworks/MUDAN
-
+  options(warn = 1)
 
   ### to do:
   # add: MUDAN::clusterBasedBatchCorrect
@@ -202,16 +218,17 @@ dr_to_fcs <- function(ff.list,
   }
 
   dots <- list(...)
+  dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
 
   if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
     stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed)
          and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")
   }
 
+  # check if names in ff.list inverse and logicle are the same
   if (length(unique(lengths(ff.list))) != 1) {
     stop("number of flowframes in inverse and logicle has to be equal.")
   }
-  # check if names in ff.list inverse and logicle are the same
 
   for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony")) {
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
@@ -251,8 +268,8 @@ dr_to_fcs <- function(ff.list,
     run.pca <- F
   }
 
-  if (run.pca && run.lda) {
-    stop("run.pca = T and run.lda = T at the same time is not possible.")
+  if (run.pca && !is.logical(run.lda)) {
+    stop("run.pca and run.lda at the same time is not possible. Set at least one to F.")
   }
 
   if (is.logical(run.lda) && run.lda) {
@@ -261,8 +278,11 @@ dr_to_fcs <- function(ff.list,
 
   if (!is_logical(run.lda)) {
     # clustering columns need to follow the pattern name_resolution.
-    if (!run.lda %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots)) {
+    if (!run.lda %in% dots_expanded) {
       stop("Value for run.lda not found in ... . They respective clustering to use for lda has to be computed! E.g. if run.lda = 'louvain_0.9' then louvain__resolution = 0.9 has to be passed.")
+    }
+    if (length(run.lda) > 1) {
+      stop("run.lda must be of length 1. So, it should only indicate one clustering, e.g. kmeans_9.")
     }
   }
 
@@ -271,8 +291,8 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (!is.null(calc.cluster.markers)) {
-    if (!any(calc.cluster.markers %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots))) {
-      stop("calc.cluster.markers: ", calc.cluster.markers[which(!calc.cluster.markers %in% paste0(sapply(strsplit(names(dots), "__"), "[", 1), "_", dots))], " not found in ... .")
+    if (!any(calc.cluster.markers %in% dots_expanded)) {
+      stop("calc.cluster.markers: ", calc.cluster.markers[which(!calc.cluster.markers %in% dots_expanded)], " not found in ... .")
     }
   }
 
@@ -361,6 +381,7 @@ dr_to_fcs <- function(ff.list,
   } else {
     dim.red.data <- do.call(cbind, list(expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
   }
+
 
   ## apply scaling which was selected above and select channels to use for dimension reduction.
   expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
@@ -488,7 +509,7 @@ dr_to_fcs <- function(ff.list,
     if (run.kmeans) {
       temp_dots <- dots[which(grepl("^kmeans__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^kmeans__", "", names(temp_dots), ignore.case = T)
-      print(paste0("Finding clusters with kmeans andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      print(paste0("Finding clusters with kmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["centers"]], function(x) {
         do.call(stats::kmeans, args = c(list(x = expr.select, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
@@ -530,7 +551,7 @@ dr_to_fcs <- function(ff.list,
       temp_dots <- dots[which(grepl("^flowClust__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^flowClust__", "", names(temp_dots), ignore.case = T)
 
-      print(paste0("Finding clusters with flowClust andparallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      print(paste0("Finding clusters with flowClust and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["K"]], function(x) {
         suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.select, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
       }, mc.cores = mc.cores))
@@ -713,21 +734,22 @@ dr_to_fcs <- function(ff.list,
   name.desc <- setNames(ff.list[[1]][[1]]@parameters@data[["desc"]], ff.list[[1]][[1]]@parameters@data[["name"]])
   name.desc <- name.desc[which(!is.na(name.desc))]
   channel.desc <- rep("", ncol(dim.red.data))
+
   for (i in seq_along(name.desc)) {
     channel.desc[grep(names(name.desc)[i], colnames(dim.red.data))] <- name.desc[i]
   }
 
+
   channel.desc_augment <- channel.desc
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))] <-
-    paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))], "_scaled")
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))] <-
-    paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))], "_logicle")
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))], "_scaled")
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))], "_logicle")
+
   channel.desc_augment[which(channel.desc_augment == "")] <- colnames(dim.red.data)[which(channel.desc_augment == "")]
   channel.desc_augment <- make.names(channel.desc_augment)
   names(channel.desc_augment) <- colnames(dim.red.data)
 
   # write FCS file
-  new_p <- flowCore::parameters(ff.list[[1]][[1]])[1, ]
+  new_p <- flowCore::parameters(ff.list[[1]][[1]])[1,]
   new_kw <- flowCore::keyword(ff.list[[1]][[1]])
   new_pars <- flowCore::parameters(ff.list[[1]][[1]])
 
@@ -756,6 +778,7 @@ dr_to_fcs <- function(ff.list,
 
   # get cluster markers
   ## always used logicle transformed data?!?!
+  print("Calculating markers.")
   marker <- lapply(calc.cluster.markers, function (clust_col) {
     # do not use expr.select which may have become dimenions of LDA
     dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, "_logicle")), which(colnames(dim.red.data) == clust_col))]
@@ -770,16 +793,25 @@ dr_to_fcs <- function(ff.list,
     ## all pairwise
     pair_marker_table <- dplyr::bind_rows(lapply(all_pairs, function(x) {
       #out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
-      p <- lapply(seq_along(colnames(dat_split[[as.character(x[1])]])), function(k) wilcox.test(dat_split[[as.character(x[1])]][,k], dat_split[[as.character(x[2])]][,k])[["p.value"]])
+      out <-
+        presto::wilcoxauc(cbind(t(dat_split[[as.character(x[1])]]),t(dat_split[[as.character(x[2])]])), c(rep("y", nrow(dat_split[[as.character(x[1])]])), rep("z", nrow(dat_split[[as.character(x[2])]])))) %>%
+        dplyr::filter(group == "y") %>%
+        dplyr::select(feature, pval) %>%
+        dplyr::rename("pvalue" = pval) %>%
+        dplyr::rename("channel" = feature)
+
+      ## wilcox.test procedure:
+      '      p <- lapply(seq_along(colnames(dat_split[[as.character(x[1])]])), function(k) wilcox.test(dat_split[[as.character(x[1])]][,k], dat_split[[as.character(x[2])]][,k])[["p.value"]])
       names(p) <- colnames(dat_split[[as.character(x[1])]])
       out <- utils::stack(p)
-      names(out) <- c("pvalue", "channel")
+      out[,2] <- as.character(out[,2])
+      names(out) <- c("pvalue", "channel")'
 
-      out[,"mean_1"] <- matrixStats::colMeans2(dat_split[[as.character(x[1])]])
-      out[,"mean_2"] <- matrixStats::colMeans2(dat_split[[as.character(x[2])]])
-      out[,"mean_diff"] <- out[,"mean_1"] - out[,"mean_2"]
-      out[,"diptest_p_1"] <- suppressMessages(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]))
-      out[,"diptest_p_2"] <- suppressMessages(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]))
+      out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
+      out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
+      out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
+      out[,"diptest_p_1"] <- suppressMessages(round(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+      out[,"diptest_p_2"] <- suppressMessages(round(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
       #out <- tibble::rownames_to_column(out, "channel")
       out[,"cluster_1"] <- x[1]
       out[,"cluster_2"] <- x[2]
@@ -791,20 +823,32 @@ dr_to_fcs <- function(ff.list,
     pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
 
     marker_table <- dplyr::bind_rows(lapply(split_var_levels, function(x) {
-      y <- dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)]
-      z <- dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)]
+      y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)])
+      z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)])
+      out <-
+        presto::wilcoxauc(cbind(y,z), c(rep("y", ncol(y)), rep("z", ncol(z)))) %>%
+        dplyr::filter(group == "y") %>%
+        dplyr::select(feature, pval) %>%
+        dplyr::rename("pvalue" = pval) %>%
+        dplyr::rename("channel" = feature)
 
       #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
       # parallel::mclapply
-      p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.value"]])
+      ## wilcox.test procedure:
+      '
+y <- dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)]
+      z <- dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)]
+p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.value"]])
       names(p) <- colnames(y)
       out <- utils::stack(p)
-      names(out) <- c("pvalue", "channel")
-      out[,"mean"] <- round(matrixStats::colMeans2(y), 2)
-      out[,"mean_not"] <- round(matrixStats::colMeans2(z), 2)
+      out[,2] <- as.character(out[,2])
+      names(out) <- c("pvalue", "channel")'
+
+      out[,"mean"] <- round(matrixStats::rowMeans2(y), 2)
+      out[,"mean_not"] <- round(matrixStats::rowMeans2(z), 2)
       out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
-      out[,"diptest_p"] <- suppressMessages(round(apply(y, 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-      out[,"diptest_not_p"] <- suppressMessages(round(apply(z, 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+      out[,"diptest_p"] <- suppressMessages(round(apply(y, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+      out[,"diptest_not_p"] <- suppressMessages(round(apply(z, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
       #out <- tibble::rownames_to_column(out, "channel")
       out[,"cluster"] <- x
       out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
@@ -816,6 +860,7 @@ dr_to_fcs <- function(ff.list,
     return(list(marker_table = marker_table, pairwise_marker_table = pair_marker_table))
   })
   names(marker) <- calc.cluster.markers
+
 
   # save results
   if (!is.null(save.path) && !is.na(save.path)) {
