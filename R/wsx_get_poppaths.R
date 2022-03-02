@@ -34,15 +34,25 @@ wsx_get_poppaths <- function(ws, collapse = T) {
     PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
     Population <- basename(PopulationFullPath)
 
+    if (xml2::xml_name(gg[n]) == "Dependents") {
+      origin <- "Dependents"
+    } else {
+      origin <- "Gate"
+    }
+
+
     return(data.frame(FileName = FileName,
                       PopulationFullPath = PopulationFullPath,
                       Population = Population,
                       sampleID = sampleID,
+                      origin = origin,
                       stringsAsFactors = F))
   })
 
+
   gates_df <- do.call(rbind, gates)
   gates_list <- split(gates_df, gates_df$sampleID)
+  # remove duplicate rows from gate+dependents
   gates_list <- lapply(gates_list, function(y) {
     ex <- base::intersect(c(which(duplicated(y$PopulationFullPath)),
                             which(duplicated(y$PopulationFullPath, fromLast=T))),
