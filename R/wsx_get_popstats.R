@@ -142,6 +142,7 @@ wsx_get_popstats <- function(ws,
     }
     y$PopulationFullPath
   }))
+
   auto_paths <- lapply(full_paths, function(y) shortest_unique_path(y))
 
   for (y in seq_along(gates_list)) {

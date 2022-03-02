@@ -41,6 +41,7 @@ wsp_xml_get_samples <- function(x) {
 }
 
 shortest_unique_path <- function(p) {
+  ## make it better one day
   p_rev <- sapply(strsplit(p, "/"), rev)
   p_rev <- lapply(seq_along(p_rev), function(x) {
     i<-1
@@ -49,7 +50,7 @@ shortest_unique_path <- function(p) {
     }))) {
       i<-i+1
     }
-    return(p_rev[[x]][1:i])
+    return(p_rev[[x]][1:min(i,length(p_rev[[x]]))])
   })
   p <- sapply(sapply(p_rev, rev), function(x) paste(x, collapse = "/"))
   return(p)
