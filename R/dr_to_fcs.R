@@ -218,7 +218,12 @@ dr_to_fcs <- function(ff.list,
   }
 
   dots <- list(...)
-  dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
+
+  if (length(dots) > 0) {
+    dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
+  } else {
+    dots_expanded <- NULL
+  }
 
   if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
     stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed)
@@ -657,7 +662,6 @@ dr_to_fcs <- function(ff.list,
 
   if (run.som) {
     print(paste0("Calculating SOM. Start: ", Sys.time()))
-
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
