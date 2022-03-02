@@ -7,7 +7,7 @@
 dr_to_fcs(
   ff.list,
   channels = NULL,
-  add.sample.info,
+  add.sample.info = NULL,
   scale.whole = c("z.score", "min.max", "none"),
   scale.samples = c("none", "z.score", "min.max"),
   run.harmony = F,
@@ -16,16 +16,16 @@ dr_to_fcs(
   run.umap = T,
   run.tsne = F,
   run.som = T,
-  run.gqtsom = T,
-  run.louvain = T,
-  run.kmeans = F,
+  run.gqtsom = F,
+  run.louvain = F,
+  run.kmeans = T,
   run.leiden = F,
   run.hclust = F,
   run.flowClust = F,
   run.MUDAN = F,
   n.pca.dims = 0,
   calc.cluster.markers = NULL,
-  extra.cols,
+  extra.cols = NULL,
   mc.cores = 1,
   save.to.disk = c("fcs", "rds"),
   save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
@@ -80,7 +80,7 @@ has to be provided in ...}
 
 \item{run.flowClust}{detect clusters with flowClust::flowClust}
 
-\item{run.MUDAN}{detect clusters with MUDAN::getComMembership (k = as.numeric(names(run.MUDAN))); e.g. run.MUDAN = setNames(TRUE, 8)}
+\item{run.MUDAN}{detect clusters with MUDAN::getComMembership \code{\link[MASS]{abbey}}}
 
 \item{n.pca.dims}{number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
 e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
@@ -109,7 +109,7 @@ and will only occupy disk space, those are specified here; matched with grepl}
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
 
-\item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, leiden, harmony, hclust, flowClust, MUDAN, kmeans;
+\item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden}, harmony, hclust, flowClust, MUDAN, kmeans;
 provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 see respected help files to get to know which arguments can be passed:
 uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
@@ -131,9 +131,9 @@ Different transformations have been compared for instance here: \href{https://di
 }
 \examples{
 \dontrun{
-########################################
-### Plot cluster markers with ggplot ###
-########################################
+############################
+### Plot cluster markers ###
+############################
 dr <- fcexpr::dr_to_fcs(ff.list = ffs,
 channels = channels,
 louvain__resolution = 0.5,
@@ -170,5 +170,21 @@ ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + 
  geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
  geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
  facet_wrap(vars(cluster))
+
+ ##############################################
+ ### find clusters which may be subject #######
+ ### to bi- or multimodality in any channel ###
+ ##############################################
+ # make one data frame
+ marker_all <- dplyr::bind_rows(lapply(names(dr[["marker"]]), function(x) dplyr::mutate(dr[["marker"]][[x]][["marker_table"]], clustering = x)))
+
+ # sort by diptest p value; or low p indicates bi- or multimodality
+ marker_all <- dplyr::arrange(marker_all, diptest_p)
+ # see ?diptest::dip.test
+ # multimodality indicates heterogeneity within in the cluster
+ # and may justify to seperate that cluster further into sub-clusters
+ # this depends on the interpretation of the scientist though
+
+
 }
 }

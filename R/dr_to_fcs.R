@@ -36,7 +36,7 @@
 #' @param run.kmeans detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!
 #' @param run.hclust detect clusters with stats::dist, stats::hclust and stats::cutree
 #' @param run.flowClust detect clusters with flowClust::flowClust
-#' @param run.MUDAN detect clusters with MUDAN::getComMembership (k = as.numeric(names(run.MUDAN))); e.g. run.MUDAN = setNames(TRUE, 8)
+#' @param run.MUDAN detect clusters with MUDAN::getComMembership
 #' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
 #' has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
 #' channel names in the FCS file
