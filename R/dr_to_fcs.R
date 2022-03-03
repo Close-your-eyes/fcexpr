@@ -243,8 +243,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
-    stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed)
-         and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")
+    stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed) and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")
   }
 
   # check if names in ff.list inverse and logicle are the same
@@ -254,7 +253,7 @@ dr_to_fcs <- function(ff.list,
 
   for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony")) {
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
-      message(paste0(par, " parameters provided in ... but ", "'run.", par, " = F'."))
+      message(par, " parameters provided in ... but ", "'run.", par, " = F'.")
     }
   }
 
@@ -344,8 +343,7 @@ dr_to_fcs <- function(ff.list,
       stop("NA found in sample infos.")
     }
     if (!all(unlist(lapply(add.sample.info, function(x) length(x) == length(ff.list[[1]]))))) {
-      stop(paste0("Length of each additional sample information has to match the length of selected samples, which is: ", length(ff.list[[1]]),".")
-      )
+      stop("Length of each additional sample information has to match the length of selected samples, which is: ", length(ff.list[[1]]),".")
     }
   }
 
@@ -416,7 +414,7 @@ dr_to_fcs <- function(ff.list,
     temp_dots <- dots[which(grepl("^harmony__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^harmony__", "", names(temp_dots), ignore.case = T)
     if (!any(grepl("do_pca", names(temp_dots)), ignore.case = T)) {
-      print("'do_pca set to FALSE' in harmony::HarmonyMatrix.")
+      message("'do_pca set to FALSE' in harmony::HarmonyMatrix.")
       temp_dots <- c(temp_dots, do_pca = F)
     }
     expr.select <- do.call(harmony::HarmonyMatrix, args = c(list(data_mat = expr.select), temp_dots))
@@ -429,14 +427,14 @@ dr_to_fcs <- function(ff.list,
     } else if (n.pca.dims > 0) {
       n.pca.dims <- min(ncol(expr.select) - 1, n.pca.dims)
     }
-    print(paste0("Calculating PCA. Start: ", Sys.time()))
+    message("Calculating PCA. Start: ", Sys.time())
     # https://slowkow.com/notes/pca-benchmark/
     # mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
     # mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.matrix <- pca.result[["x"]]
     expr.select <- pca.matrix[, 1:n.pca.dims]
-    print(paste0("Done. ", Sys.time()))
+    message("Done. ", Sys.time())
   }
 
 
@@ -447,17 +445,17 @@ dr_to_fcs <- function(ff.list,
       names(temp_dots) <- gsub("^louvain__|^leiden__", "", names(temp_dots), ignore.case = T)
 
       if (!any(grepl("annoy.metric", names(temp_dots), ignore.case = T))) {
-        print("shared nearest neighbor (snn) calculated with annoy.metric = 'cosine' by default.")
+        message("shared nearest neighbor (snn) calculated with annoy.metric = 'cosine' by default.")
         temp_dots <- c(temp_dots, annoy.metric = "cosine")
       }
-      print(paste0("Calculating snn for louvain and/or leiden. Start: ", Sys.time()))
+      message("Calculating snn for louvain and/or leiden. Start: ", Sys.time())
       rownames(expr.select) <- 1:nrow(expr.select)
       # Seurat::FindNeighbors ignores all 'wrong' arguments; suppress the warnings though
       snn <- suppressMessages(suppressWarnings(do.call(Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots))))
-      print(paste0("End: ", Sys.time()))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("louvain / leiden: error in snn calculation.")
+      message("louvain / leiden: error in snn calculation.")
       run.louvain <- F
       run.leiden <- F
     }
@@ -469,7 +467,7 @@ dr_to_fcs <- function(ff.list,
       temp_dots <- dots[which(grepl("^louvain__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^louvain__", "", names(temp_dots), ignore.case = T)
 
-      print(paste0("Finding clusters with Seurats implementation of the Louvain algorithm and parallel::mclapply using ", mc.cores," cores. Start: ",Sys.time()))
+      message("Finding clusters with Seurats implementation of the Louvain algorithm and parallel::mclapply using ", mc.cores," cores. Start: ",Sys.time())
 
       if (any(grepl("resolution", names(temp_dots), ignore.case = T))) {
         temp_dots[["resolution"]] <- as.numeric(temp_dots[["resolution"]])
@@ -486,11 +484,11 @@ dr_to_fcs <- function(ff.list,
 
       colnames(clust_idents) <- paste0("louvain_", temp_dots[["resolution"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
-      print(apply(clust_idents, 2, function(x) length(unique(x))))
-      print(paste0("End: ", Sys.time()))
+      message(apply(clust_idents, 2, function(x) length(unique(x))))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.louvain with error")
+      message("run.louvain with error")
     }
   )
 
@@ -499,7 +497,7 @@ dr_to_fcs <- function(ff.list,
       temp_dots <- dots[which(grepl("^leiden__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^leiden__", "", names(temp_dots), ignore.case = T)
 
-      print(paste0("Finding clusters with leiden algorithm and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      message("Finding clusters with leiden algorithm and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       if (any(grepl("resolution_parameter", names(temp_dots), ignore.case = T))) {
         temp_dots[["resolution_parameter"]] <- as.numeric(temp_dots[["resolution_parameter"]])
@@ -515,11 +513,11 @@ dr_to_fcs <- function(ff.list,
       }
       colnames(clust_idents) <- paste0("leiden_", temp_dots[["resolution_parameter"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
-      print(apply(clust_idents, 2, function(x) length(unique(x))))
-      print(paste0("End: ", Sys.time()))
+      message(apply(clust_idents, 2, function(x) length(unique(x))))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.leiden with error")
+      message("run.leiden with error")
     }
   )
 
@@ -527,7 +525,7 @@ dr_to_fcs <- function(ff.list,
     if (run.kmeans) {
       temp_dots <- dots[which(grepl("^kmeans__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^kmeans__", "", names(temp_dots), ignore.case = T)
-      print(paste0("Finding clusters with kmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      message("Finding clusters with kmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["centers"]], function(x) {
         do.call(stats::kmeans, args = c(list(x = expr.select, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
@@ -535,10 +533,10 @@ dr_to_fcs <- function(ff.list,
 
       colnames(ks) <- paste0("kmeans_", temp_dots[["centers"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-      print(paste0("End: ", Sys.time()))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.kmeans with error")
+      message("run.kmeans with error")
     }
   )
 
@@ -546,7 +544,7 @@ dr_to_fcs <- function(ff.list,
     if (run.hclust) {
       temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
-      print(paste0("Finding clusters with hclust. Start: ", Sys.time()))
+      message("Finding clusters with hclust. Start: ", Sys.time())
 
       d <- do.call(stats::dist, args = c(list(x = expr.select), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
       h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
@@ -556,10 +554,10 @@ dr_to_fcs <- function(ff.list,
 
       colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-      print(paste0("End: ", Sys.time()))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.hclust with error")
+      message("run.hclust with error")
     }
   )
 
@@ -569,17 +567,17 @@ dr_to_fcs <- function(ff.list,
       temp_dots <- dots[which(grepl("^flowClust__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^flowClust__", "", names(temp_dots), ignore.case = T)
 
-      print(paste0("Finding clusters with flowClust and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time()))
+      message("Finding clusters with flowClust and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["K"]], function(x) {
         suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.select, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("flowClust_", temp_dots[["K"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-      print(paste0("End: ", Sys.time()))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.flowClust with error")
+      message("run.flowClust with error")
     }
   )
 
@@ -589,7 +587,7 @@ dr_to_fcs <- function(ff.list,
       temp_dots <- dots[which(grepl("^MUDAN__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^MUDAN__", "", names(temp_dots), ignore.case = T)
 
-      print(paste0("Finding clusters with MUDAN.", Sys.time()))
+      message("Finding clusters with MUDAN.", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
         ## documentation is wrong (mat: cells as rows and features as cols!)
@@ -598,10 +596,10 @@ dr_to_fcs <- function(ff.list,
 
       colnames(ks) <- paste0("MUDAN_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-      print(paste0("End: ", Sys.time()))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      print("run.MUDAN with error")
+      message("run.MUDAN with error")
     }
   )
 
@@ -621,11 +619,11 @@ dr_to_fcs <- function(ff.list,
     names(temp_dots) <-gsub("^UMAP__", "", names(temp_dots), ignore.case = T)
 
     if (!any(grepl("metric", names(temp_dots)), ignore.case = T)) {
-      print("UMAP metric set to 'cosine' by default.")
+      message("UMAP metric set to 'cosine' by default.")
       temp_dots <- c(temp_dots, metric = "cosine")
     }
 
-    print(paste0("Calculating UMAP. Start: ", Sys.time()))
+    message("Calculating UMAP. Start: ", Sys.time())
     if (any(grepl("n_neighbors", names(temp_dots), ignore.case = T))) {
       umap.dims <- do.call(cbind,parallel::mclapply(temp_dots[["n_neighbors"]], function(z) {
         out <- do.call(uwot::umap, args = c(list(X = expr.select, verbose = F, n_neighbors = z),temp_dots[which(names(temp_dots) != "n_neighbors")]))
@@ -641,7 +639,7 @@ dr_to_fcs <- function(ff.list,
     if (!any(grepl("n_neighbors", names(temp_dots), ignore.case = T)) || length(temp_dots[["n_neighbors"]]) == 1) {
       colnames(umap.dims) <- c("UMAP_1", "UMAP_2")
     }
-    print(paste0("End: ", Sys.time()))
+    message("End: ", Sys.time())
   }
 
   if (run.tsne) {
@@ -649,15 +647,15 @@ dr_to_fcs <- function(ff.list,
     names(temp_dots) <- gsub("^tSNE__", "", names(temp_dots), ignore.case = T)
 
     if (run.pca) {
-      print("As 'run.pca=T' inital pca in tSNE is not performed.")
+      message("As 'run.pca=T' inital pca in tSNE is not performed.")
       temp_dots <- c(temp_dots, pca = F)
     }
     if (!any(grepl("normalize", names(temp_dots), ignore.case = T))) {
-      print("Rtsne normalize set to 'FALSE' by default. (scale.whole, scale.samples?!)")
+      message("Rtsne normalize set to 'FALSE' by default. (scale.whole, scale.samples?!)")
       temp_dots <- c(temp_dots, normalize = F)
     }
 
-    print(paste0("Calculating tSNE. Start: ", Sys.time()))
+    message("Calculating tSNE. Start: ", Sys.time())
     if (any(grepl("perplexity", names(temp_dots), ignore.case = T))) {
       tsne.dims <- do.call(cbind, parallel::mclapply(temp_dots[["perplexity"]], function(z) {
         out <- do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = F, perplexity = z), temp_dots[which(names(temp_dots) != "perplexity")]))$Y
@@ -670,11 +668,11 @@ dr_to_fcs <- function(ff.list,
     if (!any(grepl("perplexity", names(temp_dots), ignore.case = T)) || length(temp_dots[["perplexity"]]) == 1) {
       colnames(tsne.dims) <- c("tSNE_1", "tSNE_2")
     }
-    print(paste0("End: ", Sys.time()))
+    message("End: ", Sys.time())
   }
 
   if (run.som) {
-    print(paste0("Calculating SOM. Start: ", Sys.time()))
+    message("Calculating SOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
@@ -683,11 +681,11 @@ dr_to_fcs <- function(ff.list,
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
     som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
-    print(paste0("End: ", Sys.time()))
+    message("End: ", Sys.time())
   }
 
   if (run.gqtsom) {
-    print(paste0("Calculating GQTSOM. Start: ", Sys.time()))
+    message("Calculating GQTSOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
@@ -696,7 +694,7 @@ dr_to_fcs <- function(ff.list,
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
     gqtsom.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(gqtsom.dims) <- c("GQTSOM_1", "GQTSOM_2")
-    print(paste0("End: ", Sys.time()))
+    message("End: ", Sys.time())
   }
 
   if (write.scaled.channels.to.FCS) {
@@ -728,7 +726,7 @@ dr_to_fcs <- function(ff.list,
     if (nrow(extra.cols) == nrow(dim.red.data)) {
       dim.red.data <- cbind(dim.red.data, extra.cols)
     } else {
-      print("extra.cols not added due to wrong row number.")
+      message("extra.cols not added due to wrong row number.")
     }
   }
 
@@ -743,7 +741,7 @@ dr_to_fcs <- function(ff.list,
       }
     },
     error = function(e) {
-      print("Addition of sample info failed due to an error. Check add.sample.info.")
+      message("Addition of sample info failed due to an error. Check add.sample.info.")
     }
   )
 
@@ -769,7 +767,7 @@ dr_to_fcs <- function(ff.list,
   new_p <- flowCore::parameters(ff.list[[1]][[1]])[1,]
   new_kw <- flowCore::keyword(ff.list[[1]][[1]])
   new_pars <- flowCore::parameters(ff.list[[1]][[1]])
-
+browser()
   for (z in (nrow(new_pars) + 1):ncol(dim.red.data)) {
     new_p_number <- z
     rownames(new_p) <- c(paste0("$P", new_p_number))
@@ -795,64 +793,67 @@ dr_to_fcs <- function(ff.list,
 
   # get cluster markers
   ## always used logicle transformed data?!?!
-  print("Calculating markers.")
-  marker <- lapply(calc.cluster.markers, function (clust_col) {
-    # do not use expr.select which may have become dimenions of LDA
-    dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, "_logicle")), which(colnames(dim.red.data) == clust_col))]
-    split_var <- dat[,clust_col]
-    split_var_levels <- sort(unique(split_var))
-    ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
-    dat_split <- split(dat, split_var)
-    dat <- as.matrix(dat)
-    dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col)]))
-    all_pairs <- combn(split_var_levels, 2, simplify = F)
+  if (!is.null(calc.cluster.markers)) {
+    message("Calculating markers.")
+  }
+  tryCatch({
+    marker <- lapply(calc.cluster.markers, function (clust_col) {
+      # do not use expr.select which may have become dimenions of LDA
+      dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, "_logicle")), which(colnames(dim.red.data) == clust_col))]
+      split_var <- dat[,clust_col]
+      split_var_levels <- sort(unique(split_var))
+      ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
+      dat_split <- split(dat, split_var)
+      dat <- as.matrix(dat)
+      dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col)]))
+      all_pairs <- combn(split_var_levels, 2, simplify = F)
 
-    ## all pairwise
-    pair_marker_table <- dplyr::bind_rows(lapply(all_pairs, function(x) {
-      #out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
-      out <-
-        presto::wilcoxauc(cbind(t(dat_split[[as.character(x[1])]]),t(dat_split[[as.character(x[2])]])), c(rep("y", nrow(dat_split[[as.character(x[1])]])), rep("z", nrow(dat_split[[as.character(x[2])]])))) %>%
-        dplyr::filter(group == "y") %>%
-        dplyr::select(feature, pval) %>%
-        dplyr::rename("pvalue" = pval) %>%
-        dplyr::rename("channel" = feature)
+      ## all pairwise
+      pair_marker_table <- dplyr::bind_rows(parallel::mclapply(all_pairs, function(x) {
+        #out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
+        out <-
+          presto::wilcoxauc(cbind(t(dat_split[[as.character(x[1])]]),t(dat_split[[as.character(x[2])]])), c(rep("y", nrow(dat_split[[as.character(x[1])]])), rep("z", nrow(dat_split[[as.character(x[2])]])))) %>%
+          dplyr::filter(group == "y") %>%
+          dplyr::select(feature, pval) %>%
+          dplyr::rename("pvalue" = pval) %>%
+          dplyr::rename("channel" = feature)
 
-      ## wilcox.test procedure:
-      '      p <- lapply(seq_along(colnames(dat_split[[as.character(x[1])]])), function(k) wilcox.test(dat_split[[as.character(x[1])]][,k], dat_split[[as.character(x[2])]][,k])[["p.value"]])
+        ## wilcox.test procedure:
+        '      p <- lapply(seq_along(colnames(dat_split[[as.character(x[1])]])), function(k) wilcox.test(dat_split[[as.character(x[1])]][,k], dat_split[[as.character(x[2])]][,k])[["p.value"]])
       names(p) <- colnames(dat_split[[as.character(x[1])]])
       out <- utils::stack(p)
       out[,2] <- as.character(out[,2])
       names(out) <- c("pvalue", "channel")'
 
-      out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
-      out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
-      out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
-      out[,"diptest_p_1"] <- suppressMessages(round(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-      out[,"diptest_p_2"] <- suppressMessages(round(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-      #out <- tibble::rownames_to_column(out, "channel")
-      out[,"cluster_1"] <- x[1]
-      out[,"cluster_2"] <- x[2]
-      out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
-      out <- dplyr::select(out, channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_p_1, diptest_p_2)
-      out <- dplyr::arrange(out, pvalue)
-      return(out)
-    }))
-    pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
+        out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
+        out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
+        out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
+        out[,"diptest_p_1"] <- suppressMessages(round(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+        out[,"diptest_p_2"] <- suppressMessages(round(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+        #out <- tibble::rownames_to_column(out, "channel")
+        out[,"cluster_1"] <- x[1]
+        out[,"cluster_2"] <- x[2]
+        out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+        out <- dplyr::select(out, channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_p_1, diptest_p_2)
+        out <- dplyr::arrange(out, pvalue)
+        return(out)
+      }, mc.cores = mc.cores))
+      pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
 
-    marker_table <- dplyr::bind_rows(lapply(split_var_levels, function(x) {
-      y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)])
-      z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)])
-      out <-
-        presto::wilcoxauc(cbind(y,z), c(rep("y", ncol(y)), rep("z", ncol(z)))) %>%
-        dplyr::filter(group == "y") %>%
-        dplyr::select(feature, pval) %>%
-        dplyr::rename("pvalue" = pval) %>%
-        dplyr::rename("channel" = feature)
+      marker_table <- dplyr::bind_rows(parallel::mclapply(split_var_levels, function(x) {
+        y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)])
+        z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)])
+        out <-
+          presto::wilcoxauc(cbind(y,z), c(rep("y", ncol(y)), rep("z", ncol(z)))) %>%
+          dplyr::filter(group == "y") %>%
+          dplyr::select(feature, pval) %>%
+          dplyr::rename("pvalue" = pval) %>%
+          dplyr::rename("channel" = feature)
 
-      #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
-      # parallel::mclapply
-      ## wilcox.test procedure:
-      '
+        #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
+        # parallel::mclapply
+        ## wilcox.test procedure:
+        '
 y <- dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)]
       z <- dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)]
 p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.value"]])
@@ -861,27 +862,34 @@ p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.va
       out[,2] <- as.character(out[,2])
       names(out) <- c("pvalue", "channel")'
 
-      out[,"mean"] <- round(matrixStats::rowMeans2(y), 2)
-      out[,"mean_not"] <- round(matrixStats::rowMeans2(z), 2)
-      out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
-      out[,"diptest_p"] <- suppressMessages(round(apply(y, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-      out[,"diptest_not_p"] <- suppressMessages(round(apply(z, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-      #out <- tibble::rownames_to_column(out, "channel")
-      out[,"cluster"] <- x
-      out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
-      out <- dplyr::select(out, channel, cluster, pvalue, mean, mean_not, mean_diff, diff_sign, diptest_p, diptest_not_p)
-      out <- dplyr::arrange(out, pvalue)
-      return(out)
-    }))
-    marker_table[,"channel_desc"] <- channel.desc_augment[marker_table[,"channel"]]
-    return(list(marker_table = marker_table, pairwise_marker_table = pair_marker_table))
-  })
-  names(marker) <- calc.cluster.markers
+        out[,"mean"] <- round(matrixStats::rowMeans2(y), 2)
+        out[,"mean_not"] <- round(matrixStats::rowMeans2(z), 2)
+        out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
+        out[,"diptest_p"] <- suppressMessages(round(apply(y, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+        out[,"diptest_not_p"] <- suppressMessages(round(apply(z, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+        #out <- tibble::rownames_to_column(out, "channel")
+        out[,"cluster"] <- x
+        out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+        out <- dplyr::select(out, channel, cluster, pvalue, mean, mean_not, mean_diff, diff_sign, diptest_p, diptest_not_p)
+        out <- dplyr::arrange(out, pvalue)
+        return(out)
+      }, mc.cores = mc.cores))
+      marker_table[,"channel_desc"] <- channel.desc_augment[marker_table[,"channel"]]
+      return(list(marker_table = marker_table, pairwise_marker_table = pair_marker_table))
+    })
+    names(marker) <- calc.cluster.markers
+  }, error = function(e) {
+    message("cluster marker calculation caused an error.")
+    marker <- NULL
+  }
+  )
+
+
 
 
   # save results
   if (!is.null(save.path) && !is.na(save.path)) {
-    print("Writing files to disk.")
+    message("Writing files to disk.")
     t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
     dir.create(save.path, showWarnings = F)
     if ("rds" %in% save.to.disk) {
