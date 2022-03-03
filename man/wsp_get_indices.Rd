@@ -36,7 +36,7 @@ if NULL all samples (from selected groups) are read}
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
-list of of matrices, one for each selected sample
+list of matrices, one for each selected sample; each column of the matrices holds the indices for the respective population
 }
 \description{
 Every row in a fcs file represents an event. Every column is a parameter (channel). Gates select a subset (rows) of events by applying limits to usually one or two channels.

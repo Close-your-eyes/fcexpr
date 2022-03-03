@@ -1,10 +1,16 @@
 #' Get (subsetted) flowFrames from FCS files
 #'
+#' From a matrix of indices generated with fcexpr::wsp_get_indices flowframes are generated.
+#' Only those events within the selected population are included in flowframes. By default
+#' no compensation will be applied on fluorescence intensites. This can be done afterwards
+#' though with in appropriate compensation matrix.
+#'
 #' @param ind_mat a list of indices matrices, preferentially generated with fcexpr::wsp_get_indices
 #' @param population which population (=node, =gate) to subset flowFrames on; must be a column name of ind_mat or an alias stored in alias_attr_name
 #' @param alias_attr_name the name of attribute containing aliases (shortest unique names) of node-names (gating paths)
 #' @param path_attr_name the name of attribute containing the path (url) to the fcs file on which to apply the subsetting
-#' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled
+#' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
+#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun
@@ -36,15 +42,34 @@ inds_get_ff <- function(ind_mat,
     stop("Only provide one population.")
   }
   lapply_fun <- match.fun(lapply_fun)
+
+  if (is.numeric(downsample)) {
+    ds <- downsample
+  } else if (downsample == "min") {
+    ds <- 1
+  } else {
+    stop("downsample has to be numeric of 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
+  }
+
   check_in(wsp = "wsp", samples = NULL, groups = NULL, FCS.file.folder = NULL, inverse_transform = inverse_transform)
+
   ff.list <- lapply_fun(ind_mat,
                         get_ff2,
-                        downsample = downsample,
+                        downsample = ds,
                         population = population,
                         inverse_transform = inverse_transform,
                         alias_attr_name = alias_attr_name,
                         path_attr_name = path_attr_name,
                         ...)
+
+  if (downsample == "min") {
+    min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
+    for (x in seq_along(ff.list)) {
+      inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))
+      ff.list[[x]][[1]][[1]] <- subset(ff.list[[x]][[1]][[1]], sample(inds))
+      ff.list[[x]][[1]][[2]] <- subset(ff.list[[x]][[1]][[2]], sample(inds))
+    }
+  }
 
   ind_mat <- ind_mat[which(!sapply(ff.list, is.null))]
   ff.list <- ff.list[which(!sapply(ff.list, is.null))]

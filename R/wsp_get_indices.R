@@ -21,7 +21,7 @@
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #' @param invert_samples logical whether to invert sample selection
 #'
-#' @return list of of matrices, one for each selected sample
+#' @return list of matrices, one for each selected sample; each column of the matrices holds the indices for the respective population
 #' @export
 #'
 #' @examples

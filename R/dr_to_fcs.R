@@ -51,8 +51,8 @@
 #' @param run.flowClust detect clusters with flowClust::flowClust
 #' @param run.MUDAN detect clusters with MUDAN::getComMembership
 #' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
-#' has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
-#' channel names in the FCS file
+#' has to be numeric; has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
+#' could be a previously calculated dimension reduction or cluster annotation.
 #' @param calc.cluster.markers if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
 #' using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
 #' is tested against other events and clusters are compaired pairwise. respective clustering calculation has to be provided in ...;
@@ -67,7 +67,7 @@
 #' @param timeChannel name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 #' to be detected automatically
 #' @param ... additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
-#' \href{https://github.com/immunogenomics/harmony}{harmony}, \hef{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
+#' \href{https://github.com/immunogenomics/harmony}{harmony}, \href{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
 #' provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 #' see respected help files to get to know which arguments can be passed:
 #' uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
@@ -76,6 +76,8 @@
 #'
 #'
 #' @return
+#' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering) for every events. This is same table which is written into a newly generated fcs file.
+#' (ii) A character vector of meaningful column names which may be used for the table (rather for convenience). (iii) Tables of marker features (each cluster vs all other cells and all clusters pairwise).
 #' @export
 #'
 #' @importFrom magrittr "%>%"

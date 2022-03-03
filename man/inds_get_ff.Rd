@@ -24,7 +24,8 @@ inds_get_ff(
 
 \item{path_attr_name}{the name of attribute containing the path (url) to the fcs file on which to apply the subsetting}
 
-\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled}
+\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
+which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events}
 
 \item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
 
@@ -36,7 +37,10 @@ inds_get_ff(
 list of flow frames, one for each ind_mat
 }
 \description{
-Get (subsetted) flowFrames from FCS files
+From a matrix of indices generated with fcexpr::wsp_get_indices flowframes are generated.
+Only those events within the selected population are included in flowframes. By default
+no compensation will be applied on fluorescence intensites. This can be done afterwards
+though with in appropriate compensation matrix.
 }
 \examples{
 \dontrun{

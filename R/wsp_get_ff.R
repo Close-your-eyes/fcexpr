@@ -1,24 +1,33 @@
-#' Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces
+#' Get (subsetted) flowFrames from one or many flowjo workspaces
 #'
+#' From a flowjo workspace with gated populations and the respective fcs files flowframes are generated.
+#' Under the hood CytoML::flowjo_to_gatingset applies the geometric gate definitions and filters
+#' relevant rows (indices) of fcs files. The compensation matrix as defined in flowjo will be used
+#' to compensate fluorescence intensities.
 #'
+#' If it is intended to pass flowframes to fcexpr::dr_to_fcs, inverse_transform has to contain 'F' which
+#' will return flowframes with logicle transformation. The logicle transformation is required for fcexpr::dr_to_fcs.
+#' The (default) inverse transformation is basically the one you see in flowjo.
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-#' if not provided fcs file paths are derived individually from the wsp (xml)
-#' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+#' if not provided fcs file paths are derived individually from the wsp (xml). If the workspace was generated and saved on
+#' another computer you will have to provide the path to FCS files on the current computer.
+#' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the same index in wsp;
 #' if NULL samples from all groups are read
-#' @param population which population (=node, =gate) to subset flowFrames on; use wsx_get_poppaths to get paths
+#' @param population which population (=node, =gate) to subset flowFrames on; use fcexpr::wsx_get_poppaths to get paths
 #' @param invert_groups logical whether to invert group selection
 #' @param samples vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
-#' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled
+#' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
+#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
-#' @return a list of flowframes
+#' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
 #'
 #' @importFrom magrittr "%>%"
@@ -26,6 +35,7 @@
 #' @examples
 #'\dontrun{
 #' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+#' # ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
 #'}
 wsp_get_ff <- function(wsp,
                        FCS.file.folder = NULL,
@@ -40,16 +50,24 @@ wsp_get_ff <- function(wsp,
                        lapply_fun = lapply,
                        ...) {
 
-  if (!requireNamespace("BiocManager", quietly = T)){
+  if (!requireNamespace("BiocManager", quietly = T)) {
     utils::install.packages("BiocManager")
   }
-  if (!requireNamespace("CytoML", quietly = T)){
+  if (!requireNamespace("CytoML", quietly = T)) {
     BiocManager::install("CytoML")
   }
-  if (!requireNamespace("flowWorkspace", quietly = T)){
+  if (!requireNamespace("flowWorkspace", quietly = T)) {
     BiocManager::install("flowWorkspace")
   }
   lapply_fun <- match.fun(lapply_fun)
+
+  if (is.numeric(downsample)) {
+    ds <- downsample
+  } else if (downsample == "min") {
+    ds <- 1
+  } else {
+    stop("downsample has to be numeric of 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
+  }
 
   checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
   groups <- checked_in[["groups"]]
@@ -82,13 +100,24 @@ wsp_get_ff <- function(wsp,
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
 
+
+
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
                         inverse_transform = inverse_transform,
-                        downsample = downsample,
+                        downsample = ds,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,
                         ...)
+
+  if (downsample == "min") {
+    min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
+    for (x in seq_along(ff.list)) {
+      inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))
+      ff.list[[x]][[1]][[1]] <- subset(ff.list[[x]][[1]][[1]], sample(inds))
+      ff.list[[x]][[1]][[2]] <- subset(ff.list[[x]][[1]][[2]], sample(inds))
+    }
+  }
 
   ffs <- sapply(ff.list, "[", 1)
   names(ffs) <- smpl$FileName
@@ -100,5 +129,5 @@ wsp_get_ff <- function(wsp,
   inds <- sapply(ff.list, "[", 2)
   names(inds) <- smpl$FileName
 
-  return(list(flowFrams = ffs, indices = inds))
+  return(list(flowframes = ffs, indices = inds))
 }

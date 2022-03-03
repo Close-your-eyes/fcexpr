@@ -2,7 +2,7 @@
 % Please edit documentation in R/wsp_get_ff.R
 \name{wsp_get_ff}
 \alias{wsp_get_ff}
-\title{Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces}
+\title{Get (subsetted) flowFrames from one or many flowjo workspaces}
 \usage{
 wsp_get_ff(
   wsp,
@@ -23,12 +23,13 @@ wsp_get_ff(
 \item{wsp}{vector of paths to flowjo workspaces}
 
 \item{FCS.file.folder}{path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
-if not provided fcs file paths are derived individually from the wsp (xml)}
+if not provided fcs file paths are derived individually from the wsp (xml). If the workspace was generated and saved on
+another computer you will have to provide the path to FCS files on the current computer.}
 
-\item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
+\item{groups}{vector or list of groups in flowjo to consider; if a list, each index corresponds to the same index in wsp;
 if NULL samples from all groups are read}
 
-\item{population}{which population (=node, =gate) to subset flowFrames on; use wsx_get_poppaths to get paths}
+\item{population}{which population (=node, =gate) to subset flowFrames on; use fcexpr::wsx_get_poppaths to get paths}
 
 \item{invert_groups}{logical whether to invert group selection}
 
@@ -39,7 +40,8 @@ if NULL all samples (from selected groups) are read}
 
 \item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
 
-\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled}
+\item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
+which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
 
@@ -48,13 +50,22 @@ if NULL all samples (from selected groups) are read}
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
-a list of flowframes
+a list of (subsetted) flowframes with events that are within the gated population only
 }
 \description{
-Get (subsetted) flowFrames from FCS files in one or many flowjo workspaces
+From a flowjo workspace with gated populations and the respective fcs files flowframes are generated.
+Under the hood CytoML::flowjo_to_gatingset applies the geometric gate definitions and filters
+relevant rows (indices) of fcs files. The compensation matrix as defined in flowjo will be used
+to compensate fluorescence intensities.
+}
+\details{
+If it is intended to pass flowframes to fcexpr::dr_to_fcs, inverse_transform has to contain 'F' which
+will return flowframes with logicle transformation. The logicle transformation is required for fcexpr::dr_to_fcs.
+The (default) inverse transformation is basically the one you see in flowjo.
 }
 \examples{
 \dontrun{
 ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+# ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
 }
 }
