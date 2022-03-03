@@ -432,8 +432,8 @@ dr_to_fcs <- function(ff.list,
     # mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
     # mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
-    pca.matrix <- pca.result[["x"]]
-    expr.select <- pca.matrix[, 1:n.pca.dims]
+    pca.dims <- pca.result[["x"]]
+    expr.select <- pca.dims[, 1:n.pca.dims]
     message("Done. ", Sys.time())
   }
 
@@ -707,7 +707,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (run.pca) {
-    dim.red.data <- do.call(cbind, list(dim.red.data, pca.matrix))
+    dim.red.data <- do.call(cbind, list(dim.red.data, pca.dims[,1:n.pca.dims]))
   }
   if (run.umap) {
     dim.red.data <- do.call(cbind, list(dim.red.data, umap.dims))
@@ -764,32 +764,64 @@ dr_to_fcs <- function(ff.list,
   names(channel.desc_augment) <- colnames(dim.red.data)
 
   # write FCS file
-  new_p <- flowCore::parameters(ff.list[[1]][[1]])[1,]
-  new_kw <- flowCore::keyword(ff.list[[1]][[1]])
+
+  # get common (intersecting keywords)
+  # a bit unhandy but belows vectorized version did not work
+  all <- lapply(ff.list[[1]], flowCore::keyword)
+  new_kw <- as.list(unlist(lapply(names(all[[1]]), function(x) {
+    if (length(unique(unlist(sapply(all, "[", x)))) == 1) {
+      return(stats::setNames(unique(unlist(sapply(all, "[", x))), nm = x))
+    }
+  })))
+
+  #new_kw <- Reduce(intersect, lapply(ff.list[[1]], flowCore::keyword))
+  #names(new_kw) <- names(flowCore::keyword(ff.list[[1]][[1]]))[match(new_kw, flowCore::keyword(ff.list[[1]][[1]]))]
+  #new_kw <- flowCore::keyword(ff.list[[1]][[1]])
   new_pars <- flowCore::parameters(ff.list[[1]][[1]])
-browser()
-  for (z in (nrow(new_pars) + 1):ncol(dim.red.data)) {
+
+  new_kw[["$PAR"]] <- as.character(ncol(dim.red.data))
+  n <- nrow(flowCore::parameters(ff.list[[1]][[1]])) + 1
+  for (z in n:ncol(dim.red.data)) {
+    new_p <- flowCore::parameters(ff.list[[1]][[1]])[1,]
     new_p_number <- z
     rownames(new_p) <- c(paste0("$P", new_p_number))
+
     new_pars <- BiocGenerics::combine(new_pars, new_p)
 
     new_p_name <- names(dim.red.data)[z]
     new_p_desc <- channel.desc[z]
     flowCore::pData(new_pars)$name[new_p_number] <- new_p_name
     flowCore::pData(new_pars)$desc[new_p_number] <- new_p_desc
+    flowCore::pData(new_pars)$minRange[new_p_number] <- as.integer(round(min(dim.red.data[, z])))
+    flowCore::pData(new_pars)$maxRange[new_p_number] <- as.integer(round(max(dim.red.data[, z])))
+    flowCore::pData(new_pars)$range[new_p_number] <- as.integer(round(max(dim.red.data[, z])))
 
-    new_kw["$PAR"] <- as.character(new_p_number)
-    new_kw[paste0("$P", as.character(new_p_number), "N")] <- new_p_name
-    new_kw[paste0("$P", as.character(new_p_number), "S")] <- new_p_desc
-    new_kw[paste0("$P", as.character(new_p_number), "E")] <- "0,0"
-    new_kw[paste0("$P", as.character(new_p_number), "G")] <- "1"
-    new_kw[paste0("$P", as.character(new_p_number), "B")] <- new_kw["$P1B"]
-    new_kw[paste0("$P", as.character(new_p_number), "R")] <- max(dim.red.data[, z])
-    new_kw[paste0("$P", as.character(new_p_number), "DISPLAY")] <- "LIN"
-    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmin")] <- min(dim.red.data[, z])
-    new_kw[paste0("flowCore_$P", as.character(new_p_number), "Rmax")] <- max(dim.red.data[, z])
+    #### WRITE KEYWORD WITH 2 BRACKETS!! OTHERWISE FLOWJO DOES NOT READ IT #### ????????????
+    new_kw[[paste0("$P", new_p_number, "N")]] <- new_p_name
+    new_kw[[paste0("$P", new_p_number, "S")]] <- new_p_desc
+    new_kw[[paste0("$P", new_p_number, "E")]] <- "0,0"
+    new_kw[[paste0("$P", new_p_number, "G")]] <- "1"
+    new_kw[[paste0("$P", new_p_number, "B")]] <- new_kw[["$P1B"]]
+    new_kw[[paste0("$P", new_p_number, "R")]] <- as.integer(round(max(dim.red.data[, z])))
+    new_kw[[paste0("$P", new_p_number, "V")]] <- "1"
+    new_kw[[paste0("$P", new_p_number, "DISPLAY")]] <- "LIN"
+    new_kw[[paste0("flowCore_$P", new_p_number, "Rmin")]] <- as.integer(round(min(dim.red.data[, z])))
+    new_kw[[paste0("flowCore_$P", new_p_number, "Rmax")]] <- as.integer(round(max(dim.red.data[, z])))
+  }
+
+  for (z in 1:n) {
+    flowCore::pData(new_pars)$minRange[z] <- as.integer(round(min(dim.red.data[, z])))
+    flowCore::pData(new_pars)$maxRange[z] <- as.integer(round(max(dim.red.data[, z])))
+    flowCore::pData(new_pars)$range[z] <- as.integer(round(max(dim.red.data[, z])))
+    if (!grepl("FSC|SSC", new_kw[paste0("$P", as.character(z), "N")])) {
+      new_kw[[paste0("$P", as.character(z), "R")]] <- as.integer(round(max(dim.red.data[, z])))
+    }
+    new_kw[[paste0("flowCore_$P", as.character(z), "Rmin")]] <- as.integer(round(min(dim.red.data[, z])))
+    new_kw[[paste0("flowCore_$P", as.character(z), "Rmax")]] <- as.integer(round(max(dim.red.data[, z])))
   }
   ff <- methods::new("flowFrame", exprs = as.matrix(dim.red.data), parameters = new_pars, description = new_kw)
+  # https://github.com/RGLab/flowCore/issues/201
+  #flowCore::keyword(ff) <- flowCore:::updateTransformKeywords(ff)
 
   # get cluster markers
   ## always used logicle transformed data?!?!
