@@ -290,10 +290,6 @@ dr_to_fcs <- function(ff.list,
     run.pca <- F
   }
 
-  if (run.pca && !is.logical(run.lda)) {
-    stop("run.pca and run.lda at the same time is not possible. Set at least one to F.")
-  }
-
   if (is.logical(run.lda) && run.lda) {
     stop("Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like louvain_0.4.")
   }
