@@ -1,12 +1,26 @@
-#' Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concatenated fcs file)
+#' Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concatenated) fcs file
 #'
-#' Prepare a list of flowframes with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
-#' The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is what you see in flowjo).
-#' For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation and additional scaling operations (scale.whole, scale.samples)
-#' may be written to resulting (concatenated) fcs file for manual inspection in flowjo.
+#' Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
+#' The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is the transformation you see in flowjo).
+#' For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation, optionally additional scaling operations alogn the way (scale.whole, scale.samples)
+#' as well as cluster annotation will be written to the resulting (concatenated) fcs file for manual inspection in flowjo.
 #'
 #' Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
 #' Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
+#' Dimension reduction (low dimension embedding) algorithms are: UMAP, tSNE, SOM, GQTSOM, PCA. tSNE is expected to be too slow for more then 1e4 or 1e5 cells (depending
+#' precision set by tsne__theta). UMAP has been developed later and is well-know. SOM and GQTSOM are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
+#' but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
+#' respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
+#' On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
+#' Cluster detection algorithms (giving similar events in high dimensional space a common label) are louvain, leiden, kmeans, hclust, flowClust and MUDAN. kmeans will be the quickest.
+#' Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
+#' and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
+#' maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
+#' For kmeans, hclust, flowClust the number of expected cluster can be provided. louvain and leiden take a resolution parameter (lower resolution --> less clusters). MUDAN takes
+#' the a number of nearest neighbors (less neighbors --> more clusters).
+#' An initial PCA may be not required if the selected channels are chosen thoughtfully (only those with stained markers). If you choose though to simply
+#' use all channels (with and and without stained marker) for dimension reduction, PCA will automatically lead to focus on the ones with highest variation (so those which contain staining
+#' on a subset of events).
 #'
 #' @param ff.list a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
 #' as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)
@@ -40,9 +54,10 @@
 #' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
 #' has to be numeric; has to be equal to the number of rows of all flowframes provided; colnames of matrix dictate
 #' channel names in the FCS file
-#' @param calc.cluster.markers if NULL nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
-#' using matrixStats::col_wilcoxon_twosample every cluster is compared to all other cells as well as all clusters pairwise.
-#' respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
+#' @param calc.cluster.markers if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
+#' using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
+#' is tested against other events and clusters are compaired pairwise. respective clustering calculation has to be provided in ...;
+#' e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
 #' and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).
 #' @param mc.cores mc.cores to calculate clusterings, limited to parallel::detectCores()-1
 #' @param save.to.disk what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list
@@ -52,7 +67,8 @@
 #' @param write.scaled.channels.to.FCS do save scaled channels (scale.whole, scale.samples) to FCS file
 #' @param timeChannel name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 #' to be detected automatically
-#' @param ... additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden}, harmony, hclust, flowClust, MUDAN, kmeans;
+#' @param ... additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
+#' \href{https://github.com/immunogenomics/harmony}{harmony}, \hef{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
 #' provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 #' see respected help files to get to know which arguments can be passed:
 #' uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
@@ -140,7 +156,7 @@ dr_to_fcs <- function(ff.list,
                       run.som = T,
                       run.gqtsom = F,
                       run.louvain = F,
-                      run.kmeans = T,
+                      run.kmeans = F,
                       run.leiden = F,
                       run.hclust = F,
                       run.flowClust = F,
@@ -152,7 +168,7 @@ dr_to_fcs <- function(ff.list,
                       save.to.disk = c("fcs", "rds"),
                       save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
                       exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle", "cluster.id", "FSC|SSC|Time|cluster.id"),
-                      write.scaled.channels.to.FCS = T,
+                      write.scaled.channels.to.FCS = F,
                       timeChannel = "Time",
                       ...) {
   # batch effect correction: https://cytekbio.com/blogs/blog/how-to-identify-and-prevent-batch-effects-in-longitudinal-flow-cytometry-research-studies

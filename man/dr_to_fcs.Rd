@@ -18,7 +18,7 @@ dr_to_fcs(
   run.som = T,
   run.gqtsom = F,
   run.louvain = F,
-  run.kmeans = T,
+  run.kmeans = F,
   run.leiden = F,
   run.hclust = F,
   run.flowClust = F,
@@ -32,7 +32,7 @@ dr_to_fcs(
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
   exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle",
     "cluster.id", "FSC|SSC|Time|cluster.id"),
-  write.scaled.channels.to.FCS = T,
+  write.scaled.channels.to.FCS = F,
   timeChannel = "Time",
   ...
 )
@@ -80,15 +80,16 @@ has to be provided in ...}
 
 \item{run.flowClust}{detect clusters with flowClust::flowClust}
 
-\item{run.MUDAN}{detect clusters with MUDAN::getComMembership \code{\link[MASS]{abbey}}}
+\item{run.MUDAN}{detect clusters with MUDAN::getComMembership}
 
 \item{n.pca.dims}{number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
 e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
 and simply select all available channels, PCA will select the most relevant number of dimensions for you}
 
-\item{calc.cluster.markers}{if NULL nothing is calculated; otherwise provide the clustering(s) for which cluster markers are to be determined,
-using matrixStats::col_wilcoxon_twosample every cluster is compared to all other cells as well as all clusters pairwise.
-respective clustering calculation has to be provided in ...; e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
+\item{calc.cluster.markers}{if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
+using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
+is tested against other events and clusters are compaired pairwise. respective clustering calculation has to be provided in ...;
+e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
 and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).}
 
 \item{extra.cols}{vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
@@ -109,7 +110,8 @@ and will only occupy disk space, those are specified here; matched with grepl}
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
 
-\item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden}, harmony, hclust, flowClust, MUDAN, kmeans;
+\item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
+\href{https://github.com/immunogenomics/harmony}{harmony}, \hef{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
 provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
 see respected help files to get to know which arguments can be passed:
 uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
@@ -120,14 +122,25 @@ hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::km
 
 }
 \description{
-Prepare a list of flowframes with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
-The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is what you see in flowjo).
+Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
+The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is the transformation you see in flowjo).
 For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation and additional scaling operations (scale.whole, scale.samples)
-may be written to resulting (concatenated) fcs file for manual inspection in flowjo.
+may be written to the resulting (concatenated) fcs file for manual inspection in flowjo.
 }
 \details{
 Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
 Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
+Dimension reduction (low dimension embedding) algorithms are: UMAP, tSNE, SOM, GQTSOM, PCA. tSNE is expected to be too slow for more then 1e4 or 1e5 cells (depending
+precision set by tsne__theta). UMAP has been developed later and is well-know. SOM and GQTSOM are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
+but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
+respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
+On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
+Cluster detection algorithms (giving similar events in high dimensional space a common label) are louvain, leiden, kmeans, hclust, flowClust and MUDAN. kmeans will be the quickest.
+Start with this one and progress to using louvain which s slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
+and could used immediatly in parallel to kmeans. leiden will require the origianl library from python and is approximately similar to louvain with respecte to calculation time,
+maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
+For kmeans, hclust, flowClust the number of expected cluster can be provided. louvain and leiden take a resolution parameter (lower resolution --> less clusters). MUDAN takes
+the a number of nearest neighbors (less neighbors --> more clusters).
 }
 \examples{
 \dontrun{
