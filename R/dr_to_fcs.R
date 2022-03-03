@@ -3,7 +3,9 @@
 #' Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
 #' The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is the transformation you see in flowjo).
 #' For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation, optionally additional scaling operations alogn the way (scale.whole, scale.samples)
-#' as well as cluster annotation will be written to the resulting (concatenated) fcs file for manual inspection in flowjo.
+#' as well as cluster annotation will be written to the resulting (concatenated) fcs file for manual inspection in flowjo. Certain dimension reduction algorithms and cluster detection algorithm
+#' may become slow with a large number of events (e.g. > 1e6, see the details). In order to get a quick impression of what the algorithms can pull out for you, you may use the 'downsample'
+#' argument in fcexpr::wsp_get_ff or fcexpr::inds_get_ff to conveniently sample a random subset of events from each fcs files (flowframe).
 #'
 #' Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
 #' Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
@@ -12,15 +14,15 @@
 #' but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
 #' respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
 #' On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
-#' Cluster detection algorithms (giving similar events in high dimensional space a common label) are louvain, leiden, kmeans, hclust, flowClust and MUDAN. kmeans will be the quickest.
+#' Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These give similar events in high dimensional space a common discrete label. kmeans will be the quickest.
 #' Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
 #' and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
 #' maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
 #' For kmeans, hclust, flowClust the number of expected cluster can be provided. louvain and leiden take a resolution parameter (lower resolution --> less clusters). MUDAN takes
 #' the a number of nearest neighbors (less neighbors --> more clusters).
-#' An initial PCA may be not required if the selected channels are chosen thoughtfully (only those with stained markers). If you choose though to simply
-#' use all channels (with and and without stained marker) for dimension reduction, PCA will automatically lead to focus on the ones with highest variation (so those which contain staining
-#' on a subset of events).
+#' An initial PCA may not be required if the selected channels are chosen thoughtfully (only those with stained markers). If you decide though to simply
+#' use all channels (with and and without stained marker) for dimension reduction, PCA will automatically lead to focus on the ones with highest variation (so those channels which contain staining
+#' on a subset of events). In this case you may set n.pca.dims roughly equal to the number of channels which contain a staining.
 #'
 #' @param ff.list a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
 #' as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)
@@ -33,11 +35,8 @@
 #' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
 #' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
 #' when a pca is calculated in harmony.
-#' @param run.pca run principle component analysis before dimension reduction. may not be necessary when less than 10 or so are provided in channels.
-#' on the other hand if you decide to pass all channels (including those without any actual staining), then pca will focus on the ones with highest variances.
-#' @param n.pca.dims number of principle components to calculate; generally, with 10 channels or less PCA may not be necessary to calculate;
-#' e.g. if you choose only channel which do have an amount a variation (different populations) then PCA is not required; if you are lazy
-#' and simply select all available channels, PCA will select the most relevant number of dimensions for you
+#' @param run.pca run principle component analysis before dimension reduction
+#' @param n.pca.dims number of principle components to calculate
 #' @param run.lda run Linear Discriminant Analysis before dimension reduction;
 #' should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
 #' has to be provided in ...
@@ -47,7 +46,7 @@
 #' @param run.gqtsom calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
 #' @param run.louvain detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.leiden detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
-#' @param run.kmeans detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!!!
+#' @param run.kmeans detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!
 #' @param run.hclust detect clusters with stats::dist, stats::hclust and stats::cutree
 #' @param run.flowClust detect clusters with flowClust::flowClust
 #' @param run.MUDAN detect clusters with MUDAN::getComMembership
