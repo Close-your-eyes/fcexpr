@@ -79,6 +79,7 @@ check_ws <- function(ws) {
 
 
 get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS.file.folder) {
+
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
@@ -139,9 +140,35 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
       y$FCS.file.folder <- NA
     } else {
       y$FCS.file.folder <- FCS.file.folder[x]
-      y$FilePath <- sapply(y$FileName, function(z) list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = z))
-    }
+      y$FilePath <- sapply(y$FileName, function(z) {
+        match_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = z)
+        if (length(match_files) > 1) {
+          message("Found multiple FCS files with equal names. Will select the one which match best the keyword from flowjo workspace.")
+          # match via keywords
+          all_key_wsx <- wsx_get_keywords(wsp[x])[[z]]
+          all_key_wsx <- all_key_wsx[which(!grepl("spill|^\\$P|^P[[:digit:]]{1,}", all_key_wsx$name, ignore.case = T)),]
+          keysss <- lapply(match_files, function(match_file) {
+            all_key_fcs <- stack(flowCore::read.FCSheader(match_file)[[1]])
+            names(all_key_fcs) <- names(all_key_wsx)[c(2,1)]
+            all_key_fcs <- all_key_fcs[which(!grepl("spill|^\\$P|^P[[:digit:]]{1,}", all_key_fcs$name, ignore.case = T)),]
+            all_key_fcs <- all_key_fcs[which(trimws(all_key_fcs$value) != ""),]
+            return(all_key_fcs)
+          })
+          intersect_keys <- Reduce(intersect, c(list(all_key_wsx$name), unname(sapply(keysss, "[", "name"))))
 
+          scores <- sapply(keysss, function(match_file_keys) {
+            match_file_keys <- match_file_keys[which(match_file_keys$name %in% intersect_keys), ]
+            all_key_wsx <- all_key_wsx[which(all_key_wsx$name %in% intersect_keys), ]
+            all_key_wsx <- all_key_wsx[match(all_key_wsx$name, match_file_keys$name),]
+            return(length(which(all_key_wsx$value == match_file_keys$value)))
+          })
+          # select best match
+          return(match_files[which.max(scores)])
+        } else {
+          return(match_files)
+        }
+      })
+    }
     return(y)
   }))
 

@@ -177,13 +177,9 @@ dr_to_fcs <- function(ff.list,
   # check somewhen: https://github.com/casanova-lab/iMUBAC
   # harmony: https://github.com/immunogenomics/harmony
   # MUDAN: https://github.com/JEFworks/MUDAN
-  options(warn = 1)
 
-  ### to do:
-  # add: MUDAN::clusterBasedBatchCorrect
-  # harmony correction in clusters - then recompute everything?! - kind of circular
-  # harmony could be done at beginning (e.g unbiased or based on detected clusters)
-
+  # optionally add: MUDAN::clusterBasedBatchCorrect
+  ## allow to provide expr.select directly instead of ff.list
   ## preprocessCore::normalize.quantiles() - allow to normalize channel of ffs within defined groups
   # but this can put a really strong bias on the data:
   'df <- data.frame(x1 = c(rnorm(1e5,0,1), rnorm(1e4,15,1)),
@@ -200,9 +196,11 @@ dr_to_fcs <- function(ff.list,
     ggridges::geom_density_ridges() +
     ggridges::theme_ridges()'
 
-  ## allow to provide expr.select directly instead of ff.list
 
-  if (!requireNamespace("Rtsne", quietly = T)) utils::install.packages("Rtsne")
+
+  if (!requireNamespace("Rtsne", quietly = T)) {
+    utils::install.packages("Rtsne")
+  }
   if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
   }
@@ -230,16 +228,23 @@ dr_to_fcs <- function(ff.list,
   if (run.MUDAN && !requireNamespace("MUDAN", quietly = T)) {
     devtools::install_github("JEFworks/MUDAN")
   }
-  if (!"logicle" %in% names(ff.list)) {
-    stop("logicle transformed has to be in ff.list.")
-  }
 
   dots <- list(...)
+
+  expect_dots <- "^harmony__|^hclust__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM"
+  if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))) {
+    message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
+  }
+
 
   if (length(dots) > 0) {
     dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
   } else {
     dots_expanded <- NULL
+  }
+
+  if (!"logicle" %in% names(ff.list)) {
+    stop("'logicle' not found in ff.list: one list of flowframes in ff.list has to be named 'logicle' as has to contain logicle transformed fluorescence intensities.")
   }
 
   if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
