@@ -143,7 +143,7 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
       y$FilePath <- sapply(y$FileName, function(z) {
         match_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = z)
         if (length(match_files) > 1) {
-          message("Found multiple FCS files with equal names. Will select the one which match best the keyword from flowjo workspace.")
+          message("Found multiple FCS files with equal names. Will select the one which matches best the keywords from flowjo workspace.")
           # match via keywords
           all_key_wsx <- wsx_get_keywords(wsp[x])[[z]]
           all_key_wsx <- all_key_wsx[which(!grepl("spill|^\\$P|^P[[:digit:]]{1,}", all_key_wsx$name, ignore.case = T)),]
@@ -202,6 +202,7 @@ check_in <- function(wsp, samples, groups, FCS.file.folder, inverse_transform) {
 }
 
 get_inds <- function(x) {
+
   if (nrow(x) > 1) {
     stop("Only one fcs file at a time.")
   }
@@ -216,6 +217,7 @@ get_inds <- function(x) {
   } else {
     path <- x$FCS.file.folder
   }
+
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,
@@ -223,6 +225,7 @@ get_inds <- function(x) {
                                     truncate_max_range = F,
                                     keywords = c("$FIL", "$TOT", "$BEGINDATA"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))
+
   ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
   attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
   attr(ind_mat, "ws") <- x$wsp
@@ -292,11 +295,11 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
 get_ff2 <- function(x, downsample, population = population, inverse_transform, alias_attr_name, path_attr_name) {
 
   if (!path_attr_name %in% names(attributes(x))) {
-    print(paste0(path_attr_name, " not found in attributes."))
+    message(path_attr_name, " not found in attributes.")
     return(NULL)
   }
   if (!file.exists(attr(x,path_attr_name))) {
-    print(paste0(attr(x,path_attr_name), " not found."))
+    message(attr(x,path_attr_name), " not found.")
     return(NULL)
   }
 
@@ -309,7 +312,7 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform, a
   } else if (alias_attr_name %in% names(attributes(x)) && all(names(attr(x,alias_attr_name)) == colnames(x)) && population %in% attr(x,alias_attr_name)) {
     inds <- x[,which(attr(x,alias_attr_name) == population)]
   } else {
-    print(paste0("population not found for ", attr(x, path_attr_name)))
+    message("population not found for ", attr(x, path_attr_name))
     return(NULL)
   }
 
@@ -371,7 +374,7 @@ get_gs <- function(x, remove_redundant_channels) {
     }
   } else {
     timeChannel <- flowCore:::findTimeChannel(ff)
-    print(paste0("time channel detected: ", timeChannel))
+    message("time channel detected: ", timeChannel)
   }
 
   if (is.null(channels)) {
@@ -413,14 +416,14 @@ get_gs <- function(x, remove_redundant_channels) {
 
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
-      print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
+      message(sapply(ff, function(x) {flowCore::parameters(x)$name}))
       stop("Channels of flowFrames do not have the same names. This cannot be handled.")
     }
   })
 
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
-      print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
+      message(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
       warning("Channel description are not equal across flowFrames")
     }
   })

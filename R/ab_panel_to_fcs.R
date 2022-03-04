@@ -1,15 +1,17 @@
-#' Title
+#' Write antibody related information into a fcs file
 #'
-#' @param sampledescription
-#' @param FileNames
-#' @param FCS.file.folder
-#' @param channel_conjugate_match_file
-#' @param AbCalcFile_col
-#' @param AbCalcSheet_col
-#' @param conjugate_to_desc
-#' @param other_keywords
-#' @param clear_previous
-#' @param protocols.folder
+#' This writes channel descriptions and optionally keywords about used amounts etc.
+#'
+#' @param sampledescription data frame of sampledescription
+#' @param FileNames vector of which fcs files to consider
+#' @param FCS.file.folder path to the folder containing the fcs files specified in FileNames
+#' @param channel_conjugate_match_file path to an xlsx file holding information about fluorochromes matched to channels (better leave as it is for now)
+#' @param AbCalcFile_col column name in sampledescription indicating the name of the file containing the antibody panel calculation
+#' @param AbCalcSheet_col column name in sampledescription indicating the respective sheet name in AbCalcFile
+#' @param conjugate_to_desc update channel description of fcs files?
+#' @param other_keywords column names in AbCalcSheet of which keywords to write to fcs files
+#' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
+#' @param protocols.folder name of the folder on disk containing AbCalcFile
 #'
 #' @return
 #' @export
@@ -51,10 +53,10 @@ ab_panel_to_fcs <- function(sampledescription,
     stop("Column 'FileName' has to exist in sampledescription.")
   }
   if (!AbCalcFile_col %in% names(sd)) {
-    stop(paste0(AbCalcFile_col, " not found in sampledescription columns."))
+    stop(AbCalcFile_col, " not found in sampledescription columns.")
   }
   if (!AbCalcSheet_col %in% names(sd)) {
-    stop(paste0(AbCalcSheet_col, " not found in sampledescription columns."))
+    stop(AbCalcSheet_col, " not found in sampledescription columns.")
   }
 
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
@@ -89,15 +91,15 @@ ab_panel_to_fcs <- function(sampledescription,
   out <- lapply(split(sd, 1:nrow(sd)), function(x) {
     file <- file.path(dirname(FCS.file.folder), protocols.folder, x[,AbCalcFile_col])
     if (!file.exists(file)) {
-      warning(paste0("File '", file, "' not found."))
+      warning("File '", file, "' not found.")
     } else {
       if (!x[,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
-        warning(paste0("Sheet '", x[,AbCalcSheet_col], "' not found in ", file, "."))
+        warning("Sheet '", x[,AbCalcSheet_col], "' not found in ", file, ".")
       } else {
         sh <- openxlsx::read.xlsx(file, sheet = x[,AbCalcSheet_col])
         # check columns
         if (any(!c("Conjugate", "Antigen") %in% names(sh))) {
-          warning(paste0("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'."))
+          warning("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'.")
         } else {
           # check other_keywords
           if (length(!other_keywords %in% names(sh)) > 0) {
@@ -122,7 +124,7 @@ ab_panel_to_fcs <- function(sampledescription,
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
           if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
-            warning(paste0("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check."))
+            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check.")
           } else {
             ## read FCS here, then call the ccm function
             # for loop as sh is modified by the first FCS file
@@ -139,7 +141,7 @@ ab_panel_to_fcs <- function(sampledescription,
                 }
                 sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
                 if (any(is.na(matches))) {
-                  warning(paste0("Conjugates not found in ccm: ", paste(sh[which(is.na(sh[,"channel"])),"Conjugate"], collapse = ",")))
+                  warning("Conjugates not found in ccm: ", paste(sh[which(is.na(sh[,"channel"])),"Conjugate"], collapse = ","))
                   sh <- sh[which(!is.na(sh[,"channel"])),]
                 }
                 sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")

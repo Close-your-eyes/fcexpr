@@ -207,14 +207,8 @@ dr_to_fcs <- function(ff.list,
   if (run.leiden && !requireNamespace("Seurat", quietly = T)) {
     utils::install.packages("Seurat")
   }
-  if (!requireNamespace("parallel", quietly = T)) {
-    utils::install.packages("parallel")
-  }
   if (run.leiden &&!requireNamespace("leiden", quietly = T)) {
     utils::install.packages("leiden")
-  }
-  if (!requireNamespace("Biobase", quietly = T)) {
-    BiocManager::install("Biobase")
   }
   if (run.flowClust && !requireNamespace("flowClust", quietly = T)) {
     BiocManager::install("flowClust")

@@ -2,7 +2,7 @@
 % Please edit documentation in R/ab_panel_to_fcs.R
 \name{ab_panel_to_fcs}
 \alias{ab_panel_to_fcs}
-\title{Title}
+\title{Write antibody related information into a fcs file}
 \usage{
 ab_panel_to_fcs(
   sampledescription,
@@ -19,11 +19,29 @@ ab_panel_to_fcs(
 )
 }
 \arguments{
-\item{protocols.folder}{}
+\item{sampledescription}{data frame of sampledescription}
+
+\item{FileNames}{vector of which fcs files to consider}
+
+\item{FCS.file.folder}{path to the folder containing the fcs files specified in FileNames}
+
+\item{channel_conjugate_match_file}{path to an xlsx file holding information about fluorochromes matched to channels (better leave as it is for now)}
+
+\item{AbCalcFile_col}{column name in sampledescription indicating the name of the file containing the antibody panel calculation}
+
+\item{AbCalcSheet_col}{column name in sampledescription indicating the respective sheet name in AbCalcFile}
+
+\item{protocols.folder}{name of the folder on disk containing AbCalcFile}
+
+\item{conjugate_to_desc}{update channel description of fcs files?}
+
+\item{other_keywords}{column names in AbCalcSheet of which keywords to write to fcs files}
+
+\item{clear_previous}{clear all previous entries (channel descriptions and keywords) in fcs files?}
 }
 \value{
 
 }
 \description{
-Title
+This writes channel descriptions and optionally keywords about used amounts etc.
 }

@@ -14,23 +14,23 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
 Imports: 
-    BiocManager,
-    lubridate,
-    methods,
     openxlsx,
     stats,
+    methods,
     tidyr,
     utils,
     rstudioapi,
     xml2,
     dplyr,
     stringr,
+    rlang,
     magrittr,
-    fuzzyjoin,
-    readODS,
-    scales
 Suggests: 
     rmarkdown,
+    lubridate,
+    devtools,
+    parallel,
+    BiocManager,
     BiocGenerics,
     knitr,
     ggplot2,
@@ -40,8 +40,8 @@ Suggests:
     CytoML,
     flowCore,
     flowWorkspace,
-    Biobase,
     flowClust,
     leiden,
-    irlba
+    readODS,
+    scales
 VignetteBuilder: knitr
