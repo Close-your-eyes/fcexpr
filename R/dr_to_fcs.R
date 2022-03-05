@@ -178,6 +178,10 @@ dr_to_fcs <- function(ff.list,
   # harmony: https://github.com/immunogenomics/harmony
   # MUDAN: https://github.com/JEFworks/MUDAN
 
+  # harmony: return whole object??
+
+  # MUDAN::getComMembership offers to pass one of many algorithms (seen here: https://slowkow.com/notes/harmony-animation/), though how to pass individual arguments? e.g. for igraph::cluster_leiden
+
   # optionally add: MUDAN::clusterBasedBatchCorrect
   ## allow to provide expr.select directly instead of ff.list
   ## preprocessCore::normalize.quantiles() - allow to normalize channel of ffs within defined groups
