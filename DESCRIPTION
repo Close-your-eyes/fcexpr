@@ -1,5 +1,5 @@
 Package: fcexpr
-Title: Manage and Analzye flow cytometry experiments
+Title: Manage and statistically analzye flow cytometry experiments
 Version: 0.0.0.9930
 Authors@R: 
     person(given = "Christopher Mark",
@@ -7,7 +7,14 @@ Authors@R:
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
            comment = c(ORCID = "0000-0002-6089-4769"))
-Description: Tackles issues I had during my PhD when it came to analyzing large flow cytometry experiments. Either many channels, or many samples with much variation in the meta data, or both. 
+Description:
+After manual gating in flowjo one may want apply further analysis on gated populations.
+This may be advanced plotting of data, statistical analyses, dimension reductions and clustering.
+Several functions are provided to import either aggregated data (Counts, MFIs) or fluorescence intensities
+of single cells into R. For the latter wrapper-functions have been included that are heavily dependent on
+flowCore, flowWorkspace and/or CytoML. These wrappers may facilitate easier usage than the original ones.
+Additonally, before manual gating one may want to annotate fcs files with meta data (keywords). For that purpose a concept
+with respective functions is proposed.
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
