@@ -30,7 +30,7 @@ ab_panel_to_fcs <- function(sampledescription,
                             AbCalcSheet_col = "AbCalcSheet",
                             protocols.folder = "Protocols",
                             conjugate_to_desc = T,
-                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"),
                             clear_previous = T) {
 
   # how to handle non-fluorochrome conjugates?
@@ -105,7 +105,7 @@ ab_panel_to_fcs <- function(sampledescription,
           warning("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'.")
         } else {
           # check other_keywords
-          if (length(!other_keywords %in% names(sh)) > 0) {
+          if (any(!other_keywords %in% names(sh))) {
             message(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files.")
             other_keywords <- intersect(other_keywords, names(sh))
           }
@@ -123,7 +123,7 @@ ab_panel_to_fcs <- function(sampledescription,
             }
             sh[1,"LiveDeadMarker"] <- NA
           }
-          sh <- sh[,colSums(is.na(sh))<nrow(sh)]
+          sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
           if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
@@ -137,6 +137,7 @@ ab_panel_to_fcs <- function(sampledescription,
               channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
               channels.inv <- stats::setNames(names(channels),channels)
 
+              # special treatment on first index
               if (j == x[,"FileNames"][[1]][1]) {
                 matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm)
                 if (any(duplicated(matches))) {
@@ -159,7 +160,7 @@ ab_panel_to_fcs <- function(sampledescription,
                 # same order
                 sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
                 sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
-                message(sh)
+                print(sh)
               }
 
               if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
@@ -171,10 +172,12 @@ ab_panel_to_fcs <- function(sampledescription,
                 flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen"]
               }
 
+              ## to do: clear previous keywords
+
               # other meta data about the antibody used
               for (m in other_keywords) {
                 for (k in 1:nrow(sh)) {
-                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && sh[k,m] != "") {
+                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && trimws(sh[k,m]) %in% c("NA", "", "-")) {
                     flowCore::keyword(ff)[paste0(sh[k,"channel.name"],"_",m)] <- sh[k,m]
                   }
                 }
