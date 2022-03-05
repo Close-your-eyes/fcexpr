@@ -41,7 +41,7 @@ new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
         file.remove(files[which(grepl("^\\.", basename(files)))])
     }
 
-    base::print(base::paste0(base::file.path(path, name), " created."))
+    base::message(base::paste0(base::file.path(path, name), " created."))
 }
 
 

@@ -16,16 +16,16 @@ compMat_to_fcs(
 
 \item{compMat_file_path}{character, file path to the csv file of the compensation matrix}
 
-\item{max_match_dist}{numeric, maximum string distance for matching channel names}
+\item{max_match_dist}{numeric, maximum string distance for matching channel names using utils::adist}
 
 \item{skip_check}{logical, whether to ask for confirmation by the user if channel names were matched correctly}
 }
 \value{
-no return; instead the fcs file at fcs_file_path is overwritten with an updated version containing a new compensation matrix as SPILL keyword
+no return but an fcs file with an updated compensation matrix (SPILL keyword) on disk
 }
 \description{
-When a compensation matrix is made in flowjo it only exists in the workspace, like a mask on the fcs file.
-In case the workspace is lost or gets corrupted, the compensation matrix is lost. To avoid that one may want to hard-code into
+When a compensation matrix is made in flowjo it only exists in the workspace. It is applied like a mask on the fcs file.
+In case the workspace is lost or gets corrupted, the compensation matrix is lost. To avoid that one may want to hard-code the matrix into
 the fcs-file. This function takes a csv file of a compensation matrix as exported from flowjo and writes it into the SPILL-keyword
 of a fcs file. Moreover, a full compensation matrix is generated: You may have noticed that a compensation matrix purely generated
 in flowjo is not complete - spillover into channels can only be assigned for existing compensation controls. This is different to
@@ -35,5 +35,7 @@ which spillover comes out of it, as dead cells are not of interest in most cases
 }
 \examples{
 \dontrun{
+compMat_to_fcs(fcs_file_path = "myfolder/my_file.fcs",
+compMat_file_path = "myfolder/compmat_export_from_flowjo.csv")
 }
 }

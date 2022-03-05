@@ -1,7 +1,7 @@
 #' Write a compensation matrix into a fcs file
 #'
-#' When a compensation matrix is made in flowjo it only exists in the workspace, like a mask on the fcs file.
-#' In case the workspace is lost or gets corrupted, the compensation matrix is lost. To avoid that one may want to hard-code into
+#' When a compensation matrix is made in flowjo it only exists in the workspace. It is applied like a mask on the fcs file.
+#' In case the workspace is lost or gets corrupted, the compensation matrix is lost. To avoid that one may want to hard-code the matrix into
 #' the fcs-file. This function takes a csv file of a compensation matrix as exported from flowjo and writes it into the SPILL-keyword
 #' of a fcs file. Moreover, a full compensation matrix is generated: You may have noticed that a compensation matrix purely generated
 #' in flowjo is not complete - spillover into channels can only be assigned for existing compensation controls. This is different to
@@ -11,14 +11,16 @@
 #'
 #' @param fcs_file_path, character, file path to the fcs file
 #' @param compMat_file_path character, file path to the csv file of the compensation matrix
-#' @param max_match_dist numeric, maximum string distance for matching channel names
+#' @param max_match_dist numeric, maximum string distance for matching channel names using utils::adist
 #' @param skip_check logical, whether to ask for confirmation by the user if channel names were matched correctly
 #'
-#' @return no return; instead the fcs file at fcs_file_path is overwritten with an updated version containing a new compensation matrix as SPILL keyword
+#' @return no return but an fcs file with an updated compensation matrix (SPILL keyword) on disk
 #' @export
 #'
 #' @examples
 #'\dontrun{
+#'compMat_to_fcs(fcs_file_path = "myfolder/my_file.fcs",
+#'compMat_file_path = "myfolder/compmat_export_from_flowjo.csv")
 #' }
 compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1, skip_check = F) {
 
@@ -50,7 +52,7 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
   sp <- prep_spill(sp = sp, compMat = compMat, max_match_dist = max_match_dist, skip_check = skip_check, verbose = T)
   flowCore::keyword(ff)[["SPILL"]] <- sp
   flowCore::write.FCS(ff, fcs_file_path)
-  print(fcs_file_path)
+  message(fcs_file_path)
 }
 
 prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose = F) {
@@ -61,12 +63,12 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
   rownames(sp) <- colnames(sp)
   if (!all(colnames(compMat) %in% colnames(sp))) {
     if (verbose) {
-      print("Not all colnames of compMat found in those of the SPILLOVER keyword matrix from the FCS file.")
+      message("Not all colnames of compMat found in those of the SPILLOVER keyword matrix from the FCS file.")
     }
     # match channel names
     if (any(apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist)) {
-      print(colnames(compMat)[apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist])
-      print(colnames(sp))
+      message(colnames(compMat)[apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist])
+      message(colnames(sp))
       stop("Too big string distances between channel names of compMat and FCS file. Please, check the column names or make sure you provide the correct compensation matrix.")
     }
     match_ind <- apply(utils::adist(colnames(compMat), colnames(sp)), 1, which.min)
@@ -74,8 +76,8 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
       stop("Channel names from compMat not uniquely matched to channel names from FCS file.")
     }
     if (verbose) {
-      print("Matched channel names:")
-      print(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
+      message("Matched channel names:")
+      message(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
     }
     colnames(compMat) <- colnames(sp)[match_ind]
     rownames(compMat) <- colnames(sp)[match_ind]

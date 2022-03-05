@@ -24,6 +24,10 @@
 #' @importFrom rlang .data
 #'
 #' @examples
+#' \dontrun{
+#' ab_info_to_panel(panel_file = "my.path/20220202_Exp.part.1.xlsx",
+#' antibody_list = "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx")
+#' }
 ab_info_to_panel <- function(panel_file,
                              panel_sheet = "Panel",
                              antibody_list,
@@ -38,7 +42,7 @@ ab_info_to_panel <- function(panel_file,
   }
   if (basename(panel_file) == panel_file) {
     panel_file <- file.path(getwd(), panel_file)
-    print(paste0("panel_file set to ", panel_file))
+    message(paste0("panel_file set to ", panel_file))
   }
   if (!file.exists(panel_file)) {
     stop("panel_file not found.")
@@ -65,7 +69,7 @@ ab_info_to_panel <- function(panel_file,
 
   panel_add <-
     panel %>%
-    dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(.data$varname == "Antigen"))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))) %>%
+    dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))) %>%
     dplyr::left_join(ab.list %>% dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))), by = c("antigen_case", "conjugate_case")) %>%
     dplyr::select(-c(antigen_case, conjugate_case)) %>%
     #fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>% # this would match CD45RO and CD4 - not useful
@@ -85,7 +89,7 @@ ab_info_to_panel <- function(panel_file,
   }
 
   if (any(duplicated(panel_add$row.num))) {
-    print(as.data.frame(panel_add))
+    message(as.data.frame(panel_add))
     stop("Ambiguous entries found. Please check and make specific by providing a Box and/or Lot.")
   }
 
@@ -105,6 +109,6 @@ ab_info_to_panel <- function(panel_file,
   openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+1,1), x = as.data.frame(panel_add[,antibody_list_cols]))
   openxlsx::saveWorkbook(wb, panel_file, overwrite = T)
 
-  print(as.data.frame(panel_add))
-  print(paste0("Saved as ", panel_file, "."))
+  message(as.data.frame(panel_add))
+  message(paste0("Saved as ", panel_file, "."))
 }

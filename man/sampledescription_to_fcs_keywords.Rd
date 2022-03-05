@@ -2,7 +2,7 @@
 % Please edit documentation in R/sampledescription_to_fcs_keywords.R
 \name{sampledescription_to_fcs_keywords}
 \alias{sampledescription_to_fcs_keywords}
-\title{Write columns from a sampledescription as keyword into FCS files}
+\title{Write columns from sampledescription as keyword into FCS files}
 \usage{
 sampledescription_to_fcs_keywords(sampledescription, columns, FCS.file.folder)
 }
@@ -17,6 +17,14 @@ sampledescription_to_fcs_keywords(sampledescription, columns, FCS.file.folder)
 no return but keywords written to FCS files
 }
 \description{
-ATTENTION: This function will alter the meta data of FCS files
-such that one can notice it was once opened and saved with flowCore.
+Given a sampledescription with annotation of fcs files such meta data may be
+written as keyword into respective fcs files.
+}
+\examples{
+\dontrun{
+wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+sd <- openxlsx::read.xlsx(file.path(wd, sampledescription.xlsx))
+# if only a subset of files should be considered, select respective rows
+sampledescription_to_fcs_keywords(sampledescription = sd, columns = c("Patient", "ExpPart"), FCS.file.folder = file.path(wd, "FCS_files"))
+}
 }

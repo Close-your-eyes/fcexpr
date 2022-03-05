@@ -1,7 +1,7 @@
-#' Write columns from a sampledescription as keyword into FCS files
+#' Write columns from sampledescription as keyword into FCS files
 #'
-#' ATTENTION: This function will alter the meta data of FCS files
-#' such that one can notice it was once opened and saved with flowCore.
+#' Given a sampledescription with annotation of fcs files such meta data may be
+#' written as keyword into respective fcs files.
 #'
 #' @param sampledescription data frame
 #' @param columns vector of column names from sampledescription to write as keywords
@@ -13,10 +13,9 @@
 #' @examples
 #' \dontrun{
 #' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-#' setwd(wd)
-#' sd <- openxlsx::read.xlsx(sampledescription.xlsx)
+#' sd <- openxlsx::read.xlsx(file.path(wd, sampledescription.xlsx))
 #' # if only a subset of files should be considered, select respective rows
-#' sampledescription_to_fcs_keywords(sampledescription = sd, columns = c("Patient", "ExpPart"),FCS.file.folder = "FCS_files)
+#' sampledescription_to_fcs_keywords(sampledescription = sd, columns = c("Patient", "ExpPart"), FCS.file.folder = file.path(wd, "FCS_files"))
 #' }
 sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
@@ -43,8 +42,8 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
   if (length(columns[which(columns %in% names(sd))]) == 0) {
     stop("No matching column names found in sd.")
   }
-  print(paste0(length(columns[which(columns %in% names(sd))]), " of ", length(columns), " columns found in sd: " ))
-  print(columns[which(columns %in% names(sd))])
+  message(length(columns[which(columns %in% names(sd))]), " of ", length(columns), " columns found in sd: " )
+  message(columns[which(columns %in% names(sd))])
   columns <- columns[which(columns %in% names(sd))]
 
   for (x in seq_along(fcs_files)) {

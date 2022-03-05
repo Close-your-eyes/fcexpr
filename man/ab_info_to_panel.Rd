@@ -40,3 +40,9 @@ the LiveDeadMarker column. Anything written there will be overwritten.
 The following typos in Antigen and Conjugate are rescued (matching may still work with the ab list):
 Space, special characters (e.g. hyphen), case.
 }
+\examples{
+\dontrun{
+ab_info_to_panel(panel_file = "my.path/20220202_Exp.part.1.xlsx",
+antibody_list = "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx")
+}
+}

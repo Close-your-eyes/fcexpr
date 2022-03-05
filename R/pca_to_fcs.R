@@ -81,15 +81,15 @@ pca_to_fcs <- function(file,
         if (is.null(compMat)) {
           stop("compMat could not be determined.")
         }
-        print("$SPILLOVER keyword used for compensation.")
+        message("$SPILLOVER keyword used for compensation.")
       } else {
-        print("SPILL keyword used for compensation.")
+        message("SPILL keyword used for compensation.")
       }
     }
     ff <- flowCore::compensate(ff_orig, compMat)
   } else {
     ff <- ff_orig
-    print("No compensation applied.")
+    message("No compensation applied.")
   }
 
   channels <- .get.channels(ff = ff,

@@ -65,8 +65,8 @@ wsp_get_indices <- function(wsp,
   }
 
   if (any(table(smpl$FilePath) > 1)) {
-    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-    stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
+    warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
+    stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
   ind.list <- lapply_fun(split(smpl, 1:nrow(smpl)),

@@ -196,15 +196,19 @@ dr_to_fcs <- function(ff.list,
     ggridges::geom_density_ridges() +
     ggridges::theme_ridges()'
 
-
-
+  if (!requireNamespace("diptest", quietly = T)) {
+    utils::install.packages("diptest")
+  }
+  if (!requireNamespace("matrixStats", quietly = T)) {
+    utils::install.packages("matrixStats")
+  }
   if (!requireNamespace("Rtsne", quietly = T)) {
     utils::install.packages("Rtsne")
   }
   if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
   }
-  if (run.leiden && !requireNamespace("Seurat", quietly = T)) {
+  if ((run.leiden || run.louvain) && !requireNamespace("Seurat", quietly = T)) {
     utils::install.packages("Seurat")
   }
   if (run.leiden &&!requireNamespace("leiden", quietly = T)) {
@@ -216,11 +220,17 @@ dr_to_fcs <- function(ff.list,
   if (!requireNamespace("devtools", quietly = T)) {
     utils::install.packages("devtools")
   }
-  if (run.harmony && !requireNamespace("run.harmony", quietly = T)) {
+  if (!requireNamespace("presto", quietly = T)) {
+    devtools::install_github('immunogenomics/presto')
+  }
+  if (run.harmony && !requireNamespace("harmony", quietly = T)) {
     devtools::install_github("immunogenomics/harmony")
   }
   if (run.MUDAN && !requireNamespace("MUDAN", quietly = T)) {
     devtools::install_github("JEFworks/MUDAN")
+  }
+  if (run.som && !requireNamespace("EmbedSOM", quietly = T)) {
+    devtools::install_github("devtools::install_github('exaexa/EmbedSOM')")
   }
 
   dots <- list(...)
@@ -292,7 +302,7 @@ dr_to_fcs <- function(ff.list,
     stop("Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like louvain_0.4.")
   }
 
-  if (!is_logical(run.lda)) {
+  if (!is.logical(run.lda)) {
     # clustering columns need to follow the pattern name_resolution.
     if (!run.lda %in% dots_expanded) {
       stop("Value for run.lda not found in ... . They respective clustering to use for lda has to be computed! E.g. if run.lda = 'louvain_0.9' then louvain__resolution = 0.9 has to be passed.")
@@ -745,7 +755,7 @@ dr_to_fcs <- function(ff.list,
   )
 
   # prepare channel desc
-  name.desc <- setNames(ff.list[[1]][[1]]@parameters@data[["desc"]], ff.list[[1]][[1]]@parameters@data[["name"]])
+  name.desc <- stats::setNames(ff.list[[1]][[1]]@parameters@data[["desc"]], ff.list[[1]][[1]]@parameters@data[["name"]])
   name.desc <- name.desc[which(!is.na(name.desc))]
   channel.desc <- rep("", ncol(dim.red.data))
 
@@ -837,7 +847,7 @@ dr_to_fcs <- function(ff.list,
       dat_split <- split(dat, split_var)
       dat <- as.matrix(dat)
       dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col)]))
-      all_pairs <- combn(split_var_levels, 2, simplify = F)
+      all_pairs <- utils::combn(split_var_levels, 2, simplify = F)
 
       ## all pairwise
       pair_marker_table <- dplyr::bind_rows(parallel::mclapply(all_pairs, function(x) {

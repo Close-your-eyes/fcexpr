@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Manage and Analzye flow cytometry experiments
-Version: 0.0.0.9920
+Version: 0.0.0.9930
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
@@ -27,6 +27,16 @@ Imports:
     magrittr,
 Suggests: 
     rmarkdown,
+    EmbedSOM,
+    MASS,
+    MUDAN,
+    Rtsne,
+    Seurat,
+    diptest,
+    harmony,
+    matrixStats,
+    presto,
+    uwot,
     lubridate,
     devtools,
     parallel,

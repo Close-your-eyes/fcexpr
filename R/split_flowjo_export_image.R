@@ -49,11 +49,11 @@ split_flowjo_export_image <- function(img,
         img.crop.trim <- magick::image_trim(img.crop)
         magick::image_write(img.crop.trim, path = file.path(parent_folder, folder, paste0("x", x, "_", "y", y, ".png")), format = "png")
       }, error = function(e) {
-        print(paste0("Whitespace found at position x = ", x, ", y = ", y, "."))
+        message("Whitespace found at position x = ", x, ", y = ", y, ".")
       })
     }
   }
-  print(paste0("Images saved to ", file.path(parent_folder, folder)))
+  message("Images saved to ", file.path(parent_folder, folder))
 
 
   if (!missing(pptx_name)) {
@@ -76,8 +76,8 @@ split_flowjo_export_image <- function(img,
     if (rev(strsplit(pptx_name, "\\.")[[1]]) != "pptx") {
       pptx_name <- paste0(pptx_name, ".pptx")
     }
-    print(pptx, target = file.path(parent_folder, folder, pptx_name))
-    print(paste0("pptx saved as ", file.path(parent_folder, folder, pptx_name)))
+    message(pptx, target = file.path(parent_folder, folder, pptx_name))
+    message("pptx saved as ", file.path(parent_folder, folder, pptx_name))
 
   }
 }

@@ -47,8 +47,8 @@ wsp_get_gs <- function(wsp,
     return(NULL)
   }
   if (any(table(smpl$FilePath) > 1)) {
-    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-    stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
+    warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
+    stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
   smpl_list <- split(smpl, paste0(basename(smpl$wsp), "_-_", smpl$group))
@@ -60,7 +60,7 @@ wsp_get_gs <- function(wsp,
         path <- dirname(path)
         n <- length(unique(path))
       }
-      print(paste0("Common FCS.file.folder determined: ", unique(path), "."))
+      message("Common FCS.file.folder determined: ", unique(path), ".")
       x$FCS.file.folder <- path
     }
     return(x)

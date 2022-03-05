@@ -2,15 +2,12 @@
 % Please edit documentation in R/nPE_to_fcs.R
 \name{nPE_to_fcs}
 \alias{nPE_to_fcs}
-\title{Convert fluorescence intensity (FI) to number of Photoelectrons (nPE)}
+\title{Convert fluorescence intensity (FI) to number of detected photo electrons (nPE)}
 \usage{
 nPE_to_fcs(
   file_path,
   h_channels_only = T,
-  compensate = F,
-  compMat,
-  logicle_trans = F,
-  kfactor_df,
+  kfactor_df = NULL,
   output_folder = NULL,
   new_file_suffix = "nPE"
 )
@@ -20,12 +17,6 @@ nPE_to_fcs(
 
 \item{h_channels_only}{logical, have only the height channels converted to nPE; height channels are actually the only ones for which the conversion is correct.}
 
-\item{compensate}{logical, should compensation be applied before PC calculation}
-
-\item{compMat}{matrix, optional; a compensation matrix to use for compensation. If not provided the SPILL argument of the fcs file will be used. If you have generated a compensation matrix in FlowJo see ?fcexpr::wsx_compMats_to_fcs in order to have it copied to fcs files.}
-
-\item{logicle_trans}{logical, should the logical transformation (Parks, 2006, https://pubmed.ncbi.nlm.nih.gov/16604519/) be applied before nPE calculation.}
-
 \item{kfactor_df}{data.frame, table with k-factors for every channel and voltage per machine, defaults to system.file("extdata", "k_factors.rds", package = "fcexpr")}
 
 \item{output_folder}{character, optional, path to a folder where to save the newly generated fcs file. Default is dirname(file_path).}
@@ -33,12 +24,17 @@ nPE_to_fcs(
 \item{new_file_suffix}{character, the suffix to add to the the newly generated fcs file. Default is _nPE.}
 }
 \value{
-appended flowFrame which is also saved as fcs file
+appended flowFrame which is also saved as fcs file to disk
 }
 \description{
-CAUTION: Very experimental function. Channels of selected flow cytometers have been analyzed with a QuantiFlash device. By generation of very defined pulses of light the
-fluorescence intensity (FI) measured by a PMT (detector in a flow cytometer) can be correlated to an absolute number of detected photoelectrons (nPE).
+CAUTION: Very experimental function. Channels of selected flow cytometers have been analyzed with a QuantiFlash. By generation of very defined light pulses the
+fluorescence intensity (FI) measured by a PMT can be correlated to an absolute number of detected photo electrons (nPE).
 Currently this only works for fluorescence channels, not scatter channels. Also, strictly speaking, it is only valid for Height-channels (-H at the end)- For Area (-A) and Width (-W) it may not be correct.
 Fluorescence signals acquired at different voltages and even by different flow cytometers become comparable on the nPE-scale. A good idea would be to test the conversion by analyzing the same sample with different
 settings and/or at different machines.
+}
+\examples{
+\dontrun{
+ff <- nPE_to_fcs(file_path = "myfolder/my_file.fcs")
+}
 }

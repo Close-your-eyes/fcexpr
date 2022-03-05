@@ -113,7 +113,7 @@ sync_sampledescription <- function(FCS.file.folder,
   sd.delete.ind <- intersect(which(is.na(sd[, "FileName"])), which(!is.na(sd[, "identity"])))
   if (length(sd.delete.ind) > 0) {
     fcs.files.del <- fcs.files[which(fcs.files %in% sd[sd.delete.ind, "identity"])]
-    print(names(fcs.files.del))
+    message(names(fcs.files.del))
 
     if (interactive()) {
       choice <- utils::menu(c("Yes", "No"), title = "Move these FCS files to deleted_FCS_files and exclude them from sampledescription?")
@@ -132,9 +132,9 @@ sync_sampledescription <- function(FCS.file.folder,
                                                                                                                                      8, nchar(sd[, "FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[, "FileName"]))
         .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name, file.sep = file.sep)
         .write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log, file.sep = file.sep)
-        print(paste0("FCS files moved to deleted_FCS_files and ", file.name, " updated."))
+        message("FCS files moved to deleted_FCS_files and ", file.name, " updated.")
       } else {
-        print("deleted_FCS_files folder could not be created - no files were removed.")
+        message("deleted_FCS_files folder could not be created - no files were removed.")
       }
     }
     if (choice == 2) {
@@ -156,7 +156,7 @@ sync_sampledescription <- function(FCS.file.folder,
 
     .write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name, file.sep = file.sep)
     .write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log, file.sep = file.sep)
-    print(paste0(nrow(sd.diff), " new files have been found and added to the sampledescription."))
+    message(nrow(sd.diff), " new files have been found and added to the sampledescription.")
     file.rename(names(fcs.files.diff), file.path(dirname(names(fcs.files.diff)), sd.diff[, "FileName"]))
   }
 
@@ -172,7 +172,7 @@ sync_sampledescription <- function(FCS.file.folder,
     sd[, "FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[, "FileName"])), paste0(sd[, "FileName"], ".fcs"), sd[, "FileName"])
     sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
 
-    print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind]), stringsAsFactors = F))
+    message(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind]), stringsAsFactors = F))
     if (interactive()) {
       choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
     } else {
@@ -203,7 +203,7 @@ sync_sampledescription <- function(FCS.file.folder,
       sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
 
       rows <- which(sd[, "FileName"] != basename(fcs.files))
-      print(data.frame(FileName = sd[rows, "FileName"], PreviousFileName = basename(fcs.files)[rows]))
+      message(data.frame(FileName = sd[rows, "FileName"], PreviousFileName = basename(fcs.files)[rows]))
       if (interactive()) {
         choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
       } else {
@@ -271,7 +271,7 @@ sync_sampledescription <- function(FCS.file.folder,
         openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     }, warning=function(w) {
@@ -280,7 +280,7 @@ sync_sampledescription <- function(FCS.file.folder,
         openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     })
@@ -292,7 +292,7 @@ sync_sampledescription <- function(FCS.file.folder,
         openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     }
@@ -307,7 +307,7 @@ sync_sampledescription <- function(FCS.file.folder,
         utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     }, warning=function(w) {
@@ -316,7 +316,7 @@ sync_sampledescription <- function(FCS.file.folder,
         utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     })
@@ -328,7 +328,7 @@ sync_sampledescription <- function(FCS.file.folder,
         utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
       }
       if (choice == 2) {
-        print("Exiting.")
+        message("Exiting.")
         return(NULL)
       }
     }
@@ -414,7 +414,6 @@ sync_sampledescription <- function(FCS.file.folder,
     stop("No FCS files found or left after filtering for exclusion folders.")
   }
 
-
   out <- flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
   dd <- sapply(out, "[", "$DATE")
   tt <- sapply(out, "[", "$BTIM")
@@ -431,7 +430,7 @@ sync_sampledescription <- function(FCS.file.folder,
                                                                      "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
 
   if (any(is.na(datetime))) {
-    print(paste0("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer."))
+    message("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
   }
   fcs.files <- stats::setNames(paste0(sapply(out, "[", "$FIL"), "_-_", trimws(sapply(out, "[", "$TOT")), "_-_", datetime), nm = fcs.file.paths)
 
@@ -461,7 +460,7 @@ sync_sampledescription <- function(FCS.file.folder,
     stop("Columns FileName and identity have to exist is the sampledescription file.")
   }
   if (nrow(sd) > length(fcs.files)) {
-    print(sd[which(!sd[, "identity"] %in% fcs.files), which(names(sd) %in% c("FileName", "identity"))])
+    message(sd[which(!sd[, "identity"] %in% fcs.files), which(names(sd) %in% c("FileName", "identity"))])
     stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save it, close it and run sync_sampledescription again.")
   }
   if (any(sapply(c("/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\""), function(x) grepl(x, sd[, "FileName"])))) {

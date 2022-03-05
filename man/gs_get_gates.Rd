@@ -33,7 +33,7 @@ gs_get_gates(
 \item{gate.pct.stat.size}{size of percent labels for gates}
 }
 \value{
-
+a data frame to loop over and produce plots with ggcyto
 }
 \description{
 Gates from gatingset for plotting with ggcyto

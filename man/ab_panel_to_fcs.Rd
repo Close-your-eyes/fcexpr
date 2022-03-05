@@ -40,8 +40,13 @@ ab_panel_to_fcs(
 \item{clear_previous}{clear all previous entries (channel descriptions and keywords) in fcs files?}
 }
 \value{
-
+no return, but updated fcs files on disk
 }
 \description{
-This writes channel descriptions and optionally keywords about used amounts etc.
+This writes channel descriptions and optional keywords to fcs files.
+}
+\examples{
+\dontrun{
+
+}
 }

@@ -22,7 +22,7 @@ geo_mean <- function(x, rm.na = F) {
     if (NA %in% x && !rm.na) {
         stop("NAs found, please fix.")
     } else if (NA %in% x && !rm.na) {
-        print("NAs are removed.")
+        warning("NAs removed.")
         x <- x[which(!is.na(x))]
     }
     return(exp(mean(log(x))))

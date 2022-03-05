@@ -46,7 +46,7 @@ wsx_compMats_to_fcs <- function(ws, ...) {
 
   for (i in seq_along(compMats)) {
     if (!file.exists(names(compMats)[i])) {
-      print(paste0("File ", names(compMats)[i]), " not found. Did you change the names of FCS files and have not reconnected them to the workspace? Or did you copy the workspace from somewhere else? If so, open the workspace, reconnect the fcs files and save.")
+      warning("File ", names(compMats)[i], " not found. Did you change the names of FCS files and have not reconnected them to the workspace? Or did you copy the workspace from somewhere else? If so, open the workspace, reconnect the fcs files and save.")
     }
     ff <- flowCore::read.FCS(names(compMats)[i], truncate_max_range = F, emptyValue = F)
     sp <- flowCore::keyword(ff)[["SPILL"]]

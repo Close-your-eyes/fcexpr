@@ -9,8 +9,10 @@
 #' @param gate.pct.stat.y.pos y-position of percent labels for gates
 #' @param gate.pct.stat.size size of percent labels for gates
 #'
-#' @return
+#' @return a data frame to loop over and produce plots with ggcyto
 #' @export
+#'
+#' @importFrom magrittr "%>%"
 #'
 #' @examples
 #' \dontrun{

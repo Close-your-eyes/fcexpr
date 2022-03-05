@@ -1,6 +1,6 @@
 #' Write antibody related information into a fcs file
 #'
-#' This writes channel descriptions and optionally keywords about used amounts etc.
+#' This writes channel descriptions and optional keywords to fcs files.
 #'
 #' @param sampledescription data frame of sampledescription
 #' @param FileNames vector of which fcs files to consider
@@ -13,12 +13,15 @@
 #' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
 #' @param protocols.folder name of the folder on disk containing AbCalcFile
 #'
-#' @return
+#' @return no return, but updated fcs files on disk
 #' @export
 #'
 #' @importFrom magrittr "%>%"
 #'
 #' @examples
+#' \dontrun{
+#'
+#' }
 ab_panel_to_fcs <- function(sampledescription,
                             FileNames,
                             FCS.file.folder,
@@ -103,7 +106,7 @@ ab_panel_to_fcs <- function(sampledescription,
         } else {
           # check other_keywords
           if (length(!other_keywords %in% names(sh)) > 0) {
-            print(paste0(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files."))
+            message(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files.")
             other_keywords <- intersect(other_keywords, names(sh))
           }
           # check for "channel" in other_keywords
@@ -150,13 +153,13 @@ ab_panel_to_fcs <- function(sampledescription,
                 sh <-
                   sh %>%
                   dplyr::group_by(channel) %>%
-                  dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, all_of(other_keywords)), collapse.fun), .groups = "drop")
+                  dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, dplyr::all_of(other_keywords)), collapse.fun), .groups = "drop")
                 sh <- as.data.frame(sh)
 
                 # same order
                 sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
                 sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
-                print(sh)
+                message(sh)
               }
 
               if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
@@ -179,7 +182,7 @@ ab_panel_to_fcs <- function(sampledescription,
 
               # save fcs file (overwrite original)
               flowCore::write.FCS(ff, fcs.path)
-              print(fcs.path)
+              message(fcs.path)
             }
           }
         }

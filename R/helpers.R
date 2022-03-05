@@ -11,7 +11,7 @@ lgcl_trsfrm_ff <- function(ff, channels = NULL) {
     while(is.null(lgcl)) {
       lgcl <- tryCatch(flowCore::estimateLogicle(ff, z, m = m),
                        error = function(e) {
-                         #print(m)
+                         #message(m)
                          return(NULL)
                        }
       )
@@ -148,7 +148,7 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
           all_key_wsx <- wsx_get_keywords(wsp[x])[[z]]
           all_key_wsx <- all_key_wsx[which(!grepl("spill|^\\$P|^P[[:digit:]]{1,}", all_key_wsx$name, ignore.case = T)),]
           keysss <- lapply(match_files, function(match_file) {
-            all_key_fcs <- stack(flowCore::read.FCSheader(match_file)[[1]])
+            all_key_fcs <- utils::stack(flowCore::read.FCSheader(match_file)[[1]])
             names(all_key_fcs) <- names(all_key_wsx)[c(2,1)]
             all_key_fcs <- all_key_fcs[which(!grepl("spill|^\\$P|^P[[:digit:]]{1,}", all_key_fcs$name, ignore.case = T)),]
             all_key_fcs <- all_key_fcs[which(trimws(all_key_fcs$value) != ""),]
@@ -330,13 +330,13 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform, a
 
   if (length(inverse_transform) == 2) {
     if (which(inverse_transform) == 1) {
-      ff <- list(ff, fcexpr:::lgcl_trsfrm_ff(ff))
+      ff <- list(ff, lgcl_trsfrm_ff(ff))
     } else {
-      ff <- list(fcexpr:::lgcl_trsfrm_ff(ff), ff)
+      ff <- list(lgcl_trsfrm_ff(ff), ff)
     }
   } else {
     if (!inverse_transform) {
-      ff <- list(fcexpr:::lgcl_trsfrm_ff(ff))
+      ff <- list(lgcl_trsfrm_ff(ff))
     } else {
       ff <- list(ff)
     }

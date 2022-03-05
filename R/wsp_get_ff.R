@@ -80,8 +80,8 @@ wsp_get_ff <- function(wsp,
   }
 
   if (any(table(smpl$FilePath) > 1)) {
-    print("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-    stop(print(smpl$FilePath[which(table(smpl$FilePath) > 1)]))
+    warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
+    stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
   # check if population exists for each sample
@@ -96,7 +96,7 @@ wsp_get_ff <- function(wsp,
   pp <- as.data.frame(pp)
   pp_is <- unique(unlist(pp[unique(c(which(pp$PopulationFullPath == population), which(pp$Population == population))), "FileName"]))
   if (length(smpl$FileName[which(!smpl$FileName %in% pp_is)]) > 0) {
-    print(paste0("For ", paste(smpl$FileName[which(!smpl$FileName %in% pp_is)], collapse = ", "), " population was not found."))
+    message("For ", paste(smpl$FileName[which(!smpl$FileName %in% pp_is)], collapse = ", "), " population was not found.")
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
 
