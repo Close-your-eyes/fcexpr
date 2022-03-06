@@ -76,8 +76,8 @@
 #'
 #'
 #' @return
-#' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering) for every events. This is same table which is written into a newly generated fcs file.
-#' (ii) A character vector of meaningful column names which may be used for the table (rather for convenience). (iii) Tables of marker features (each cluster vs all other cells and all clusters pairwise).
+#' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
+#' (ii) A character vector of meaningful column names which may be used for the table in R (rather for convenience). (iii) Tables of marker features (each cluster vs all other events and all clusters pairwise).
 #' @export
 #'
 #' @importFrom magrittr "%>%"
