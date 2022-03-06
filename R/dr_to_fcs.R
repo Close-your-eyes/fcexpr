@@ -139,7 +139,7 @@
 #'  marker_all <- dplyr::arrange(marker_all, diptest_p)
 #'  # see ?diptest::dip.test
 #'  # multimodality indicates heterogeneity within in the cluster
-#'  # and may justify to seperate that cluster further into sub-clusters
+#'  # and may justify to separate that cluster further into sub-clusters
 #'  # this depends on the interpretation of the scientist though
 #'
 #'
@@ -529,7 +529,7 @@ dr_to_fcs <- function(ff.list,
           temp_dots[["resolution_parameter"]] <- temp_dots[["resolution_parameter"]][which(!is.na(temp_dots[["resolution_parameter"]]))]
         }
         clust_idents <- do.call(cbind, parallel::mclapply(temp_dots[["resolution_parameter"]], function(x) {
-          do.call(leiden::leiden, args = c( list(object = snn$snn, resolution_parameter = x), temp_dots[which(names(temp_dots) != "resolution_parameter")]))
+          do.call(leiden::leiden, args = c(list(object = snn$snn, resolution_parameter = x), temp_dots[which(names(temp_dots) != "resolution_parameter")]))
         }, mc.cores = mc.cores))
       } else {
         clust_idents <- do.call(leiden::leiden, args = c(list(object = snn$snn), temp_dots))
