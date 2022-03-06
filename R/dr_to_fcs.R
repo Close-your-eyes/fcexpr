@@ -29,12 +29,12 @@
 #' @param channels a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7 for example)
 #' names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used
 #' @param add.sample.info named list of additional channels to identify samples or group them in flowjo;
-#' e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))
+#' e.g. for 9 fcs files to be concatenated: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))
 #' @param scale.whole if and how to scale channels after concatenation of flowframes in ff.list
 #' @param scale.samples if and how to scale channels of flowframes in ff.list individually before concatenation
 #' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
 #' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
-#' when a pca is calculated in harmony.
+#' when a pca is before in harmony.
 #' @param run.pca run principle component analysis only, or prior to other dimension reduction (umap, SOM, tSNE, ...)
 #' @param n.pca.dims number of principle components to calculate
 #' @param run.lda run Linear Discriminant Analysis before dimension reduction;
