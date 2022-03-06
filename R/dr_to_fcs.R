@@ -35,7 +35,7 @@
 #' @param run.harmony attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
 #' harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
 #' when a pca is calculated in harmony.
-#' @param run.pca run principle component analysis before dimension reduction
+#' @param run.pca run principle component analysis only, or prior to other dimension reduction (umap, SOM, tSNE, ...)
 #' @param n.pca.dims number of principle components to calculate
 #' @param run.lda run Linear Discriminant Analysis before dimension reduction;
 #' should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
