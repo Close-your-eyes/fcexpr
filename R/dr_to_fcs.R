@@ -442,8 +442,18 @@ dr_to_fcs <- function(ff.list,
     }
     message("Calculating PCA. Start: ", Sys.time())
     # https://slowkow.com/notes/pca-benchmark/
+    ## version 1
     # mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
     # mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
+    ## version 2
+    #X_center <- rowMeans(X)
+    #X_scale <- proxyC::rowSds(X)
+    #suppressWarnings({
+    # retval <- irlba::irlba(A = t(X), nv = 20, center = X_center, scale = X_scale)
+    #})
+    #retval$x <- retval$u %*% diag(retval$d)
+    #retval
+
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.dims <- pca.result[["x"]]
     expr.select <- pca.dims[, 1:n.pca.dims]
