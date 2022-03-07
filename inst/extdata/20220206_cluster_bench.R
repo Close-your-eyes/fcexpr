@@ -3,11 +3,11 @@ library(tidyverse)
 library(fcexpr)
 library(ClusterR)
 wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+drfz <- "/Volumes/AG_Hiepe/Christopher.Skopnik/202010-202111_Experiments/20210602_DVD_PC2/FJ.workspaces"
 
-
-wsps <- list.files(wd, pattern = "\\.wsp$", recursive = T, full.names = T)
-wsps <- wsps[1]
-ffs <- fcexpr::wsp_get_ff(wsps, groups = "Pack 8", population = "PCsub_IgA_TACI", FCS.file.folder = file.path(wd, "FCS_files"),
+wsps <- list.files(drfz, pattern = "\\.wsp$", recursive = T, full.names = T)
+wsp <- wsps[1]
+ffs <- fcexpr::wsp_get_ff(wsp, groups = "Pack 8", population = "PCsub_IgA_TACI", FCS.file.folder = file.path(dirname(drfz), "FCS_files"),
                           lapply_fun = parallel::mclapply, mc.cores = 3)
 ffs <- ffs[[1]]
 
@@ -23,7 +23,7 @@ nrow(expr)
 # https://allancameron.github.io/geomtextpath/
 
 clust_bench <- bench::press(
-  n = c(1e3, 5e3, 1e4), #n = c(1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5, 5e5, 1e6),
+  n = c(1e3, 5e3, 1e4, 5e4, 1e5), #n = c(1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5, 5e5, 1e6),
 
   {
     X <- expr[sample(1:nrow(expr), n, replace = n > nrow(expr)),]
@@ -32,7 +32,7 @@ clust_bench <- bench::press(
     bench::mark(
       check = FALSE,
       time_unit = 's',
-      max_iterations = 5,
+      max_iterations = 3,
 
       "stats::kmeans" = {
         stats::kmeans(X, centers = 10)
