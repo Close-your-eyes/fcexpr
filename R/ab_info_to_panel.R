@@ -89,7 +89,7 @@ ab_info_to_panel <- function(panel_file,
   }
 
   if (any(duplicated(panel_add$row.num))) {
-    message(as.data.frame(panel_add))
+    print(as.data.frame(panel_add))
     stop("Ambiguous entries found. Please check and make specific by providing a Box and/or Lot.")
   }
 
@@ -109,6 +109,6 @@ ab_info_to_panel <- function(panel_file,
   openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+1,1), x = as.data.frame(panel_add[,antibody_list_cols]))
   openxlsx::saveWorkbook(wb, panel_file, overwrite = T)
 
-  message(as.data.frame(panel_add))
+  print(as.data.frame(panel_add))
   message(paste0("Saved as ", panel_file, "."))
 }

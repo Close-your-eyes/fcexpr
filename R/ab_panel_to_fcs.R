@@ -6,12 +6,12 @@
 #' @param FileNames vector of which fcs files to consider
 #' @param FCS.file.folder path to the folder containing the fcs files specified in FileNames
 #' @param channel_conjugate_match_file path to an xlsx file holding information about fluorochromes matched to channels (better leave as it is for now)
-#' @param AbCalcFile_col column name in sampledescription indicating the name of the file containing the antibody panel calculation
+#' @param AbCalcFile_col column name in sampledescription indicating the file containing the antibody panel calculation
 #' @param AbCalcSheet_col column name in sampledescription indicating the respective sheet name in AbCalcFile
-#' @param conjugate_to_desc update channel description of fcs files?
+#' @param conjugate_to_desc alter/update the channel description of fcs files with stained molecule and optionally the fluorochrome
 #' @param other_keywords column names in AbCalcSheet of which keywords to write to fcs files
+#' @param AbCalcFile.folder path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile
 #' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
-#' @param protocols.folder name of the folder on disk containing AbCalcFile
 #'
 #' @return no return, but updated fcs files on disk
 #' @export
@@ -28,7 +28,7 @@ ab_panel_to_fcs <- function(sampledescription,
                             channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr"),
                             AbCalcFile_col = "AbCalcFile",
                             AbCalcSheet_col = "AbCalcSheet",
-                            protocols.folder = "Protocols",
+                            AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
                             conjugate_to_desc = T,
                             other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"),
                             clear_previous = T) {
@@ -92,7 +92,12 @@ ab_panel_to_fcs <- function(sampledescription,
 
   # loop though ab info files
   out <- lapply(split(sd, 1:nrow(sd)), function(x) {
-    file <- file.path(dirname(FCS.file.folder), protocols.folder, x[,AbCalcFile_col])
+    if (!is.null(AbCalcFile.folder)) {
+      file <- file.path(AbCalcFile.folder, x[,AbCalcFile_col])
+    } else {
+      file <- x[,AbCalcFile_col]
+    }
+
     if (!file.exists(file)) {
       warning("File '", file, "' not found.")
     } else {
@@ -177,7 +182,7 @@ ab_panel_to_fcs <- function(sampledescription,
               # other meta data about the antibody used
               for (m in other_keywords) {
                 for (k in 1:nrow(sh)) {
-                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && trimws(sh[k,m]) %in% c("NA", "", "-")) {
+                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && !trimws(sh[k,m]) %in% c("NA", "", "-")) {
                     flowCore::keyword(ff)[paste0(sh[k,"channel.name"],"_",m)] <- sh[k,m]
                   }
                 }

@@ -27,6 +27,8 @@ wsx_get_popstats <- function(ws,
                              return_stats = T,
                              ...) {
 
+  ## allow to pass mclapply
+
   ws <- check_ws(ws)
 
   ids <- wsx_get_groups(ws)
