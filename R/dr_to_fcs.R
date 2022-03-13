@@ -46,7 +46,10 @@
 #' @param run.gqtsom calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
 #' @param run.louvain detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.leiden detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
-#' @param run.kmeans detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!
+#' @param run.kmeans detect clusters with stats::kmeans
+#' @param run.minibatchkmeans detect clusters with ClusterR::MiniBatchKmeans
+#' @param run.kmeans_arma detect clusters with ClusterR::KMeans_arma
+#' @param run.kmeans_rcpp detect clusters with ClusterR::KMeans_rcpp
 #' @param run.hclust detect clusters with stats::dist, stats::hclust and stats::cutree
 #' @param run.flowClust detect clusters with flowClust::flowClust
 #' @param run.MUDAN detect clusters with MUDAN::getComMembership
@@ -72,7 +75,8 @@
 #' see respected help files to get to know which arguments can be passed:
 #' uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
 #' louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
-#' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans
+#' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
+#' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
 #'
 #'
 #' @return
@@ -158,6 +162,9 @@ dr_to_fcs <- function(ff.list,
                       run.gqtsom = F,
                       run.louvain = F,
                       run.kmeans = F,
+                      run.minibatchkmeans = F,
+                      run.kmeans_arma = F,
+                      run.kmeans_rcpp = F,
                       run.leiden = F,
                       run.hclust = F,
                       run.flowClust = F,
@@ -236,10 +243,13 @@ dr_to_fcs <- function(ff.list,
   if (run.som && !requireNamespace("EmbedSOM", quietly = T)) {
     devtools::install_github("devtools::install_github('exaexa/EmbedSOM')")
   }
+  if ((run.minibatchkmeans || run.kmeans_rcpp || run.kmeans_arma) && !requireNamespace("ClusterR", quietly = T)) {
+    utils::install.packages("ClusterR")
+  }
 
   dots <- list(...)
 
-  expect_dots <- "^harmony__|^hclust__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM"
+  expect_dots <- "^harmony__|^hclust__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
   if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))) {
     message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
   }
@@ -264,7 +274,7 @@ dr_to_fcs <- function(ff.list,
     stop("number of flowframes in inverse and logicle has to be equal.")
   }
 
-  for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony")) {
+  for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "harmony", "mudan")) {
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
       message(par, " parameters provided in ... but ", "'run.", par, " = F'.")
     }
@@ -288,6 +298,18 @@ dr_to_fcs <- function(ff.list,
 
   if (run.kmeans && !any(grepl("^kmeans__centers", names(dots)))) {
     stop("When 'run.kmeans = T' kmeans__centers, has to be provided in ..., see ?stats::kmeans")
+  }
+
+  if (run.minibatchkmeans && !any(grepl("^minibatchkmeans__clusters", names(dots)))) {
+    stop("When 'run.minibatchkmeans = T' minibatchkmeans__clusters, has to be provided in ..., see ?ClusterR::MiniBatchKmeans")
+  }
+
+  if (run.kmeans_rcpp && !any(grepl("^kmeans_rcpp__clusters", names(dots)))) {
+    stop("When 'run.kmeans_rcpp = T' kmeans_rcpp__clusters, has to be provided in ..., see ?ClusterR::KMeans_rcpp")
+  }
+
+  if (run.kmeans_arma && !any(grepl("^kmeans_arma__clusters", names(dots)))) {
+    stop("When 'run.kmeans_arma = T' kmeans_arma__clusters, has to be provided in ..., see ?ClusterR::KMeans_arma")
   }
 
   if (run.louvain && !any(grepl("^louvain__resolution", names(dots)))) {
@@ -541,6 +563,64 @@ dr_to_fcs <- function(ff.list,
     },
     error = function(e) {
       message("run.leiden with error")
+    }
+  )
+
+
+  tryCatch(
+    if (run.kmeans_arma) {
+      temp_dots <- dots[which(grepl("^kmeans_arma__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^kmeans_arma__", "", names(temp_dots), ignore.case = T)
+      message("Finding clusters with kmeans_arma and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
+
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
+        ClusterR::predict_KMeans(do.call(ClusterR::KMeans_arma, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("kmeans_arma_", temp_dots[["clusters"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      message("End: ", Sys.time())
+    },
+    error = function(e) {
+      message("run.kmeans_arma with error")
+    }
+  )
+
+  tryCatch(
+    if (run.kmeans_rcpp) {
+      temp_dots <- dots[which(grepl("^kmeans_rcpp__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^kmeans_rcpp__", "", names(temp_dots), ignore.case = T)
+      message("Finding clusters with kmeans_rcpp and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
+
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
+        do.call(ClusterR::kmeans_rcpp, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("kmeans_rcpp_", temp_dots[["clusters"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      message("End: ", Sys.time())
+    },
+    error = function(e) {
+      message("run.kmeans_rcpp with error")
+    }
+  )
+
+  tryCatch(
+    if (run.minibatchkmeans) {
+      temp_dots <- dots[which(grepl("^minibatchkmeans__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^minibatchkmeans__", "", names(temp_dots), ignore.case = T)
+      message("Finding clusters with minibatchkmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
+
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
+        ClusterR::predict_MBatchKMeans(do.call(ClusterR::MiniBatchKmeans, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
+      }, mc.cores = mc.cores))
+
+      colnames(ks) <- paste0("minibatchkmeans_", temp_dots[["clusters"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      message("End: ", Sys.time())
+    },
+    error = function(e) {
+      message("run.minibatchkmeans with error")
     }
   )
 

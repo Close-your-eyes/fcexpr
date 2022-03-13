@@ -4,7 +4,7 @@
 \alias{wsx_get_poppaths}
 \title{Obtain paths to populations/nodes/gates in a flowjo workspace}
 \usage{
-wsx_get_poppaths(ws, collapse = T)
+wsx_get_poppaths(ws, groups = NULL, collapse = T)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}

@@ -6,31 +6,29 @@
 \usage{
 gs_get_gates(
   gs,
-  bins = 200,
-  low.lim = 0,
-  up.lim = 300,
-  up.lim.scatter = 250000,
-  gate.pct.stat.x.pos = 0.8,
-  gate.pct.stat.y.pos = 0.2,
-  gate.pct.stat.size = 4
+  binwidths = c(4, 4),
+  quantile_lim_filter = c(0.001, 0.999),
+  min_max_vals = c(0, 300),
+  scatter_lim = c(0, 250000),
+  x_statpos = 0.8,
+  y_statpos = 0.2,
+  stat_size = 4
 )
 }
 \arguments{
 \item{gs}{gatingset}
 
-\item{bins}{number of bins for plotting}
+\item{quantile_lim_filter}{quantiles of signals to set axis limits to}
 
-\item{low.lim}{lower range limit}
+\item{min_max_vals}{minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)}
 
-\item{up.lim}{upper range limit}
+\item{scatter_lim}{manual limits for scatter channel, set to NULL to get the actual limits (min and max)}
 
-\item{up.lim.scatter}{upper range limit for scatter channels}
+\item{x_statpos}{x-position of percent labels for gates}
 
-\item{gate.pct.stat.x.pos}{x-position of percent labels for gates}
+\item{y_statpos}{y-position of percent labels for gates}
 
-\item{gate.pct.stat.y.pos}{y-position of percent labels for gates}
-
-\item{gate.pct.stat.size}{size of percent labels for gates}
+\item{stat_size}{size of percent labels for gates}
 }
 \value{
 a data frame to loop over and produce plots with ggcyto
@@ -51,9 +49,9 @@ p <- lapply(g, function(gg) {
  p <- ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
    geom_hex(bins = gg[1,"bins"]) +
    theme_bw() +
-   xlab(gg[1,"x.lab"]) +
-   ylab(gg[1,"y.lab"]) +
-   ggcyto_par_set(limits = list(x = c(gg[1,"x.low.lim"], gg[1,"x.up.lim"]), y = c(gg[1,"y.low.lim"], gg[1,"y.up.lim"]))) +
+   xlab(gg[1,"x_lab"]) +
+   ylab(gg[1,"y_lab"]) +
+   ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x.up.lim"]), y = c(gg[1,"y_lowlim"], gg[1,"y.up.lim"]))) +
    scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
    theme(legend.position = "none", strip.background = element_rect(fill = "white"), text = element_text(family = "Courier"), panel.grid = element_blank(), axis.text = element_blank()) +
    facet_grid(cols = vars(Patient, TCR), rows = vars(stimulus)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
@@ -67,7 +65,6 @@ p <- lapply(g, function(gg) {
 })
 return(p)
 }))
-
 
 }
 }

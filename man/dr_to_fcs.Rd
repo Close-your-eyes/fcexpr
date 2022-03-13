@@ -19,6 +19,9 @@ dr_to_fcs(
   run.gqtsom = F,
   run.louvain = F,
   run.kmeans = F,
+  run.minibatchkmeans = F,
+  run.kmeans_arma = F,
+  run.kmeans_rcpp = F,
   run.leiden = F,
   run.hclust = F,
   run.flowClust = F,
@@ -45,7 +48,7 @@ as received from fcexpr::inds_get_ff (directly from FCS files, not compensated b
 names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used}
 
 \item{add.sample.info}{named list of additional channels to identify samples or group them in flowjo;
-e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))}
+e.g. for 9 fcs files to be concatenated: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))}
 
 \item{scale.whole}{if and how to scale channels after concatenation of flowframes in ff.list}
 
@@ -53,9 +56,9 @@ e.g.: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2
 
 \item{run.harmony}{attempt batch correction using harmony::HarmonyMatrix; if TRUE, then harmony__meta_data has to be provided in ... indicating the groups to be batch corrected;
 harmony is conducted before run.pca; to calculate a pca before harmony, pass harmony__do_pca = T and optional a number of pcs with harmony__npcs. Set run.pca = F
-when a pca is calculated in harmony.}
+when a pca is before in harmony.}
 
-\item{run.pca}{run principle component analysis before dimension reduction}
+\item{run.pca}{run principle component analysis only, or prior to other dimension reduction (umap, SOM, tSNE, ...)}
 
 \item{run.lda}{run Linear Discriminant Analysis before dimension reduction;
 should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
@@ -71,7 +74,13 @@ has to be provided in ...}
 
 \item{run.louvain}{detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
 
-\item{run.kmeans}{detect clusters with stats::kmeans; will be the quickest way to get cluster annotation!}
+\item{run.kmeans}{detect clusters with stats::kmeans}
+
+\item{run.minibatchkmeans}{detect clusters with ClusterR::MiniBatchKmeans}
+
+\item{run.kmeans_arma}{detect clusters with ClusterR::KMeans_arma}
+
+\item{run.kmeans_rcpp}{detect clusters with ClusterR::KMeans_rcpp}
 
 \item{run.leiden}{detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
 
@@ -113,11 +122,12 @@ provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 
 see respected help files to get to know which arguments can be passed:
 uwot::umap, Rtsne::Rtsne, EmbedSOM::SOM, EmbedSOM::GQTSOM, EmbedSOM::EmbedSOM, harmony::HarmonyMatrix, flowClust::flowClust,
 louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
-hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans}
+hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
+ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma}
 }
 \value{
-A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering) for every events. This is same table which is written into a newly generated fcs file.
-(ii) A character vector of meaningful column names which may be used for the table (rather for convenience). (iii) Tables of marker features (each cluster vs all other cells and all clusters pairwise).
+A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
+(ii) A character vector of meaningful column names which may be used for the table in R (rather for convenience). (iii) Tables of marker features (each cluster vs all other events and all clusters pairwise).
 }
 \description{
 Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
@@ -135,7 +145,7 @@ precision set by tsne__theta). UMAP has been developed later and is well-know. S
 but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
 respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
 On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
-Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These give similar events in high dimensional space a common discrete label. kmeans will be the quickest.
+Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These assign events with similar properties in the high dimensional space a common discrete label. kmeans will be the quickest.
 Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
 and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
 maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
@@ -198,7 +208,7 @@ ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + 
  marker_all <- dplyr::arrange(marker_all, diptest_p)
  # see ?diptest::dip.test
  # multimodality indicates heterogeneity within in the cluster
- # and may justify to seperate that cluster further into sub-clusters
+ # and may justify to separate that cluster further into sub-clusters
  # this depends on the interpretation of the scientist though
 
 

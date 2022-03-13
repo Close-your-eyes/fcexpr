@@ -12,9 +12,10 @@ ab_panel_to_fcs(
     "channel_conjugate_matches.xlsx", package = "fcexpr"),
   AbCalcFile_col = "AbCalcFile",
   AbCalcSheet_col = "AbCalcSheet",
-  protocols.folder = "Protocols",
+  AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
   conjugate_to_desc = T,
-  other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"),
+  other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen",
+    "Conjugate"),
   clear_previous = T
 )
 }
@@ -27,13 +28,13 @@ ab_panel_to_fcs(
 
 \item{channel_conjugate_match_file}{path to an xlsx file holding information about fluorochromes matched to channels (better leave as it is for now)}
 
-\item{AbCalcFile_col}{column name in sampledescription indicating the name of the file containing the antibody panel calculation}
+\item{AbCalcFile_col}{column name in sampledescription indicating the file containing the antibody panel calculation}
 
 \item{AbCalcSheet_col}{column name in sampledescription indicating the respective sheet name in AbCalcFile}
 
-\item{protocols.folder}{name of the folder on disk containing AbCalcFile}
+\item{AbCalcFile.folder}{path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile}
 
-\item{conjugate_to_desc}{update channel description of fcs files?}
+\item{conjugate_to_desc}{alter/update the channel description of fcs files with stained molecule and optionally the fluorochrome}
 
 \item{other_keywords}{column names in AbCalcSheet of which keywords to write to fcs files}
 
