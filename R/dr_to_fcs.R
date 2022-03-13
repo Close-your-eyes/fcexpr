@@ -566,7 +566,6 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
-
   tryCatch(
     if (run.kmeans_arma) {
       temp_dots <- dots[which(grepl("^kmeans_arma__", names(dots), ignore.case = T))]
@@ -574,7 +573,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with kmeans_arma and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        ClusterR::predict_KMeans(do.call(ClusterR::KMeans_arma, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
+        ClusterR::predict_KMeans(data = expr.select, CENTROIDS = do.call(ClusterR::KMeans_arma, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("kmeans_arma_", temp_dots[["clusters"]])
@@ -593,7 +592,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with kmeans_rcpp and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        do.call(ClusterR::kmeans_rcpp, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
+        do.call(ClusterR::KMeans_rcpp, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("kmeans_rcpp_", temp_dots[["clusters"]])
@@ -612,7 +611,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with minibatchkmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        ClusterR::predict_MBatchKMeans(do.call(ClusterR::MiniBatchKmeans, args = c(list(x = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
+        ClusterR::predict_MBatchKMeans(data = expr.select, CENTROIDS = do.call(ClusterR::MiniBatchKmeans, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("minibatchkmeans_", temp_dots[["clusters"]])
