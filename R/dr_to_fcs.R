@@ -14,7 +14,7 @@
 #' but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
 #' respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
 #' On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
-#' Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These give events with similar properties in the high dimensional space a common discrete label. kmeans will be the quickest.
+#' Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These assign events with similar properties in the high dimensional space a common discrete label. kmeans will be the quickest.
 #' Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
 #' and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
 #' maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
