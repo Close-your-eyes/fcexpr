@@ -78,7 +78,12 @@ check_ws <- function(ws) {
 }
 
 
-get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS.file.folder) {
+get_smpl_df <- function(wsp,
+                        groups,
+                        invert_groups,
+                        samples,
+                        invert_samples,
+                        FCS.file.folder) {
 
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
@@ -175,7 +180,12 @@ get_smpl_df <- function(wsp, groups, invert_groups, samples, invert_samples, FCS
   return(smpl)
 }
 
-check_in <- function(wsp, samples, groups, FCS.file.folder, inverse_transform) {
+check_in <- function(wsp,
+                     samples,
+                     groups,
+                     FCS.file.folder,
+                     inverse_transform) {
+
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
     if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
@@ -236,7 +246,11 @@ get_inds <- function(x) {
 }
 
 
-get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, population) {
+get_ff <- function(x,
+                   inverse_transform,
+                   downsample,
+                   remove_redundant_channels,
+                   population) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
   # pass full path as attr and check consistency later?
@@ -292,7 +306,12 @@ get_ff <- function(x, inverse_transform, downsample, remove_redundant_channels, 
 }
 
 
-get_ff2 <- function(x, downsample, population = population, inverse_transform, alias_attr_name, path_attr_name) {
+get_ff2 <- function(x,
+                    downsample,
+                    population = population,
+                    inverse_transform,
+                    alias_attr_name,
+                    path_attr_name) {
 
   if (!path_attr_name %in% names(attributes(x))) {
     message(path_attr_name, " not found in attributes.")
@@ -345,7 +364,8 @@ get_ff2 <- function(x, downsample, population = population, inverse_transform, a
   return(ff)
 }
 
-get_gs <- function(x, remove_redundant_channels) {
+get_gs <- function(x,
+                   remove_redundant_channels) {
 
   gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
                                     name = unique(x$group),

@@ -15,11 +15,21 @@
 #' dplyr::group_by(PopulationFullPath, Population, ws) %>%
 #' dplyr::summarise(FileName = list(FileName), .groups = "drop")
 #' }
-wsx_get_poppaths <- function(ws, collapse = T) {
+wsx_get_poppaths <- function(ws,
+                             groups = NULL,
+                             collapse = T) {
 
   ws <- check_ws(ws)
 
-  gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
+  ids <- wsx_get_groups(ws)
+  if (is.null(groups)) {
+    groups <- unique(ids[,"group", drop=T])
+  }
+  ids <- ids[which(ids$group %in% groups),"sampleID"]
+  rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
+  rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
+  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
+
 
   gates <- lapply(seq_along(gg), function(n) {
 
@@ -49,8 +59,17 @@ wsx_get_poppaths <- function(ws, collapse = T) {
                       stringsAsFactors = F))
   })
 
+  roots <- do.call(rbind, lapply(rel_nodes, function(y) {
+    data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
+               PopulationFullPath = "root",
+               Population = "root",
+               sampleID = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "sampleID"),
+               origin = "root",
+               stringsAsFactors = F)
+  }))
 
   gates_df <- do.call(rbind, gates)
+  gates_df <- rbind(roots,gates_df)
   gates_list <- split(gates_df, gates_df$sampleID)
   # remove duplicate rows from gate+dependents
   gates_list <- lapply(gates_list, function(y) {
@@ -81,7 +100,8 @@ wsx_get_poppaths <- function(ws, collapse = T) {
   gates_out <- gates_out[,-which(names(gates_out) == "sampleID")]
 
   if (collapse) {
-    gates_out <- gates_out %>%
+    gates_out <-
+      gates_out %>%
       dplyr::group_by(PopulationFullPath, Population, ws) %>%
       dplyr::summarise(FileName = list(FileName), .groups = "drop")
   }

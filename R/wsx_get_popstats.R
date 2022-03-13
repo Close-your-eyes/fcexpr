@@ -153,12 +153,6 @@ wsx_get_popstats <- function(ws,
 
   gates_out <- do.call(rbind, gates_list)
   gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, ...), by = "sampleID")
-  # could filtering for groups be done at the very beginning...
-  # checking all gates (gg) (bottom to top) is required anyway
-'  if (!is.null(groups)) {
-    gates_out <- gates_out[which(sapply(gates_out$group, function(x) length(intersect(groups, x)) > 0)),]
-    gates_out$group <- sapply(gates_out$group, function(x) intersect(groups, x))
-  }'
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)

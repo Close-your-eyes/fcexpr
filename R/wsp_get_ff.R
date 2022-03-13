@@ -74,7 +74,12 @@ wsp_get_ff <- function(wsp,
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
 
-  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder)
+  smpl <- get_smpl_df(wsp = wsp,
+                      groups = groups,
+                      invert_groups = invert_groups,
+                      samples = samples,
+                      invert_samples = invert_samples,
+                      FCS.file.folder = FCS.file.folder)
   if (is.null(smpl)) {
     return(NULL)
   }
@@ -95,12 +100,13 @@ wsp_get_ff <- function(wsp,
     dplyr::summarise(FileName = list(FileName), .groups = "drop")
   pp <- as.data.frame(pp)
   pp_is <- unique(unlist(pp[unique(c(which(pp$PopulationFullPath == population), which(pp$Population == population))), "FileName"]))
+  if (is.null(pp_is)) {
+    stop("Population was not found for any sample.")
+  }
   if (length(smpl$FileName[which(!smpl$FileName %in% pp_is)]) > 0) {
     message("For ", paste(smpl$FileName[which(!smpl$FileName %in% pp_is)], collapse = ", "), " population was not found.")
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
-
-
 
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
@@ -114,8 +120,9 @@ wsp_get_ff <- function(wsp,
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
     for (x in seq_along(ff.list)) {
       inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))
-      ff.list[[x]][[1]][[1]] <- subset(ff.list[[x]][[1]][[1]], sample(inds))
-      ff.list[[x]][[1]][[2]] <- subset(ff.list[[x]][[1]][[2]], sample(inds))
+      for (y in seq_along(ff.list[[x]][[1]])) {
+        ff.list[[x]][[1]][[y]] <- subset(ff.list[[x]][[1]][[y]], sample(inds))
+      }
     }
   }
 
