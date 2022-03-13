@@ -119,9 +119,9 @@ wsp_get_ff <- function(wsp,
   if (downsample == "min") {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
     for (x in seq_along(ff.list)) {
-      inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))
+      inds <- sample(c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min)))
       for (y in seq_along(ff.list[[x]][[1]])) {
-        ff.list[[x]][[1]][[y]] <- subset(ff.list[[x]][[1]][[y]], sample(inds))
+        ff.list[[x]][[1]][[y]] <- subset(ff.list[[x]][[1]][[y]], inds)
       }
     }
   }
