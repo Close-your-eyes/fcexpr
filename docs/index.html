@@ -5,20 +5,22 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Manage and Analzye flow cytometry experiments • fcexpr</title>
+<title>Manage and statistically analzye flow cytometry experiments • fcexpr</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="bootstrap-toc.css">
 <script src="bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="pkgdown.css" rel="stylesheet">
-<script src="pkgdown.js"></script><meta property="og:title" content="Manage and Analzye flow cytometry experiments">
-<meta property="og:description" content="Tackles issues I had during my PhD when it came to analyzing large flow cytometry experiments. Either many channels, or many samples with much variation in the meta data, or both. ">
+<script src="pkgdown.js"></script><meta property="og:title" content="Manage and statistically analzye flow cytometry experiments">
+<meta property="og:description" content="After manual gating in flowjo one may want apply further analysis on gated populations. This may be advanced plotting of data, statistical analyses, dimension reductions and clustering. Several functions are provided to import either aggregated data (Counts, MFIs) or fluorescence intensities of single cells into R. For the latter wrapper-functions have been included that are heavily dependent on flowCore, flowWorkspace and/or CytoML. These wrappers may facilitate easier usage than the original ones. Additonally, before manual gating one may want to annotate fcs files with meta data (keywords). For that purpose a concept with respective functions is proposed.">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
 <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-home">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9940</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="reference/index.html">Reference</a>
 </li>
@@ -57,7 +53,7 @@
       <a href="articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
     </li>
     <li>
-      <a href="articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
+      <a href="articles/import_data_from_fj_workspaces.html">import data from FlowJo workspaces</a>
     </li>
   </ul>
 </li>
@@ -74,23 +70,23 @@
 
       </header><div class="row">
   <div class="contents col-md-9">
-<div id="fcexpr" class="section level1">
-<div class="page-header"><h1 class="hasAnchor">
-<a href="#fcexpr" class="anchor"></a>fcexpr</h1></div>
+<div class="section level1">
+<div class="page-header"><h1 id="fcexpr">fcexpr<a class="anchor" aria-label="anchor" href="#fcexpr"></a>
+</h1></div>
 <!-- badges: start -->
 <!-- badges: end -->
 <p>A set of functions to organize and analyze flow cytometry experiments in R and to overcome a few limitations from FlowJo.</p>
-<div id="installation" class="section level2">
-<h2 class="hasAnchor">
-<a href="#installation" class="anchor"></a>Installation</h2>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
 <p>Install fcexpr from GitHub. This requires devtools.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span></code></pre></div>
 </div>
-<div id="the-idea" class="section level2">
-<h2 class="hasAnchor">
-<a href="#the-idea" class="anchor"></a>The idea</h2>
+<div class="section level2">
+<h2 id="the-idea">The idea<a class="anchor" aria-label="anchor" href="#the-idea"></a>
+</h2>
 <p>FlowJo is, for many people working in science, <strong>the</strong> tool to gate, explore and evaluate flow cytometric data. Other commercial software may also be convenient though. When it comes to statistical analysis of gated data one has to export or copy aggregated values or statistics from FlowJo (MFIs, cell counts, frequencies, etc). to other software. If a workflow like (i) (see below) is employed, it is<br>
 1) inconvenient to manually copy and arrange the data<br>
 2) inefficient with respect to labor time<br>
@@ -99,13 +95,15 @@
 5) not scalable to many samples or to problems where the exact read-out parameter is unknown yet<br>
 6) not easily adjustable if you decide to change the gating strategy or position of gates.</p>
 <p><strong>So, I want to make a plea for workflow (ii) and provide tools to easily accomplish it.</strong></p>
-<p>The suggested concept of the fcexpr-package is 100 % derived from a flow-user perspective and may exactly suit what you need to organize your flow experiments in a consistent way. It will make it convenient to create a merged data frame of statistics directly from the flowjo workspace and meta data describing what the fcs files represent. Such data frame may then be subject to common procedures of tidying and plotting data with tools from the <a href="https://www.tidyverse.org">tidyverse</a>.</p>
-<p><strong>In comparison to other packages, values from flowjo workspaces can be read totally independent from fcs files. That means one may prepare plots and statistical analyses at home and/or independent of a flowjo-dongle once the gating has been conducted.</strong></p>
-<p><img src="inst/extdata/workflows.png" alt="alt text"></p>
+<p>The suggested concept of the fcexpr-package is 100 % derived from a flow-user perspective and may exactly suit what you need to organize your flow experiments in a consistent way. It will make it convenient to create a merged data frame of statistics directly from the flowjo workspace and meta data describing what the fcs files represent. Such data frame may then be subject to common procedures of tidying and plotting data with tools from the <a href="https://www.tidyverse.org" class="external-link">tidyverse</a>.</p>
+<p><strong>In comparison to other packages, values from flowjo workspaces can be read totally independent from fcs files. That means one may prepare plots and make statistical analyses independent of a flowjo-dongle once the gating has been conducted.</strong></p>
+<div class="figure">
+<img src="inst/extdata/workflows.png" alt=""><p class="caption">alt text</p>
 </div>
-<div id="how-to-start" class="section level2">
-<h2 class="hasAnchor">
-<a href="#how-to-start" class="anchor"></a>How to start</h2>
+</div>
+<div class="section level2">
+<h2 id="how-to-start">How to start<a class="anchor" aria-label="anchor" href="#how-to-start"></a>
+</h2>
 <p>You may adopt the whole concept of organizing flow cytometric experiments by creating a default folder as follows.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="reference/new_exp.html">new_exp</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my_path"</span>, name <span class="op">=</span> <span class="st">"my_folder_name"</span><span class="op">)</span></code></pre></div>
@@ -119,43 +117,56 @@
 <span class="co"># get statistics, like MFIs</span>
 <span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span>
 <span class="co"># save to excel</span>
-<span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.xlsx"</span><span class="op">)</span>
+<span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html" class="external-link">write.xlsx</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.xlsx"</span><span class="op">)</span>
 <span class="co"># or to an open format</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/write.table.html">write.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.tsv"</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></code></pre></div>
+<span class="fu"><a href="https://rdrr.io/r/utils/write.table.html" class="external-link">write.table</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">ps_counts</span>, file <span class="op">=</span> <span class="st">"myfolder/my_counts.tsv"</span>, sep <span class="op">=</span> <span class="st">"\t"</span>, row.names <span class="op">=</span> <span class="cn">F</span><span class="op">)</span></code></pre></div>
 </div>
-<div id="vignettes-tutorials" class="section level2">
-<h2 class="hasAnchor">
-<a href="#vignettes-tutorials" class="anchor"></a>Vignettes (tutorials)</h2>
-<p><a href="https://close-your-eyes.github.io/fcexpr/articles/create_and_maintain_a_meta_data_table.html">maintain a sampledescription</a><br><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html">import data from flowjo workspaces</a></p>
+<div class="section level2">
+<h2 id="vignettes-or-tutorials">Vignettes or tutorials<a class="anchor" aria-label="anchor" href="#vignettes-or-tutorials"></a>
+</h2>
+<p><a href="https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html" class="external-link">import data from flowjo workspaces</a><br><a href="https://www.youtube.com/watch?v=0yyfH_XqC2Q" class="external-link">import data from flowjo workspaces on youtube</a><br><a href="https://www.youtube.com/watch?v=mZWZk4jVjas" class="external-link">maintain a sampledescription; comes with a lot of flavour</a></p>
 </div>
 </div>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
     <div class="license">
-<h2>License</h2>
+<h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>
 <li><small>GPL (&gt;= 3)</small></li>
 </ul>
 </div>
-<div class="developers">
-<h2>Developers</h2>
+
+
+<div class="citation">
+<h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li>Christopher Mark Skopnik <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-6089-4769" target="orcid.widget" aria-label="ORCID"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+<li><a href="authors.html#citation">Citing fcexpr</a></li>
 </ul>
 </div>
+
+<div class="developers">
+<h2 data-toc-skip>Developers</h2>
+<ul class="list-unstyled">
+<li>Christopher Mark Skopnik <br><small class="roles"> Author, maintainer </small> <a href="https://orcid.org/0000-0002-6089-4769" target="orcid.widget" aria-label="ORCID" class="external-link"><span class="fab fa-orcid orcid" aria-hidden="true"></span></a> </li>
+</ul>
+</div>
+
+
 
   </div>
 </div>
 
 
       <footer><div class="copyright">
-  <p>Developed by Christopher Mark Skopnik.</p>
+  <p></p>
+<p>Developed by Christopher Mark Skopnik.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
       </footer>
@@ -163,6 +174,8 @@
 
   
 
+
+  
 
   </body>
 </html>

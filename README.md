@@ -51,8 +51,8 @@ plotting data with tools from the
 
 **In comparison to other packages, values from flowjo workspaces can be
 read totally independent from fcs files. That means one may prepare
-plots and statistical analyses at home and/or independent of a
-flowjo-dongle once the gating has been conducted.**
+plots and make statistical analyses independent of a flowjo-dongle once
+the gating has been conducted.**
 
 ![alt text](inst/extdata/workflows.png)
 
