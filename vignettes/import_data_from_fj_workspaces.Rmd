@@ -1,5 +1,5 @@
 ---
-title: "import data from fj workspaces"
+title: "import data from FlowJo workspaces"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{import data from fj workspaces}
@@ -22,14 +22,14 @@ Install necessary packages in RStudio:
 install.packages("devtools")
 devtools::install_github("Close-your-eyes/fcexpr")
 install.packages("tidyverse")
-library(fcexpr)
 ```
-```{r setup2, message=F}
+```{r setup2, message=F,warning=F}
+library(fcexpr)
 library(tidyverse)
 ```
 
-Many information are stored in flowjos wsp file which is actually an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. [BB Edit](https://www.barebones.com/products/bbedit/index.html) on a Mac) or read it with the XML2 package in R.   
-Based on the latter I wrote functions that extract information from a flowjo 10 wsp.It is very simple and works as follows. After you gated your populations, save the wsp and run the wsx_get_popstats function:
+Many information are stored in FlowJos wsp file which is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. These information can be accessed without a FlowJo dongle - e.g. with the xml2 package in R.   
+Based on that I wrote functions that extract information from a FlowJo 10 wsp. After you gated your populations, save the wsp and run the fcexpr::wsx_get_popstats function. See an example below.
 
 ```{r,include=F}
 dir <- base::system.file("extdata", package = "fcexpr")
@@ -41,26 +41,11 @@ ps <- fcexpr::wsx_get_popstats(ws, return_stats = T)
 ```
 
 ```{r, eval=F}
-ps <- fcexpr::wsx_get_popstats(ws = "/Users/user/Documents/07-Oct-2021.wsp", return_stats = TRUE)
-# also ps <- wsx_get_popstats(ws = "/Users/user/Documents/07-Oct-2021.wsp") is possible
+path_to_workspace_on_disk <- "/Users/user/Documents/07-Oct-2021.wsp"
+ps <- fcexpr::wsx_get_popstats(ws = path_to_workspace_on_disk, return_stats = TRUE)
 ```
 
-ws is the file path (url) to a wsp on your disk. The prefix fcexpr:: specifies the package a function comes from.
-With return_stats = TRUE a list of length 2 is returned.
-
-```{r}
-length(ps)
-```
-
-Index 1 holds a data frame with gated event counts. Index 2 holds, if calculated in flowjo, statistics like MFI. If not, then index 2 is NULL.
-
-```{r}
-names(ps)
-# columns names
-names(ps[[1]])
-names(ps[[2]])
-```
-
+ps now contains counts from gated populations optionally calculated statistics on index 1 and 2, respectively.
 You may write the list-content to individual variables. This will allow to inspect the data frames manually in R studio.
 
 ```{r}
@@ -68,78 +53,65 @@ ps_counts <- ps[["counts"]] # access by name
 ps_stats <- ps[[2]] # access by index
 ```
 
-Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. One has to attach information about every fcs files like if it was a full stain, FMO or isotype control; or from which patient the sample material was derived; or what disease the patient suffered from; sex or age. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized, automized fashion with **fcexpr::sync_sampldescription** (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:
+Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. You may create such table manually or have it created in a standardized, automatize fashion with **fcexpr::sync_sampldescription** (this comes a lot of flavour though). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:
 
 ```{r}
 keys <- fcexpr::wsx_get_keywords(ws)
 ```
 
-This returns a list of data frames. One index for every FCS file in the wsp. In this example there are 48 FCS files. The data frame at index 1 (first FCS file) has 211 rows, one for each keyword, and 2 columns, providing the name of the keyword and its value.
-```{r}
-length(keys)
-nrow(keys[[1]])
-names(keys[[1]])
-```
-
-To join the keywords to ps_counts or ps_stats we have to make it a data.frame first.
+This returns a list of data frames. One entry for every FCS file. In this example there are 48 FCS files.
+To join the keywords to ps_counts or ps_stats we have to make it a data frame first.
 ```{r}
 # make it a data.frame
-keys_df <- do.call(rbind, keys) # base R
-keys_df <- dplyr::bind_rows(keys) # dplyr-style
+keys_df <- dplyr::bind_rows(keys)
 # create a FileName-column
 keys_df$FileName <- rep(names(keys), sapply(keys,nrow))
-# select relevant keywords
-# example: Cytometer name ($CYT) and Operator ($OP)
-keys_df <- keys_df[which(keys_df$name %in% c("$CYT", "$OP")),] # base R
+# select relevant keywords; example only: Cytometer name ($CYT) and Operator ($OP)
 keys_df <- dplyr::filter(keys_df, name %in% c("$CYT", "$OP")) # dplyr-style
-# make it a wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)
+# make it a wider data.frame
+#pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful
 keys_df <- tidyr::pivot_wider(keys_df, names_from = name, values_from = value)
-nrow(keys_df)
-names(keys_df)
 ```
 
-Now we have one data frame of two keywords for every FCS file. Join these meta data to the phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join another table (variable sd) with more relevant meta data. In this case a transduction was established and putative relevant factors that influence the transduction efficiency have been varied (see the column names of sd below).
+Now we have one data frame of keywords for every FCS file. Join these meta data to the phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join another table (sd) with more relevant meta data about the conducted transduction experiment.
 ```{r}
-ps_counts2 <- merge(ps_counts, keys_df) # base R
-ps_counts2 <- dplyr::left_join(ps_counts, keys_df) # dplyr-style
-# sd is a sampledescription data.frame
+ps_counts <- dplyr::left_join(ps_counts, keys_df)
+# sd (sampledescription) is data frame with meta data
 names(sd)
-ps_counts2 <- dplyr::left_join(ps_counts2, sd)
+ps_counts <- dplyr::left_join(ps_counts, sd)
 ```
 
-ps_counts2 which now holds meta data and phenotype data may be saved to excel for further processing.
+ps_counts which now holds meta data and phenotype data may be saved to excel for further processing.
 ```{r, eval=F}
-openxlsx::write.xlsx(ps_counts2, "/Users/user/Documents/7-Oct-2021.xlsx")
+openxlsx::write.xlsx(ps_counts, "/Users/user/Documents/7-Oct-2021.xlsx")
 ```
 
 It is preferable though to tidy up, filter, select and plot in R. This can be done with base R or with functions from the [tidyverse](https://www.tidyverse.org). It requires a little bit of practice. For a number of cases though there are a few standard procedures that you may learn quickly. Some arbitrary operations and plots are shown below.
 
 ```{r,fig.width=8}
 # filter for the GFP+ population only
-unique(ps_counts2$Population)
-ps_counts2_plot <-
-  ps_counts2 %>%
+ps_counts <-
+  ps_counts %>%
   dplyr::filter(Population == "GFP+")
-unique(ps_counts2_plot$Population)
 # plot the frequency of GFP+ events with respect to the parent gate
-ggplot(ps_counts2_plot, aes(x = incubation.time.h, y = FractionOfParent)) +
+ggplot(ps_counts, aes(x = incubation.time.h, y = FractionOfParent)) +
   geom_jitter(width = 0.1) +
   theme_bw() +
   ylab("% GFP+ in DAPI-")
 ```
 
-The incubation time of viral supernatant (x-axis) seems to play a role for the transduction rate (y-axis). But there are more factors which can be visualized in another plot.
 
 ```{r, include=F}
-ps_counts2_plot$incubation.time.h <- factor(ps_counts2_plot$incubation.time.h, levels = sort(as.numeric(unique(ps_counts2_plot$incubation.time.h))))
-ps_counts2_plot$EGF.ng.ml <- factor(ps_counts2_plot$EGF.ng.ml, levels = sort(as.numeric(unique(ps_counts2_plot$EGF.ng.ml))))
-ps_counts2_plot$seeding.density.dilution <- factor(ps_counts2_plot$seeding.density.dilution, levels = sort(as.numeric(unique(ps_counts2_plot$seeding.density.dilution))))
-ps_counts2_plot$viral.sup.vol.µl <- factor(ps_counts2_plot$viral.sup.vol.µl, levels = sort(as.numeric(unique(ps_counts2_plot$viral.sup.vol.µl))))
+ps_counts$incubation.time.h <- factor(ps_counts$incubation.time.h, levels = sort(as.numeric(unique(ps_counts$incubation.time.h))))
+ps_counts$EGF.ng.ml <- factor(ps_counts$EGF.ng.ml, levels = sort(as.numeric(unique(ps_counts$EGF.ng.ml))))
+ps_counts$seeding.density.dilution <- factor(ps_counts$seeding.density.dilution, levels = sort(as.numeric(unique(ps_counts$seeding.density.dilution))))
+ps_counts$viral.sup.vol.µl <- factor(ps_counts$viral.sup.vol.µl, levels = sort(as.numeric(unique(ps_counts$viral.sup.vol.µl))))
 ```
 
 
+The incubation time of viral supernatant (x-axis) seems to play a role for the transduction rate (y-axis). But there are more factors which can be visualized in another plot.
 ```{r,fig.width=8}
-ggplot(ps_counts2_plot, aes(x = viral.sup.vol.µl, y = seeding.density.dilution, fill = FractionOfParent)) +
+ggplot(ps_counts, aes(x = viral.sup.vol.µl, y = seeding.density.dilution, fill = FractionOfParent)) +
   geom_tile(color = "black") +
   theme_classic() +
   scale_fill_viridis_c() +

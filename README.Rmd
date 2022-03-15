@@ -71,11 +71,11 @@ openxlsx::write.xlsx(x = ps_counts, file = "myfolder/my_counts.xlsx")
 write.table(x = ps_counts, file = "myfolder/my_counts.tsv", sep = "\t", row.names = F)
 ```
 
-## Vignettes (tutorials)
-[maintain a sampledescription](https://close-your-eyes.github.io/fcexpr/articles/create_and_maintain_a_meta_data_table.html)  
-[import data from flowjo workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)
-
-
+## Vignettes or tutorials
+  
+[import data from flowjo workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)  
+[import data from flowjo workspaces on youtube](https://www.youtube.com/watch?v=0yyfH_XqC2Q)  
+[maintain a sampledescription; comes with a lot of flavour](https://www.youtube.com/watch?v=mZWZk4jVjas)
 
 
 
