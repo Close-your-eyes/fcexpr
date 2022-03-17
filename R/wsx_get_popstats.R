@@ -7,7 +7,8 @@
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param return_stats return statistics next to cells counts
 #' @param groups which flowjo groups to include
-#' @param ... arguments passed to wsx_get_groups
+#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return data frame with cells counts or a list with counts and statistics if return_stats = T
 #' @export
@@ -25,9 +26,11 @@
 wsx_get_popstats <- function(ws,
                              groups = NULL,
                              return_stats = T,
+                             lapply_fun = lapply,
                              ...) {
 
   ## allow to pass mclapply
+  lapply_fun <- match.fun(lapply_fun)
 
   ws <- check_ws(ws)
 
@@ -41,7 +44,7 @@ wsx_get_popstats <- function(ws,
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
 
   #gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
-  gates <- lapply(seq_along(gg), function(n) {
+  gates <- lapply_fun(seq_along(gg), function(n) {
 
     prnts <- xml2::xml_parents(gg[n])
 
@@ -101,9 +104,9 @@ wsx_get_popstats <- function(ws,
                       n = n,
                       stringsAsFactors = F)
     )
-  })
+  }, ...)
 
-  roots <- do.call(rbind, lapply(rel_nodes, function(y) {
+  roots <- do.call(rbind, lapply_fun(rel_nodes, function(y) {
     data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                PopulationFullPath = "root",
                Parent = NA,
@@ -122,7 +125,7 @@ wsx_get_popstats <- function(ws,
                origin = "root",
                n = 0,
                stringsAsFactors = F)
-  }))
+  }, ...))
 
   gates_df <- do.call(rbind, gates)
   gates_df <- rbind(roots,gates_df)
@@ -152,7 +155,7 @@ wsx_get_popstats <- function(ws,
   }
 
   gates_out <- do.call(rbind, gates_list)
-  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws, ...), by = "sampleID")
+  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws), by = "sampleID") # ...
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
@@ -160,7 +163,7 @@ wsx_get_popstats <- function(ws,
   gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
 
   if (return_stats) {
-    stats_out <- do.call(rbind, lapply(seq_along(rel_nodes), function(n) {
+    stats_out <- do.call(rbind, lapply_fun(seq_along(rel_nodes), function(n) {
       node <- rel_nodes[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
 
@@ -184,7 +187,7 @@ wsx_get_popstats <- function(ws,
       }))
 
       return(stats_df)
-    }))
+    }, ...))
     return(list(counts = gates_out, stats = stats_out))
   }
   return(gates_out)

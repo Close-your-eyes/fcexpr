@@ -37,7 +37,6 @@ wsx_compMats_to_fcs <- function(ws,
   ss <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), "Sample")
   ss <- ss[which(sapply(seq_along(ss), function(x) xml2::xml_attrs(xml2::xml_child(ss[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
 
-
   compMats <- lapply(seq_along(ss), function(n) {
     sp <- xml2::xml_child(ss[[n]], "transforms:spilloverMatrix")
     if (!is.na(sp)) {
