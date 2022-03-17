@@ -7,6 +7,7 @@
 #'
 #' @param ws path to flowjo workspace
 #' @param ... additional arguments to fcexpr:::prep_spill()
+#' @param groups which flowjo groups to get fcs files from
 #'
 #' @return no return but SPILL keyword updated in FCS files
 #' @export
