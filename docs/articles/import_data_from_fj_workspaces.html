@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>import data from fj workspaces • fcexpr</title>
+<title>import data from FlowJo workspaces • fcexpr</title>
 <!-- jquery --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script><!-- Bootstrap --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" integrity="sha256-bZLfwXAP04zRMK2BjiO8iu9pf4FbLqX6zitd+tIvLhE=" crossorigin="anonymous">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script><!-- bootstrap-toc --><link rel="stylesheet" href="../bootstrap-toc.css">
 <script src="../bootstrap-toc.js"></script><!-- Font Awesome icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" integrity="sha256-mmgLkCYLUQbXn0B1SRqzHar6dCnv9oZFPEC1g1cwlkk=" crossorigin="anonymous">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/v4-shims.min.css" integrity="sha256-wZjR52fzng1pJHwx4aV2AO3yyTOXrcDW7jBpJtTwVxw=" crossorigin="anonymous">
 <!-- clipboard.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.6/clipboard.min.js" integrity="sha256-inc5kl9MA1hkeYUt+EC3BhlIgyp/2jDIyBLS6k3UxPI=" crossorigin="anonymous"></script><!-- headroom.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/headroom.min.js" integrity="sha256-AsUX4SJE1+yuDu5+mAVzJbuYNPHj/WroHuZ8Ir/CkE0=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/headroom/0.11.0/jQuery.headroom.min.js" integrity="sha256-ZX/yNShbjqsohH1k95liqY9Gd8uOiE1S4vZc+9KQ1K4=" crossorigin="anonymous"></script><!-- pkgdown --><link href="../pkgdown.css" rel="stylesheet">
-<script src="../pkgdown.js"></script><meta property="og:title" content="import data from fj workspaces">
+<script src="../pkgdown.js"></script><meta property="og:title" content="import data from FlowJo workspaces">
 <meta property="og:description" content="fcexpr">
 <!-- mathjax --><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha256-nvJJv9wWKEm88qvoQl9ekL2J+k/RWIsaSScxxlsrv8k=" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/config/TeX-AMS-MML_HTMLorMML.js" integrity="sha256-84DKXVJXs0/F8OTMzX4UR909+jtl4G7SPypPavF+GfA=" crossorigin="anonymous"></script><!--[if lt IE 9]>
 <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
@@ -19,6 +19,8 @@
 <![endif]-->
 </head>
 <body data-spy="scroll" data-target="#toc">
+    
+
     <div class="container template-article">
       <header><div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -31,18 +33,12 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9915</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9940</span>
       </span>
     </div>
 
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
-<li>
-  <a href="../index.html">
-    <span class="fas fa-home fa-lg"></span>
-     
-  </a>
-</li>
 <li>
   <a href="../reference/index.html">Reference</a>
 </li>
@@ -57,7 +53,7 @@
       <a href="../articles/create_and_maintain_a_meta_data_table.html">create_and_maintain_a_meta_data_table</a>
     </li>
     <li>
-      <a href="../articles/import_data_from_fj_workspaces.html">import data from fj workspaces</a>
+      <a href="../articles/import_data_from_fj_workspaces.html">import data from FlowJo workspaces</a>
     </li>
   </ul>
 </li>
@@ -72,10 +68,10 @@
 
       
 
-      </header><script src="import_data_from_fj_workspaces_files/header-attrs-2.11/header-attrs.js"></script><div class="row">
+      </header><div class="row">
   <div class="col-md-9 contents">
     <div class="page-header toc-ignore">
-      <h1 data-toc-skip>import data from fj workspaces</h1>
+      <h1 data-toc-skip>import data from FlowJo workspaces</h1>
             
       
       
@@ -87,108 +83,71 @@
     
 <p>Install necessary packages in RStudio:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
-<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/remote-reexports.html">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html">install.packages</a></span><span class="op">(</span><span class="st">"tidyverse"</span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span></code></pre></div>
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span>
+<span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/devtools/man/remote-reexports.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Close-your-eyes/fcexpr"</span><span class="op">)</span>
+<span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"tidyverse"</span><span class="op">)</span></code></pre></div>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org">tidyverse</a></span><span class="op">)</span></code></pre></div>
-<p>Many information are stored in flowjos wsp file which is actually an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. The wsp file can be accessed without a flowjo dongle - you can open the it with in a text editor (e.g. <a href="https://www.barebones.com/products/bbedit/index.html">BB Edit</a> on a Mac) or read it with the XML2 package in R.<br>
-Based on the latter I wrote functions that extract information from a flowjo 10 wsp.It is very simple and works as follows. After you gated your populations, save the wsp and run the wsx_get_popstats function:</p>
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">fcexpr</span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyverse.tidyverse.org" class="external-link">tidyverse</a></span><span class="op">)</span></code></pre></div>
+<p>Many information are stored in FlowJos wsp file which is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. These information can be accessed without a FlowJo dongle - e.g. with the xml2 package in R.<br>
+Based on that I wrote functions that extract information from a FlowJo 10 wsp. After you gated your populations, save the wsp and run the fcexpr::wsx_get_popstats function. See an example below.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="st">"/Users/user/Documents/07-Oct-2021.wsp"</span>, return_stats <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>
-<span class="co"># also ps &lt;- wsx_get_popstats(ws = "/Users/user/Documents/07-Oct-2021.wsp") is possible</span></code></pre></div>
-<p>ws is the file path (url) to a wsp on your disk. The prefix fcexpr:: specifies the package a function comes from. With return_stats = TRUE a list of length 2 is returned.</p>
+<code class="sourceCode R"><span class="va">path_to_workspace_on_disk</span> <span class="op">&lt;-</span> <span class="st">"/Users/user/Documents/07-Oct-2021.wsp"</span>
+<span class="va">ps</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_popstats.html">wsx_get_popstats</a></span><span class="op">(</span>ws <span class="op">=</span> <span class="va">path_to_workspace_on_disk</span>, return_stats <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
+<p>ps now contains counts from gated populations optionally calculated statistics on index 1 and 2, respectively. You may write the list-content to individual variables. This will allow to inspect the data frames manually in R studio.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
-<span class="co">#&gt; [1] 2</span></code></pre></div>
-<p>Index 1 holds a data frame with gated event counts. Index 2 holds, if calculated in flowjo, statistics like MFI. If not, then index 2 is NULL.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">)</span>
-<span class="co">#&gt; [1] "counts" "stats"</span>
-<span class="co"># columns names</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
-<span class="co">#&gt;  [1] "FileName"           "PopulationFullPath" "Parent"            </span>
-<span class="co">#&gt;  [4] "Population"         "Count"              "ParentCount"       </span>
-<span class="co">#&gt;  [7] "FractionOfParent"   "xDim"               "yDim"              </span>
-<span class="co">#&gt; [10] "eventsInside"       "FilePath"           "group"             </span>
-<span class="co">#&gt; [13] "ws"</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
-<span class="co">#&gt; [1] "FileName"           "PopulationFullPath" "statistic"         </span>
-<span class="co">#&gt; [4] "channel"            "value"              "FilePath"</span></code></pre></div>
-<p>You may write the list-content to individual variables. This will allow to inspect the data frames manually in R studio.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="st">"counts"</span><span class="op">]</span><span class="op">]</span> <span class="co"># access by name</span>
 <span class="va">ps_stats</span> <span class="op">&lt;-</span> <span class="va">ps</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span> <span class="co"># access by index</span></code></pre></div>
-<p>Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. One has to attach information about every fcs files like if it was a full stain, FMO or isotype control; or from which patient the sample material was derived; or what disease the patient suffered from; sex or age. This may be achieved by joining a sampledescription to ps_counts or ps_stats. You may create such table manually or have it created in a standardized, automized fashion with <strong>fcexpr::sync_sampldescription</strong> (see another vignette for the whole concept). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<p>Most likely additional information (meta data) are necessary to plot the data or analyze them statistically. You may create such table manually or have it created in a standardized, automatize fashion with <strong>fcexpr::sync_sampldescription</strong> (this comes a lot of flavour though). Alternatively, your wsp may hold annotations in the form of keywords. These can be extracted as well:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">keys</span> <span class="op">&lt;-</span> <span class="fu">fcexpr</span><span class="fu">::</span><span class="fu"><a href="../reference/wsx_get_keywords.html">wsx_get_keywords</a></span><span class="op">(</span><span class="va">ws</span><span class="op">)</span></code></pre></div>
-<p>This returns a list of data frames. One index for every FCS file in the wsp. In this example there are 48 FCS files. The data frame at index 1 (first FCS file) has 211 rows, one for each keyword, and 2 columns, providing the name of the keyword and its value.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>
-<span class="co">#&gt; [1] 48</span>
-<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
-<span class="co">#&gt; [1] 211</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span>
-<span class="co">#&gt; [1] "name"  "value"</span></code></pre></div>
-<p>To join the keywords to ps_counts or ps_stats we have to make it a data.frame first.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p>This returns a list of data frames. One entry for every FCS file. In this example there are 48 FCS files. To join the keywords to ps_counts or ps_stats we have to make it a data frame first.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># make it a data.frame</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="va">keys</span><span class="op">)</span> <span class="co"># base R</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html">bind_rows</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/bind.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>
 <span class="co"># create a FileName-column</span>
-<span class="va">keys_df</span><span class="op">$</span><span class="va">FileName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html">sapply</a></span><span class="op">(</span><span class="va">keys</span>,<span class="va">nrow</span><span class="op">)</span><span class="op">)</span>
-<span class="co"># select relevant keywords</span>
-<span class="co"># example: Cytometer name ($CYT) and Operator ($OP)</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="va">keys_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">$</span><span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span>,<span class="op">]</span> <span class="co"># base R</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="va">keys_df</span>, <span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span> <span class="co"># dplyr-style</span>
-<span class="co"># make it a wider data.frame (pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful)</span>
-<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_wider.html">pivot_wider</a></span><span class="op">(</span><span class="va">keys_df</span>, names_from <span class="op">=</span> <span class="va">name</span>, values_from <span class="op">=</span> <span class="va">value</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
-<span class="co">#&gt; [1] 48</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">keys_df</span><span class="op">)</span>
-<span class="co">#&gt; [1] "FileName" "$CYT"     "$OP"</span></code></pre></div>
-<p>Now we have one data frame of two keywords for every FCS file. Join these meta data to the phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join another table (variable sd) with more relevant meta data. In this case a transduction was established and putative relevant factors that influence the transduction efficiency have been varied (see the column names of sd below).</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html">merge</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># base R</span>
-<span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="va">keys_df</span><span class="op">$</span><span class="va">FileName</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">keys</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">keys</span>,<span class="va">nrow</span><span class="op">)</span><span class="op">)</span>
+<span class="co"># select relevant keywords; example only: Cytometer name ($CYT) and Operator ($OP)</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">keys_df</span>, <span class="va">name</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"$CYT"</span>, <span class="st">"$OP"</span><span class="op">)</span><span class="op">)</span> <span class="co"># dplyr-style</span>
+<span class="co"># make it a wider data.frame</span>
+<span class="co">#pivot_wider and pivot_longer are a bit difficult to get your head around but are very powerful</span>
+<span class="va">keys_df</span> <span class="op">&lt;-</span> <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tidyr/man/pivot_wider.html" class="external-link">pivot_wider</a></span><span class="op">(</span><span class="va">keys_df</span>, names_from <span class="op">=</span> <span class="va">name</span>, values_from <span class="op">=</span> <span class="va">value</span><span class="op">)</span></code></pre></div>
+<p>Now we have one data frame of keywords for every FCS file. Join these meta data to the phenotype data. CYT and OP are just two examples but are not very informative. Hence, we also join another table (sd) with more relevant meta data about the conducted transduction experiment.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">keys_df</span><span class="op">)</span>
 <span class="co">#&gt; Joining, by = "FileName"</span>
-<span class="co"># sd is a sampledescription data.frame</span>
-<span class="fu"><a href="https://rdrr.io/r/base/names.html">names</a></span><span class="op">(</span><span class="va">sd</span><span class="op">)</span>
+<span class="co"># sd (sampledescription) is data frame with meta data</span>
+<span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">sd</span><span class="op">)</span>
 <span class="co">#&gt; [1] "FileName"                 "identity"                </span>
 <span class="co">#&gt; [3] "Exp.part"                 "viral.sup.vol.µl"        </span>
 <span class="co">#&gt; [5] "incubation.time.h"        "polybrene.ug.ml"         </span>
 <span class="co">#&gt; [7] "EGF.ng.ml"                "FCS.percent"             </span>
 <span class="co">#&gt; [9] "seeding.density.dilution"</span>
-<span class="va">ps_counts2</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="va">sd</span><span class="op">)</span>
+<span class="va">ps_counts</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="va">sd</span><span class="op">)</span>
 <span class="co">#&gt; Joining, by = "FileName"</span></code></pre></div>
-<p>ps_counts2 which now holds meta data and phenotype data may be saved to excel for further processing.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html">write.xlsx</a></span><span class="op">(</span><span class="va">ps_counts2</span>, <span class="st">"/Users/user/Documents/7-Oct-2021.xlsx"</span><span class="op">)</span></code></pre></div>
-<p>It is preferable though to tidy up, filter, select and plot in R. This can be done with base R or with functions from the <a href="https://www.tidyverse.org">tidyverse</a>. It requires a little bit of practice. For a number of cases though there are a few standard procedures that you may learn quickly. Some arbitrary operations and plots are shown below.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<p>ps_counts which now holds meta data and phenotype data may be saved to excel for further processing.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">openxlsx</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/openxlsx/man/write.xlsx.html" class="external-link">write.xlsx</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="st">"/Users/user/Documents/7-Oct-2021.xlsx"</span><span class="op">)</span></code></pre></div>
+<p>It is preferable though to tidy up, filter, select and plot in R. This can be done with base R or with functions from the <a href="https://www.tidyverse.org" class="external-link">tidyverse</a>. It requires a little bit of practice. For a number of cases though there are a few standard procedures that you may learn quickly. Some arbitrary operations and plots are shown below.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="co"># filter for the GFP+ population only</span>
-<span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
-<span class="co">#&gt; [1] "root"   "RPTECs" "DAPI-"  "GFP+"</span>
-<span class="va">ps_counts2_plot</span> <span class="op">&lt;-</span>
-  <span class="va">ps_counts2</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html">%&gt;%</a></span>
-  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="va">Population</span> <span class="op">==</span> <span class="st">"GFP+"</span><span class="op">)</span>
-<span class="fu"><a href="https://rdrr.io/r/base/unique.html">unique</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span><span class="op">$</span><span class="va">Population</span><span class="op">)</span>
-<span class="co">#&gt; [1] "GFP+"</span>
+<span class="va">ps_counts</span> <span class="op">&lt;-</span>
+  <span class="va">ps_counts</span> <span class="op"><a href="https://rdrr.io/pkg/magrittr/man/pipe.html" class="external-link">%&gt;%</a></span>
+  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/dplyr/man/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">Population</span> <span class="op">==</span> <span class="st">"GFP+"</span><span class="op">)</span>
 <span class="co"># plot the frequency of GFP+ events with respect to the parent gate</span>
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">incubation.time.h</span>, y <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_jitter.html">geom_jitter</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html">ylab</a></span><span class="op">(</span><span class="st">"% GFP+ in DAPI-"</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-12-1.png" width="768"></p>
+<span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">incubation.time.h</span>, y <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/geom_jitter.html" class="external-link">geom_jitter</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/labs.html" class="external-link">ylab</a></span><span class="op">(</span><span class="st">"% GFP+ in DAPI-"</span><span class="op">)</span></code></pre></div>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-9-1.png" width="768"></p>
 <p>The incubation time of viral supernatant (x-axis) seems to play a role for the transduction rate (y-axis). But there are more factors which can be visualized in another plot.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">ps_counts2_plot</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, y <span class="op">=</span> <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_tile.html">geom_tile</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html">scale_fill_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
-  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_grid.html">facet_grid</a></span><span class="op">(</span>cols <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/vars.html">vars</a></span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/vars.html">vars</a></span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
-<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-14-1.png" width="768"></p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">ps_counts</span>, <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">viral.sup.vol.µl</span>, y <span class="op">=</span> <span class="va">seeding.density.dilution</span>, fill <span class="op">=</span> <span class="va">FractionOfParent</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/geom_tile.html" class="external-link">geom_tile</a></span><span class="op">(</span>color <span class="op">=</span> <span class="st">"black"</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/ggtheme.html" class="external-link">theme_classic</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/scale_viridis.html" class="external-link">scale_fill_viridis_c</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
+  <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/facet_grid.html" class="external-link">facet_grid</a></span><span class="op">(</span>cols <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/vars.html" class="external-link">vars</a></span><span class="op">(</span><span class="va">incubation.time.h</span><span class="op">)</span>, rows <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/ggplot2/man/vars.html" class="external-link">vars</a></span><span class="op">(</span><span class="va">FCS.percent</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<p><img src="import_data_from_fj_workspaces_files/figure-html/unnamed-chunk-11-1.png" width="768"></p>
   </div>
 
   <div class="col-md-3 hidden-xs hidden-sm" id="pkgdown-sidebar">
@@ -200,11 +159,13 @@ Based on the latter I wrote functions that extract information from a flowjo 10 
 
 
       <footer><div class="copyright">
-  <p>Developed by Christopher Mark Skopnik.</p>
+  <p></p>
+<p>Developed by Christopher Mark Skopnik.</p>
 </div>
 
 <div class="pkgdown">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/">pkgdown</a> 1.6.1.</p>
+  <p></p>
+<p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
 </div>
 
       </footer>
@@ -212,6 +173,8 @@ Based on the latter I wrote functions that extract information from a flowjo 10 
 
   
 
+
+  
 
   </body>
 </html>

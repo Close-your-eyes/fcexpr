@@ -51,8 +51,8 @@ plotting data with tools from the
 
 **In comparison to other packages, values from flowjo workspaces can be
 read totally independent from fcs files. That means one may prepare
-plots and statistical analyses at home and/or independent of a
-flowjo-dongle once the gating has been conducted.**
+plots and make statistical analyses independent of a flowjo-dongle once
+the gating has been conducted.**
 
 ![alt text](inst/extdata/workflows.png)
 
@@ -84,9 +84,11 @@ openxlsx::write.xlsx(x = ps_counts, file = "myfolder/my_counts.xlsx")
 write.table(x = ps_counts, file = "myfolder/my_counts.tsv", sep = "\t", row.names = F)
 ```
 
-## Vignettes (tutorials)
+## Vignettes or tutorials
 
-[maintain a
-sampledescription](https://close-your-eyes.github.io/fcexpr/articles/create_and_maintain_a_meta_data_table.html)  
 [import data from flowjo
-workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)
+workspaces](https://close-your-eyes.github.io/fcexpr/articles/import_data_from_fj_workspaces.html)  
+[import data from flowjo workspaces on
+youtube](https://www.youtube.com/watch?v=0yyfH_XqC2Q)  
+[maintain a sampledescription; comes with a lot of
+flavour](https://www.youtube.com/watch?v=mZWZk4jVjas)
