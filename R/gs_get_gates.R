@@ -7,6 +7,8 @@
 #' @param x_statpos x-position of percent labels for gates
 #' @param y_statpos y-position of percent labels for gates
 #' @param stat_size size of percent labels for gates
+#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
@@ -46,13 +48,15 @@
 #'
 #' }
 gs_get_gates <- function(gs,
-                         binwidths = c(4,4),
+                         n_bins = 40^2,
                          quantile_lim_filter = c(0.001, 0.999),
                          min_max_vals = c(0, 300),
                          scatter_lim = c(0, 250000),
                          x_statpos = 0.8,
                          y_statpos = 0.2,
-                         stat_size = 4) {
+                         stat_size = 4,
+                         lapply_fun = lapply,
+                         ...) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
     utils::install.packages("flowWorkspace")
@@ -60,6 +64,8 @@ gs_get_gates <- function(gs,
   if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
+
+  lapply_fun <- match.fun(lapply_fun)
 
   if (!is.null(scatter_lim)) {
     if (!is.numeric(scatter_lim) || length(scatter_lim) != 2) {
@@ -84,7 +90,7 @@ gs_get_gates <- function(gs,
     dplyr::filter(gate.level > 0) %>%
     dplyr::mutate(subset = gsub("^/", "", dirname(gate.path.full))) %>%
     dplyr::mutate(subset = ifelse(subset == "", "root", subset)) %>%
-    dplyr::mutate(binwidths = list(binwidths), x_statpos = x_statpos, y_statpos = y_statpos, stat_size = stat_size)
+    dplyr::mutate(x_statpos = x_statpos, y_statpos = y_statpos, stat_size = stat_size)
 
   gates$dims <- sapply(gates$gate.path.full, function(x) {
     y <- unname(flowCore::parameters({flowWorkspace::gs_pop_get_gate(gs[[1]], x)[[1]]}))
@@ -95,7 +101,7 @@ gs_get_gates <- function(gs,
     } else {
       return(list(y))
     }'
-  })
+  }, simplify = F)
   ## filter boolean gates - test further ... # boolean are not easy to handle (e.g. their children)
   gates <- gates[which(lengths(gates$dims) > 0),]
 
@@ -108,7 +114,7 @@ gs_get_gates <- function(gs,
 
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
-  lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
+  lims <- lapply_fun(split(gates, 1:nrow(gates)), function(y) {
     rel_cols <- do.call(rbind, lapply(seq_along(gs), function(x) {
       parent <- dirname(y$gate.path.full)
       if (parent == "/") {
@@ -128,13 +134,14 @@ gs_get_gates <- function(gs,
     ret <- apply(rel_cols, 2, quantile, quantile_lim_filter)
     ret <- c(ret[,1], ret[,2])
     return(ret)
-  })
+  }, ...)
 
   # order is known (see ret)
   gates$x_lowlim <- sapply(lims, "[", 1)
   gates$x_uplim <- sapply(lims, "[", 2)
   gates$y_lowlim <- sapply(lims, "[", 3)
   gates$y_uplim <- sapply(lims, "[", 4)
+  gates$binwidths <- unname(split(as.data.frame(cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))), 1:nrow(gates)))
 
   if (!is.null(scatter_lim)) {
     scatter_lim <- sort(scatter_lim)
@@ -150,7 +157,14 @@ gs_get_gates <- function(gs,
 }
 
 
-
-
-
+# https://stackoverflow.com/questions/24299171/function-to-split-a-matrix-into-sub-matrices-in-r
+matsplitter<-function(M, r, c) {
+  rg <- (row(M)-1)%/%r+1
+  cg <- (col(M)-1)%/%c+1
+  rci <- (rg-1)*max(cg) + cg
+  N <- prod(dim(M))/r/c
+  cv <- unlist(lapply(1:N, function(x) M[rci==x]))
+  dim(cv)<-c(r,c,N)
+  cv
+}
 
