@@ -7,8 +7,6 @@
 #' @param x_statpos x-position of percent labels for gates
 #' @param y_statpos y-position of percent labels for gates
 #' @param stat_size size of percent labels for gates
-#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
-#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
@@ -48,15 +46,13 @@
 #'
 #' }
 gs_get_gates <- function(gs,
-                         n_bins = 40^2,
-                         quantile_lim_filter = c(0.001, 0.999),
+                         n_bins = 50^2,
+                         quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
                          scatter_lim = c(0, 250000),
                          x_statpos = 0.8,
                          y_statpos = 0.2,
-                         stat_size = 4,
-                         lapply_fun = lapply,
-                         ...) {
+                         stat_size = 4) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
     utils::install.packages("flowWorkspace")
@@ -64,8 +60,6 @@ gs_get_gates <- function(gs,
   if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
-
-  lapply_fun <- match.fun(lapply_fun)
 
   if (!is.null(scatter_lim)) {
     if (!is.numeric(scatter_lim) || length(scatter_lim) != 2) {
@@ -114,7 +108,7 @@ gs_get_gates <- function(gs,
 
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
-  lims <- lapply_fun(split(gates, 1:nrow(gates)), function(y) {
+  lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
     rel_cols <- do.call(rbind, lapply(seq_along(gs), function(x) {
       parent <- dirname(y$gate.path.full)
       if (parent == "/") {
@@ -134,14 +128,15 @@ gs_get_gates <- function(gs,
     ret <- apply(rel_cols, 2, quantile, quantile_lim_filter)
     ret <- c(ret[,1], ret[,2])
     return(ret)
-  }, ...)
+  })
 
   # order is known (see ret)
   gates$x_lowlim <- sapply(lims, "[", 1)
   gates$x_uplim <- sapply(lims, "[", 2)
   gates$y_lowlim <- sapply(lims, "[", 3)
   gates$y_uplim <- sapply(lims, "[", 4)
-  gates$binwidths <- unname(split(as.data.frame(cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))), 1:nrow(gates)))
+  mat <- cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))
+  gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
 
   if (!is.null(scatter_lim)) {
     scatter_lim <- sort(scatter_lim)
