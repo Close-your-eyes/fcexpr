@@ -1,6 +1,7 @@
 #' Gates from gatingset for plotting with ggcyto
 #'
 #' @param gs gatingset
+#' @param n_bins number of bins in total
 #' @param quantile_lim_filter quantiles of signals to set axis limits to
 #' @param min_max_vals minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)
 #' @param scatter_lim manual limits for scatter channel, set to NULL to get the actual limits (min and max)
@@ -15,36 +16,40 @@
 #'
 #' @examples
 #' \dontrun{
-#' gates <- gs_get_gates(gs = my_gs)
-#'
+#' gates <- gs_get_gates(gs)
+
 #' out <- purrr::flatten(lapply(unique(gates$gate.level), function (z) {
-#'g <- gates[which(gates[,"gate.level"] == z),]
-#'# split into groups of equal gate.level, subset, xy-plane
-#'g <- split(g, paste(g$gate.level, g$subset, g$x, g$y, sep = "__"))
-#'p <- lapply(g, function(gg) {
-#'  my.filter <- if (gg[1,"marginalFilter"]) {marginalFilter} else {NULL}
-#'  p <- ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
-#'    geom_hex(bins = gg[1,"bins"]) +
-#'    theme_bw() +
-#'    xlab(gg[1,"x_lab"]) +
-#'    ylab(gg[1,"y_lab"]) +
-#'    ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x.up.lim"]), y = c(gg[1,"y_lowlim"], gg[1,"y.up.lim"]))) +
-#'    scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
-#'    theme(legend.position = "none", strip.background = element_rect(fill = "white"), text = element_text(family = "Courier"), panel.grid = element_blank(), axis.text = element_blank()) +
-#'    facet_grid(cols = vars(Patient, TCR), rows = vars(stimulus)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
-## loop through multiple lines of gg for gates
-#'  for (i in 1:nrow(gg)) {
-#'    p <-
-#'      p +
-#'      geom_gate(gg[i,"gate.path.full"], colour = "black")
-#'    #geom_stats(gg[i,"gate.path.full"], type = "percent", size = gg[i,"gate.pct.stat.size"], color = "black", digits = 1, adjust = c(gg[i,"gate.pct.stat.x.pos"], gg[i,"gate.pct.stat.y.pos"]), fill = alpha(c("white"),0.5))
-#'  }
-#'  return(p)
-#'})
-#'return(p)
-#'}))
+#'   g <- gates[which(gates[,"gate.level"] == z),]
+#'   p <- lapply(split(g, paste(g$gate.level, g$subset, g$x, g$y, sep = "__")), function(gg) {
+#'     my.filter <- if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL}
+#'     p <- ggcyto::ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
+#'       geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
+#'       xlab(gg[1,"x_lab"]) +
+#'       ylab(gg[1,"y_lab"]) +
+#'       ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"]))) +
+#'      scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
+#'       theme(legend.position = "none", axis.text = element_blank()) +
+#'       facet_wrap(vars(FileName), nrow = 1, labeller = label_wrap_gen(multi_line=FALSE)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
 #'
+#'     if (all(!gg$facet.strip)) {
+#'       p <- p + theme(strip.background = element_blank(), strip.text = element_blank())
+#'     }
+#'
+#'     ## loop through rows of gg for gates
+#'     for (i in 1:nrow(gg)) {
+#'       p <-
+#'         p +
+#'         ggcyto::geom_gate(gg[i,"gate.path.full"], colour = "black") +
+#'         ggcyto::geom_stats(gg[i,"gate.path.full"], type = "gate_name", size = gg[i,"stat_size"], color = "black", adjust = c(gg[i,"x_statpos"], gg[i,"y_statpos"]), fill = alpha(c("white"),0.5))
+#'     }
+#'     return(p)
+#'   })
+#'   return(p)
+#' }))
+#' out.grid <- cowplot::plot_grid(plotlist = lapply(out, function(x) ggcyto::as.ggplot(x)), ncol = 1, align = "hv", axis = "tblr")
+#' ggsave(out.grid, filename = paste0("plot.png"), device = "png", path = im_path, dpi = "retina", width = 7, height = 24)
 #' }
+#'
 gs_get_gates <- function(gs,
                          n_bins = 50^2,
                          quantile_lim_filter = c(0.0001, 0.9999),
@@ -103,37 +108,51 @@ gs_get_gates <- function(gs,
   gates$y <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
   gates$x_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[1]}))
   gates$y_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
-
-
-
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
   lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
-    rel_cols <- do.call(rbind, lapply(seq_along(gs), function(x) {
-      parent <- dirname(y$gate.path.full)
-      if (parent == "/") {
-        parent <- "root"
-      }
-      expr <- flowCore::exprs(flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[x]], y = parent)))[,c(y$x, y$y)]
-      if (!is.null(min_max_vals)) {
-        min_max_vals <- sort(min_max_vals)
-        colinds <- which(!grepl("fsc|ssc", colnames(expr), ignore.case = T))
-        if (length(colinds) > 0) {
-          expr <- expr[which(apply(expr[,colinds], 1, function(x) all(x>min_max_vals[1]))),]
-          expr <- expr[which(apply(expr[,colinds], 1, function(x) all(x<min_max_vals[2]))),]
+    parent <- dirname(y$gate.path.full)
+    if (parent == "/") {
+      parent <- "root"
+    }
+
+    out <- flowWorkspace::cytoset_to_flowSet(flowWorkspace::gs_pop_get_data(gs, y = parent, truncate_max_range = F))
+    out_names <- names(out@frames)
+    min_max_vals <- sort(min_max_vals)
+    tempfun <- function(x) x > min_max_vals[1] & x < min_max_vals[2]
+
+    ## currently focus is on 2D-gates only
+    quants <- do.call(rbind, lapply(out_names, function(z) {
+      # rel are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
+      temp <- apply(flowCore::exprs(out[[z]])[,c(y$x, y$y),drop=F], 2, tempfun)
+      if (length(temp) > 0) {
+        temp <- as.matrix(temp)
+        if (ncol(temp) == 1) {
+          temp <- t(temp)
         }
+        rel <- apply(temp, 1, all)
+        if (length(rel) > 0) {
+          apply(flowCore::exprs(out[[z]])[rel,c(y$x, y$y),drop=F], 2, quantile, quantile_lim_filter)
+        } else {
+          NULL
+        }
+      } else {
+        NULL
       }
-      return(expr)
     }))
-    ret <- apply(rel_cols, 2, quantile, quantile_lim_filter)
-    ret <- c(ret[,1], ret[,2])
-    return(ret)
+
+    # get min and max from all flowFrames
+    min_max_quants <- c(apply(quants, 2, min), apply(quants, 2, max))
+    # order is known
+    min_max_quants[which(grepl("fsc", names(min_max_quants), ignore.case = T))] <- scatter_lim
+    min_max_quants[which(grepl("ssc", names(min_max_quants), ignore.case = T))] <- scatter_lim
+    return(min_max_quants)
   })
 
-  # order is known (see ret)
+  # order is known
   gates$x_lowlim <- sapply(lims, "[", 1)
-  gates$x_uplim <- sapply(lims, "[", 2)
-  gates$y_lowlim <- sapply(lims, "[", 3)
+  gates$x_uplim <- sapply(lims, "[", 3)
+  gates$y_lowlim <- sapply(lims, "[", 2)
   gates$y_uplim <- sapply(lims, "[", 4)
   mat <- cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))
   gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
