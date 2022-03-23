@@ -4,7 +4,7 @@
 #' @param n_bins number of bins in total, will be used equally in x and y direction, bin size is adjusted to range in x and y direction
 #' @param quantile_lim_filter quantiles of signals to set axis limits to
 #' @param min_max_vals minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)
-#' @param scatter_lim manual limits for scatter channel, set to NULL to get the actual limits (min and max)
+#' @param min_max_vals_scatter
 #' @param x_statpos x-position of percent labels for gates
 #' @param y_statpos y-position of percent labels for gates
 #' @param stat_size size of percent labels for gates
@@ -54,7 +54,7 @@ gs_get_gates <- function(gs,
                          n_bins = 50^2,
                          quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
-                         scatter_lim = c(0, 250000),
+                         min_max_vals_scatter = c(0, 250000),
                          x_statpos = 0.8,
                          y_statpos = 0.2,
                          stat_size = 4) {
@@ -66,9 +66,9 @@ gs_get_gates <- function(gs,
     BiocManager::install("flowCore")
   }
 
-  if (!is.null(scatter_lim)) {
-    if (!is.numeric(scatter_lim) || length(scatter_lim) != 2) {
-      stop("scatter_lim has to be a numeric vector of length 2.")
+  if (!is.null(min_max_vals_scatter)) {
+    if (!is.numeric(min_max_vals_scatter) || length(min_max_vals_scatter) != 2) {
+      stop("min_max_vals_scatter has to be a numeric vector of length 2.")
     }
   }
 
@@ -119,12 +119,19 @@ gs_get_gates <- function(gs,
     out <- flowWorkspace::cytoset_to_flowSet(flowWorkspace::gs_pop_get_data(gs, y = parent, truncate_max_range = F))
     out_names <- names(out@frames)
     min_max_vals <- sort(min_max_vals)
-    tempfun <- function(x) x > min_max_vals[1] & x < min_max_vals[2]
+    min_max_vals_scatter <- sort(min_max_vals_scatter)
+    tempfun <- function(x, z) {
+      if (grepl("fsc|ssc", x, ignore.case = T)) {
+        flowCore::exprs(out[[z]])[,x] > min_max_vals_scatter[1] & flowCore::exprs(out[[z]])[,x] < min_max_vals_scatter[2]
+      } else {
+        flowCore::exprs(out[[z]])[,x] > min_max_vals[1] & flowCore::exprs(out[[z]])[,x] < min_max_vals[2]
+      }
+    }
 
     ## currently focus is on 2D-gates only
     quants <- do.call(rbind, lapply(out_names, function(z) {
       # rel are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
-      temp <- apply(flowCore::exprs(out[[z]])[,c(y$x, y$y),drop=F], 2, tempfun)
+      temp <- sapply(c(y$x, y$y), tempfun, z = z)
       if (length(temp) > 0) {
         temp <- as.matrix(temp)
         if (ncol(temp) == 1) {
@@ -140,13 +147,8 @@ gs_get_gates <- function(gs,
         NULL
       }
     }))
-
     # get min and max from all flowFrames
-    min_max_quants <- c(apply(quants, 2, min), apply(quants, 2, max))
-    # order is known
-    min_max_quants[which(grepl("fsc", names(min_max_quants), ignore.case = T))] <- scatter_lim
-    min_max_quants[which(grepl("ssc", names(min_max_quants), ignore.case = T))] <- scatter_lim
-    return(min_max_quants)
+    return(c(apply(quants, 2, min), apply(quants, 2, max)))
   })
 
   # order is known
@@ -154,16 +156,9 @@ gs_get_gates <- function(gs,
   gates$x_uplim <- sapply(lims, "[", 3)
   gates$y_lowlim <- sapply(lims, "[", 2)
   gates$y_uplim <- sapply(lims, "[", 4)
+
   mat <- cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))
   gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
-
-  if (!is.null(scatter_lim)) {
-    scatter_lim <- sort(scatter_lim)
-    gates[which(grepl("fsc|ssc", gates$x, ignore.case = T)),"x_lowlim"] <- scatter_lim[1]
-    gates[which(grepl("fsc|ssc", gates$x, ignore.case = T)),"x_uplim"] <- scatter_lim[2]
-    gates[which(grepl("fsc|ssc", gates$y, ignore.case = T)),"y_lowlim"] <- scatter_lim[1]
-    gates[which(grepl("fsc|ssc", gates$y, ignore.case = T)),"y_uplim"] <- scatter_lim[2]
-  }
 
   gates$facet.strip <- c(T, rep(F, nrow(gates)-1))
 
