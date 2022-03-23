@@ -1,7 +1,7 @@
 #' Gates from gatingset for plotting with ggcyto
 #'
 #' @param gs gatingset
-#' @param n_bins number of bins in total
+#' @param n_bins number of bins in total, will be used equally in x and y direction, bin size is adjusted to range in x and y direction
 #' @param quantile_lim_filter quantiles of signals to set axis limits to
 #' @param min_max_vals minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)
 #' @param scatter_lim manual limits for scatter channel, set to NULL to get the actual limits (min and max)
