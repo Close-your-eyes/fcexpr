@@ -19,7 +19,6 @@ Imports:
     methods,
     tidyr,
     utils,
-    rstudioapi,
     xml2,
     dplyr,
     stringr,
@@ -27,6 +26,7 @@ Imports:
     magrittr,
 Suggests: 
     rmarkdown,
+    rstudioapi,
     EmbedSOM,
     MASS,
     MUDAN,
