@@ -296,7 +296,7 @@ get_ff <- function(x,
   s <- if (downsample < 1) {
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
-    sort(sample(which(inds), min(length(which(inds)),downsample)))
+    sort(sample(which(inds), min(length(which(inds)), downsample)))
   } else {
     which(inds)
   }
