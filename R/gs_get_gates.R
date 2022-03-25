@@ -18,9 +18,9 @@
 #' \dontrun{
 #' gates <- gs_get_gates(gs)
 
-#' out <- purrr::flatten(lapply(unique(gates$gate.level), function (z) {
-#'   g <- gates[which(gates[,"gate.level"] == z),]
-#'   p <- lapply(split(g, paste(g$gate.level, g$subset, g$x, g$y, sep = "__")), function(gg) {
+#' out <- purrr::flatten(lapply(unique(gates$GateLevel), function (z) {
+#'   g <- gates[which(gates[,"GateLevel"] == z),]
+#'   p <- lapply(split(g, paste(g$GateLevel, g$subset, g$x, g$y, sep = "__")), function(gg) {
 #'     my.filter <- if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL}
 #'     p <- ggcyto::ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
 #'       geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
@@ -31,7 +31,7 @@
 #'       theme(legend.position = "none", axis.text = element_blank()) +
 #'       facet_wrap(vars(FileName), nrow = 1, labeller = label_wrap_gen(multi_line=FALSE)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
 #'
-#'     if (all(!gg$facet.strip)) {
+#'     if (all(!gg$facet_strip)) {
 #'       p <- p + theme(strip.background = element_blank(), strip.text = element_blank())
 #'     }
 #'
@@ -85,8 +85,8 @@ gs_get_gates <- function(gs,
   gates <-
     data.frame(PopulationFullPath = gsub("^/", "", flowWorkspace::gs_get_pop_paths(gs)),
                Population = flowWorkspace::gs_get_pop_paths(gs, path = "auto"),
-               gate.level = nchar(flowWorkspace::gs_get_pop_paths(gs)) - nchar(gsub("/", "", flowWorkspace::gs_get_pop_paths(gs)))) %>%
-    dplyr::filter(gate.level > 0) %>%
+               GateLevel = nchar(flowWorkspace::gs_get_pop_paths(gs)) - nchar(gsub("/", "", flowWorkspace::gs_get_pop_paths(gs)))) %>%
+    dplyr::filter(GateLevel > 0) %>%
     dplyr::mutate(Parent = gsub("^/", "", dirname(PopulationFullPath))) %>%
     dplyr::mutate(Parent = ifelse(Parent == ".", "root", Parent)) %>%
     dplyr::mutate(x_statpos = x_statpos, y_statpos = y_statpos, stat_size = stat_size)
@@ -162,7 +162,7 @@ gs_get_gates <- function(gs,
   mat <- cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))
   gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
 
-  gates$facet.strip <- c(T, rep(F, nrow(gates)-1))
+  gates$facet_strip <- c(T, rep(F, nrow(gates)-1))
 
   return(gates)
 }
