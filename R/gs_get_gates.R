@@ -39,8 +39,8 @@
 #'     for (i in 1:nrow(gg)) {
 #'       p <-
 #'         p +
-#'         ggcyto::geom_gate(gg[i,"gate.path.full"], colour = "black") +
-#'         ggcyto::geom_stats(gg[i,"gate.path.full"], type = "gate_name", size = gg[i,"stat_size"], color = "black", adjust = c(gg[i,"x_statpos"], gg[i,"y_statpos"]), fill = alpha(c("white"),0.5))
+#'         ggcyto::geom_gate(gg[i,"PopulationFullPath"], colour = "black") +
+#'         ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"stat_size"], color = "black", adjust = c(gg[i,"x_statpos"], gg[i,"y_statpos"]), fill = alpha(c("white"),0.5))
 #'     }
 #'     return(p)
 #'   })
@@ -83,15 +83,15 @@ gs_get_gates <- function(gs,
   }
 
   gates <-
-    data.frame(gate.path.full = flowWorkspace::gs_get_pop_paths(gs),
-               gate.path.auto = flowWorkspace::gs_get_pop_paths(gs, path = "auto"),
+    data.frame(PopulationFullPath = gsub("^/", "", flowWorkspace::gs_get_pop_paths(gs)),
+               Population = flowWorkspace::gs_get_pop_paths(gs, path = "auto"),
                gate.level = nchar(flowWorkspace::gs_get_pop_paths(gs)) - nchar(gsub("/", "", flowWorkspace::gs_get_pop_paths(gs)))) %>%
     dplyr::filter(gate.level > 0) %>%
-    dplyr::mutate(subset = gsub("^/", "", dirname(gate.path.full))) %>%
-    dplyr::mutate(subset = ifelse(subset == "", "root", subset)) %>%
+    dplyr::mutate(Parent = gsub("^/", "", dirname(PopulationFullPath))) %>%
+    dplyr::mutate(Parent = ifelse(Parent == ".", "root", Parent)) %>%
     dplyr::mutate(x_statpos = x_statpos, y_statpos = y_statpos, stat_size = stat_size)
 
-  gates$dims <- sapply(gates$gate.path.full, function(x) {
+  gates$dims <- sapply(gates$PopulationFullPath, function(x) {
     y <- unname(flowCore::parameters({flowWorkspace::gs_pop_get_gate(gs[[1]], x)[[1]]}))
     return(y)
     # stupid handling of Not-gate. other booleans may require similar specific treatment
@@ -110,9 +110,11 @@ gs_get_gates <- function(gs,
   gates$y_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
+
   lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
-    parent <- dirname(y$gate.path.full)
-    if (parent == "/") {
+
+    parent <- dirname(y$PopulationFullPath)
+    if (parent == ".") {
       parent <- "root"
     }
 
