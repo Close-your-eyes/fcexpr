@@ -38,21 +38,36 @@ inds_get_ff <- function(ind_mat,
   if (!requireNamespace("flowCore", quietly = T)){
     BiocManager::install("flowCore")
   }
+  if (missing(population)) {
+    stop("Plesae provide a population to get flowframes for. To get all events, set population = 'root'.")
+  }
   if (length(population) > 1) {
     stop("Only provide one population.")
   }
+
   lapply_fun <- match.fun(lapply_fun)
 
   if (is.numeric(downsample)) {
     ds <- downsample
-  } else if (downsample == "min") {
+  } else if (all(downsample == "min")) {
     ds <- 1
   } else {
     stop("downsample has to be numeric of 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
   }
+  # check length of downsample equal to length of ind_mat or equal to 1
+  if (length(ds) != 1 && length(ds) != length(ind_mat)) {
+    stop("downsample has to have length 1 or length of ind_mat (one value for each FCS file).")
+  }
+
+  if (length(ds) != 1) {
+    for (x in seq_along(ind_mat)) {
+      attr(ind_mat[[x]], "downsample") <- ds[x]
+    }
+  }
 
   check_in(wsp = "wsp", samples = NULL, groups = NULL, FCS.file.folder = NULL, inverse_transform = inverse_transform)
 
+  ## loop over ind_mat_indices = loop over fcs files
   ff.list <- lapply_fun(ind_mat,
                         get_ff2,
                         downsample = ds,
@@ -62,7 +77,7 @@ inds_get_ff <- function(ind_mat,
                         path_attr_name = path_attr_name,
                         ...)
 
-  if (downsample == "min") {
+  if (all(downsample == "min")) {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
     for (x in seq_along(ff.list)) {
       inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))

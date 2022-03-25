@@ -288,6 +288,11 @@ get_ff <- function(x,
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
 
+  ## overwrite downsample argument if provided as attr in x
+  if ("downsample" %in% names(x)) {
+    downsample <- x$downsample
+  }
+
   s <- if (downsample < 1) {
     sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
   } else if (downsample > 1) {
@@ -333,6 +338,11 @@ get_ff2 <- function(x,
   } else {
     message("population not found for ", attr(x, path_attr_name))
     return(NULL)
+  }
+
+  ## overwrite downsample argument if provided as attr in x
+  if ("downsample" %in% names(attributes(x))) {
+    downsample <- attr(x, "downsample")
   }
 
   s <- if (downsample < 1) {

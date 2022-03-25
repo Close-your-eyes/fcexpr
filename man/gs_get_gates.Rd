@@ -6,10 +6,10 @@
 \usage{
 gs_get_gates(
   gs,
-  binwidths = c(4, 4),
-  quantile_lim_filter = c(0.001, 0.999),
+  n_bins = 50^2,
+  quantile_lim_filter = c(1e-04, 0.9999),
   min_max_vals = c(0, 300),
-  scatter_lim = c(0, 250000),
+  min_max_vals_scatter = c(0, 250000),
   x_statpos = 0.8,
   y_statpos = 0.2,
   stat_size = 4
@@ -18,11 +18,11 @@ gs_get_gates(
 \arguments{
 \item{gs}{gatingset}
 
+\item{n_bins}{number of bins in total, will be used equally in x and y direction, bin size is adjusted to range in x and y direction}
+
 \item{quantile_lim_filter}{quantiles of signals to set axis limits to}
 
 \item{min_max_vals}{minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)}
-
-\item{scatter_lim}{manual limits for scatter channel, set to NULL to get the actual limits (min and max)}
 
 \item{x_statpos}{x-position of percent labels for gates}
 
@@ -38,33 +38,37 @@ Gates from gatingset for plotting with ggcyto
 }
 \examples{
 \dontrun{
-gates <- gs_get_gates(gs = my_gs)
+gates <- gs_get_gates(gs)
+out <- purrr::flatten(lapply(unique(gates$GateLevel), function (z) {
+  g <- gates[which(gates[,"GateLevel"] == z),]
+  p <- lapply(split(g, paste(g$GateLevel, g$subset, g$x, g$y, sep = "__")), function(gg) {
+    my.filter <- if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL}
+    p <- ggcyto::ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
+      geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
+      xlab(gg[1,"x_lab"]) +
+      ylab(gg[1,"y_lab"]) +
+      ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"]))) +
+     scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
+      theme(legend.position = "none", axis.text = element_blank()) +
+      facet_wrap(vars(FileName), nrow = 1, labeller = label_wrap_gen(multi_line=FALSE)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
 
-out <- purrr::flatten(lapply(unique(gates$gate.level), function (z) {
-g <- gates[which(gates[,"gate.level"] == z),]
-# split into groups of equal gate.level, subset, xy-plane
-g <- split(g, paste(g$gate.level, g$subset, g$x, g$y, sep = "__"))
-p <- lapply(g, function(gg) {
- my.filter <- if (gg[1,"marginalFilter"]) {marginalFilter} else {NULL}
- p <- ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
-   geom_hex(bins = gg[1,"bins"]) +
-   theme_bw() +
-   xlab(gg[1,"x_lab"]) +
-   ylab(gg[1,"y_lab"]) +
-   ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x.up.lim"]), y = c(gg[1,"y_lowlim"], gg[1,"y.up.lim"]))) +
-   scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
-   theme(legend.position = "none", strip.background = element_rect(fill = "white"), text = element_text(family = "Courier"), panel.grid = element_blank(), axis.text = element_blank()) +
-   facet_grid(cols = vars(Patient, TCR), rows = vars(stimulus)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
- for (i in 1:nrow(gg)) {
-   p <-
-     p +
-     geom_gate(gg[i,"gate.path.full"], colour = "black")
-   #geom_stats(gg[i,"gate.path.full"], type = "percent", size = gg[i,"gate.pct.stat.size"], color = "black", digits = 1, adjust = c(gg[i,"gate.pct.stat.x.pos"], gg[i,"gate.pct.stat.y.pos"]), fill = alpha(c("white"),0.5))
- }
- return(p)
-})
-return(p)
+    if (all(!gg$facet_strip)) {
+      p <- p + theme(strip.background = element_blank(), strip.text = element_blank())
+    }
+
+    ## loop through rows of gg for gates
+    for (i in 1:nrow(gg)) {
+      p <-
+        p +
+        ggcyto::geom_gate(gg[i,"PopulationFullPath"], colour = "black") +
+        ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"stat_size"], color = "black", adjust = c(gg[i,"x_statpos"], gg[i,"y_statpos"]), fill = alpha(c("white"),0.5))
+    }
+    return(p)
+  })
+  return(p)
 }))
-
+out.grid <- cowplot::plot_grid(plotlist = lapply(out, function(x) ggcyto::as.ggplot(x)), ncol = 1, align = "hv", axis = "tblr")
+ggsave(out.grid, filename = paste0("plot.png"), device = "png", path = im_path, dpi = "retina", width = 7, height = 24)
 }
+
 }
