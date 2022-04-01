@@ -30,8 +30,13 @@ plot_gates(
 \item{...}{arguments passed to ggplot2::theme; set a global default theme with ggplot2:theme_set() and ggplot2::theme_update()}
 }
 \value{
-
+a list ggplot objects, one for every gating level; each list index contains respective plots for every fcs file
 }
 \description{
-Plot a default layout of gated populations of a set of FCS files (e.g. from one experiment)
+Getting an overview of the results of a flow cytometry experiment can be a generic task if gating and analysis strategy is fixed.
+Here, ggcyto is used to create an arrangement of pseudocolor plots. A number of default settings has been selected which may garuantee
+good looking plots for most cases. Upon problems, the function may be improved to handle edge cases. Currently, customization is limited to a few rather technical
+aspects of the plots. This may be subject to expansion but generally the range of customization is too large to fit it into a generic function with a finite number of arguments.
+Hence, for very specific and detailed requriements manual plotting and fiddling is unavoidable. For that, the code of this function may serve as
+a template.
 }
