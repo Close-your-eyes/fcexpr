@@ -55,9 +55,12 @@ gs_get_gates <- function(gs,
                          quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
                          min_max_vals_scatter = c(0, 250000),
-                         x_statpos = 0.8,
-                         y_statpos = 0.2,
-                         stat_size = 4) {
+                         x_statpos_name = 0.9,
+                         y_statpos_name = 0.9,
+                         x_statpos_pct = 0.9,
+                         y_statpos_pct = 0.1,
+                         statsize_name = 4,
+                         statsize_pct = 4) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
     utils::install.packages("flowWorkspace")
@@ -89,7 +92,12 @@ gs_get_gates <- function(gs,
     dplyr::filter(GateLevel > 0) %>%
     dplyr::mutate(Parent = gsub("^/", "", dirname(PopulationFullPath))) %>%
     dplyr::mutate(Parent = ifelse(Parent == ".", "root", Parent)) %>%
-    dplyr::mutate(x_statpos = x_statpos, y_statpos = y_statpos, stat_size = stat_size)
+    dplyr::mutate(x_statpos_name = x_statpos_name,
+                  y_statpos_name = y_statpos_name,
+                  statsize_name = statsize_name,
+                  x_statpos_pct = x_statpos_pct,
+                  y_statpos_pct = y_statpos_pct,
+                  statsize_pct = statsize_pct)
 
   gates$dims <- sapply(gates$PopulationFullPath, function(x) {
     y <- unname(flowCore::parameters({flowWorkspace::gs_pop_get_gate(gs[[1]], x)[[1]]}))
@@ -110,9 +118,7 @@ gs_get_gates <- function(gs,
   gates$y_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
-
   lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
-
     parent <- dirname(y$PopulationFullPath)
     if (parent == ".") {
       parent <- "root"

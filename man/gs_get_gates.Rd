@@ -10,9 +10,12 @@ gs_get_gates(
   quantile_lim_filter = c(1e-04, 0.9999),
   min_max_vals = c(0, 300),
   min_max_vals_scatter = c(0, 250000),
-  x_statpos = 0.8,
-  y_statpos = 0.2,
-  stat_size = 4
+  x_statpos_name = 0.9,
+  y_statpos_name = 0.9,
+  x_statpos_pct = 0.9,
+  y_statpos_pct = 0.1,
+  statsize_name = 4,
+  statsize_pct = 4
 )
 }
 \arguments{

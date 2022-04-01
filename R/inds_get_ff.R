@@ -10,7 +10,8 @@
 #' @param alias_attr_name the name of attribute containing aliases (shortest unique names) of node-names (gating paths)
 #' @param path_attr_name the name of attribute containing the path (url) to the fcs file on which to apply the subsetting
 #' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
-#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events
+#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
+#' FCS files equally or can be a vector of same length as FCS files
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun
