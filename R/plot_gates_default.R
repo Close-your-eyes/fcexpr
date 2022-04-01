@@ -117,7 +117,7 @@ plot_gates <- function(gs,
         p <-
           p +
           ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
-          suppressMessages(ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"), interpolate = "linear")(100)), trans = "pseudo_log"))
+          ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"), interpolate = "linear")(100)), trans = "pseudo_log")
 
       }
 
@@ -168,7 +168,7 @@ plot_gates <- function(gs,
         p +
         ggplot2::xlab(gg[1,"x_lab"]) +
         ggplot2::ylab(gg[1,"y_lab"]) +
-        suppressMessages(ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"]))))
+        ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"])))
 
       if (inverse_trans) {
         p <-
