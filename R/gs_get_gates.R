@@ -1,13 +1,18 @@
 #' Gates from gatingset for plotting with ggcyto
 #'
-#' @param gs gatingset
-#' @param n_bins number of bins in total, will be used equally in x and y direction, bin size is adjusted to range in x and y direction
-#' @param quantile_lim_filter quantiles of signals to set axis limits to
-#' @param min_max_vals minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)
-#' @param min_max_vals_scatter
-#' @param x_statpos x-position of percent labels for gates
-#' @param y_statpos y-position of percent labels for gates
-#' @param stat_size size of percent labels for gates
+#' @param gs gs a gatingset, e.g. made with fcexpr::wsp_get_gs
+#' @param n_bins number of bins in total, will be used equally in x and y direction, bin size is adjusted to ranges in x and y direction
+#' @param quantile_lim_filter min,max quantiles of signal intensities to set axis limits to; use quantiles to exclude extreme values
+#' @param min_max_vals min,max required signal intensitiy for fluorescence channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+#' in logicle transformation
+#' @param min_max_vals_scatter min,max required signal intensitiy for scatter channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+#' in inverse transformation which is equal to logicle transformation (for scatter channels)
+#' @param x_statpos_name x-position for gate name labels
+#' @param y_statpos_name y-position for gate name labels
+#' @param x_statpos_pct x-position for gate percent labels
+#' @param y_statpos_pct y-position for gate percent labels
+#' @param statsize_name size of name label
+#' @param statsize_pct size of percent label
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
@@ -17,39 +22,7 @@
 #' @examples
 #' \dontrun{
 #' gates <- gs_get_gates(gs)
-
-#' out <- purrr::flatten(lapply(unique(gates$GateLevel), function (z) {
-#'   g <- gates[which(gates[,"GateLevel"] == z),]
-#'   p <- lapply(split(g, paste(g$GateLevel, g$subset, g$x, g$y, sep = "__")), function(gg) {
-#'     my.filter <- if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL}
-#'     p <- ggcyto::ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
-#'       geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
-#'       xlab(gg[1,"x_lab"]) +
-#'       ylab(gg[1,"y_lab"]) +
-#'       ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"]))) +
-#'      scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
-#'       theme(legend.position = "none", axis.text = element_blank()) +
-#'       facet_wrap(vars(FileName), nrow = 1, labeller = label_wrap_gen(multi_line=FALSE)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
-#'
-#'     if (all(!gg$facet_strip)) {
-#'       p <- p + theme(strip.background = element_blank(), strip.text = element_blank())
-#'     }
-#'
-#'     ## loop through rows of gg for gates
-#'     for (i in 1:nrow(gg)) {
-#'       p <-
-#'         p +
-#'         ggcyto::geom_gate(gg[i,"PopulationFullPath"], colour = "black") +
-#'         ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"stat_size"], color = "black", adjust = c(gg[i,"x_statpos"], gg[i,"y_statpos"]), fill = alpha(c("white"),0.5))
-#'     }
-#'     return(p)
-#'   })
-#'   return(p)
-#' }))
-#' out.grid <- cowplot::plot_grid(plotlist = lapply(out, function(x) ggcyto::as.ggplot(x)), ncol = 1, align = "hv", axis = "tblr")
-#' ggsave(out.grid, filename = paste0("plot.png"), device = "png", path = im_path, dpi = "retina", width = 7, height = 24)
 #' }
-#'
 gs_get_gates <- function(gs,
                          n_bins = 50^2,
                          quantile_lim_filter = c(0.0001, 0.9999),

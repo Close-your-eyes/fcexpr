@@ -11,6 +11,11 @@ plot_gates(
   plot_gates = T,
   plot_gate_names = T,
   plot_gate_pct = T,
+  inverse_trans = F,
+  geom = c("hex", "pointdensity", "scattermore"),
+  gate_color = "black",
+  gate_stats_color = "black",
+  plot_contours = F,
   ...
 )
 }
@@ -19,7 +24,8 @@ plot_gates(
 
 \item{gates_df}{a data frame with informaion of how to plot gates, made with fcexpr::gs_get_gates}
 
-\item{facetting}{which facetting (ggplot2) to apply, facet_wrap or facet_grid with respective arguments, check flowCore::pData(gs) for valid columns}
+\item{facetting}{which facetting (ggplot2) to apply, facet_wrap or facet_grid with respective arguments, check flowCore::pData(gs) for valid columns;
+facet_null will completely remove facets; by default facetting is done across fcs each individual fcs file}
 
 \item{plot_gates}{logical whether to plot gates}
 
@@ -27,10 +33,24 @@ plot_gates(
 
 \item{plot_gate_pct}{logical whether to plot gate percentages (fraction of parent)}
 
-\item{...}{arguments passed to ggplot2::theme; set a global default theme with ggplot2:theme_set() and ggplot2::theme_update()}
+\item{inverse_trans}{logical wheter to inverse transform axes numbers; if TRUE this will make axes look like in flowjo}
+
+\item{geom}{how to plot data: hex = geom_hex taking the binwidths column of gates_df into account, pointdensity = ggpointdensity::geom_pointdensity (see ...),
+scattermore = scattermore::geom_scattermore which is a high performance dot plot version for quickly plotting millions of points (only black-white currently)}
+
+\item{gate_color}{line color of gates}
+
+\item{gate_stats_color}{font color of gate statistics}
+
+\item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
+
+\item{...}{arguments passed to ggplot2::theme; set a global default theme with ggplot2:theme_set() and ggplot2::theme_update();
+arguments to ggpointdensity::geom_pointdensity like adjust or size: pointdensity__adjust (defaults to 5), pointdensity__size (defaults to 0.3),
+arguments to scattermore::geom_scattermore like scattermore__pointsize = 0.1, arguments to contours like contour__alpha (defaults to 0.5)
+or contour__color (defaults to grey65 if geom != scattermore or to tomato2 if geom == scattermore)}
 }
 \value{
-a list ggplot objects, one for every gating level; each list index contains respective plots for every fcs file
+a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
 }
 \description{
 Getting an overview of the results of a flow cytometry experiment can be a generic task if gating and analysis strategy is fixed.
@@ -39,4 +59,37 @@ good looking plots for most cases. Upon problems, the function may be improved t
 aspects of the plots. This may be subject to expansion but generally the range of customization is too large to fit it into a generic function with a finite number of arguments.
 Hence, for very specific and detailed requriements manual plotting and fiddling is unavoidable. For that, the code of this function may serve as
 a template.
+}
+\examples{
+\dontrun{
+## read gatingset
+gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
+
+## write meta data to pData of gs; sd is sampledescripion
+p.df <-
+flowCore::pData(gs) \%>\%
+tibble::rownames_to_column("FileName") \%>\%
+dplyr::left_join(sd) \%>\%
+tibble::column_to_rownames("FileName")
+p.df$FileName <- rownames(p.df)
+flowCore::pData(gs) <- p.df
+
+## get the gates_df, optionally select relevant gates, and modify
+gates <- fcexpr::gs_get_gates(gs, n_bins = 100^2)
+gates <- gates[which(gates$Population \%in\% c("CD8+", "CD8-")),]
+gates$facet_strip <- T
+
+## selected gates; to order facetted plot the inline factor level
+## ordering is required as flowCore::pData(gs) cannot contain factors
+## axis.text = element_blank() is part of ... and will omit axis numbers (passed to ggplot2::theme)
+plotlist <-
+fcexpr::plot_gates(gs = gs,
+gates_df = gates,
+facetting = facet_grid(cols = vars(factor(diluton_factor, levels = c(unique(p.df$diluton_factor)))), rows = vars(CD8_biotin_batch)),
+axis.text = element_blank())
+
+## paste plots together with patchwork and save
+## patchwork is superior to cowplot as is will completely ignore ommitted facet_strips
+ggsave(patchwork::wrap_plots(plotlist, ncol = 1), filename = paste0("facsplots.png"), device = "png", path = im_path, dpi = "retina", width = 18, height = 7)
+}
 }
