@@ -442,7 +442,6 @@ sync_sampledescription <- function(FCS.file.folder,
 }
 
 .read.and.check.sd <- function(wd, file.name, fcs.files, file.sep) {
-  browser()
   if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
     sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
   }
