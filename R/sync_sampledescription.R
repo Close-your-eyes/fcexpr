@@ -442,6 +442,7 @@ sync_sampledescription <- function(FCS.file.folder,
 }
 
 .read.and.check.sd <- function(wd, file.name, fcs.files, file.sep) {
+  browser()
   if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
     sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
   }
@@ -455,6 +456,8 @@ sync_sampledescription <- function(FCS.file.folder,
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
     #to do
   }
+
+  sd[apply(sd,c(1,2),function(x) grepl("^ {1,}$", x))] <- NA # replace only-whitespace containing cells with NA
   sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
   if (any(!c("FileName", "identity") %in% names(sd))) {
     stop("Columns FileName and identity have to exist is the sampledescription file.")
