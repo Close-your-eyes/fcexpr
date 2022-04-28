@@ -424,7 +424,8 @@ sync_sampledescription <- function(FCS.file.folder,
   datetime <- paste0(dd, "-", tt)
   # if analysis starts at 23:5x and ends at 00:xx then date of the next day is assigned - this is problematic though for ordering of samples and has
   # to be corrected; subtract the number of seconds of one day (86400) to get the correct date for ordering samples
-  sub <- ifelse(grepl("^2[[:digit:]]", tt) && grepl("^0[[:digit:]]", et), 86400, 0)
+
+  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
   datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
                                                                      "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
 

@@ -2,6 +2,7 @@
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param collapse logical whether to collapse FileNames to a list column
+#' @param groups which groups in the workspace to consider
 #'
 #' @return data frame
 #' @export

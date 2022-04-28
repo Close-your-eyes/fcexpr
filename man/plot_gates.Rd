@@ -35,7 +35,8 @@ facet_null will completely remove facets; by default facetting is done across fc
 
 \item{inverse_trans}{logical wheter to inverse transform axes numbers; if TRUE this will make axes look like in flowjo}
 
-\item{geom}{how to plot data: hex = geom_hex taking the binwidths column of gates_df into account, pointdensity = ggpointdensity::geom_pointdensity (see ...),
+\item{geom}{how to plot data; recommendation is hex; hex = geom_hex taking the binwidths column of gates_df into account, pointdensity = ggpointdensity::geom_pointdensity (see ...
+and optionally provide max_nrow_to_plot (passed to ggcyto::ggcyto) to limit the number of dots per plot, defaults to 2000; be careful may increase time for plotting a lot),
 scattermore = scattermore::geom_scattermore which is a high performance dot plot version for quickly plotting millions of points (only black-white currently)}
 
 \item{gate_color}{line color of gates}

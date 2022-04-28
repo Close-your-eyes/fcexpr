@@ -60,7 +60,7 @@ pca_to_fcs <- function(file,
     ff_orig <- flowCore::read.FCS(file,
                                   truncate_max_range = F,
                                   emptyValue = F)
-  } else if (class(file) == "flowFrame") {
+  } else if (methods::is(ff, "flowFrame")) {
     ff_orig <- file
   } else {
     stop("file must be a path to a fcs file on disk or a flowFrame read with flowCore::read.fcs().")

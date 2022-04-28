@@ -196,12 +196,12 @@ plot_gates <- function(gs,
       }
       if (plot_gate_names) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"statsize_name"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_name"], gg[i,"y_statpos_name"]), fill = alpha(c("white"),0.5))
+          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"statsize_name"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_name"], gg[i,"y_statpos_name"]), fill = scales::alpha(c("white"),0.5))
         }
       }
       if (plot_gate_pct) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "percent", size = gg[i,"statsize_pct"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]), fill = alpha(c("white"),0.5))
+          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "percent", size = gg[i,"statsize_pct"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]), fill = scales::alpha(c("white"),0.5))
         }
       }
       return(p)

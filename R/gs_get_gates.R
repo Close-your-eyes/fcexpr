@@ -120,7 +120,7 @@ gs_get_gates <- function(gs,
         }
         rel <- apply(temp, 1, all)
         if (length(rel) > 0) {
-          apply(flowCore::exprs(out[[z]])[rel,c(y$x, y$y),drop=F], 2, quantile, quantile_lim_filter)
+          apply(flowCore::exprs(out[[z]])[rel,c(y$x, y$y),drop=F], 2, stats::quantile, quantile_lim_filter)
         } else {
           NULL
         }
