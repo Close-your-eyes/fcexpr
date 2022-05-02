@@ -209,7 +209,7 @@ conjugate_to_channel <- function(conjugates,
   matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
   matches <- unique(matches[,c("Conjugate","channel")])
   matches <- stats::setNames(matches[,"channel"], nm = matches[,"Conjugate"])
-  names(matches) <- unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T))
+  names(matches) <- unique(unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T, USE.NAMES = F)))
   if (any(duplicated(names(matches)))) {
     warning("Duplicate matches in ccm. Did you pass channels from multiple Flow Cytometers at once?")
   }

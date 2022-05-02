@@ -241,7 +241,7 @@ dr_to_fcs <- function(ff.list,
     devtools::install_github("JEFworks/MUDAN")
   }
   if (run.som && !requireNamespace("EmbedSOM", quietly = T)) {
-    devtools::install_github("devtools::install_github('exaexa/EmbedSOM')")
+    devtools::install_github("exaexa/EmbedSOM")
   }
   if ((run.minibatchkmeans || run.kmeans_rcpp || run.kmeans_arma) && !requireNamespace("ClusterR", quietly = T)) {
     utils::install.packages("ClusterR")
