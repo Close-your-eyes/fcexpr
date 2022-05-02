@@ -19,7 +19,7 @@ the respective FCS files once the gating has been conducted."><!-- mathjax --><s
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9940</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9950</span>
       </span>
     </div>
 
@@ -28,7 +28,7 @@ the respective FCS files once the gating has been conducted."><!-- mathjax --><s
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -61,7 +61,7 @@ the respective FCS files once the gating has been conducted.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">wsx_get_popstats</span><span class="op">(</span><span class="va">ws</span>, groups <span class="op">=</span> <span class="cn">NULL</span>, return_stats <span class="op">=</span> <span class="cn">T</span>, <span class="va">...</span><span class="op">)</span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="fu">wsx_get_popstats</span><span class="op">(</span><span class="va">ws</span>, groups <span class="op">=</span> <span class="cn">NULL</span>, return_stats <span class="op">=</span> <span class="cn">T</span>, lapply_fun <span class="op">=</span> <span class="va">lapply</span>, <span class="va">...</span><span class="op">)</span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -72,8 +72,10 @@ the respective FCS files once the gating has been conducted.</p>
 <dd><p>which flowjo groups to include</p></dd>
 <dt>return_stats</dt>
 <dd><p>return statistics next to cells counts</p></dd>
+<dt>lapply_fun</dt>
+<dd><p>function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested</p></dd>
 <dt>...</dt>
-<dd><p>arguments passed to wsx_get_groups</p></dd>
+<dd><p>additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen</p></dd>
 </dl></div>
     <div id="value">
     <h2>Value</h2>
@@ -105,7 +107,7 @@ the respective FCS files once the gating has been conducted.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
 </div>
 
       </footer></div>

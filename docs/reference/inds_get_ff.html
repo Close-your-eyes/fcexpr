@@ -20,7 +20,7 @@ though with in appropriate compensation matrix."><!-- mathjax --><script src="ht
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">fcexpr</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9940</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.0.0.9950</span>
       </span>
     </div>
 
@@ -29,7 +29,7 @@ though with in appropriate compensation matrix."><!-- mathjax --><script src="ht
   <a href="../reference/index.html">Reference</a>
 </li>
 <li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
     Articles
      
     <span class="caret"></span>
@@ -87,7 +87,8 @@ though with in appropriate compensation matrix.</p>
 <dd><p>the name of attribute containing the path (url) to the fcs file on which to apply the subsetting</p></dd>
 <dt>downsample</dt>
 <dd><p>numeric, if &lt; 0 then a fraction of events is sampled, if &gt; 0 an absolute number of events is sampled; or set to "min"
-which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events</p></dd>
+which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
+FCS files equally or can be a vector of same length as FCS files</p></dd>
 <dt>inverse_transform</dt>
 <dd><p>return inverse- (T) or logicle- (F) transform or both (c(T,F))</p></dd>
 <dt>lapply_fun</dt>
@@ -120,7 +121,7 @@ which will lead to downsampling each flowframe to the number of events in the fl
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.2.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.0.3.</p>
 </div>
 
       </footer></div>
