@@ -14,9 +14,9 @@ ab_panel_to_fcs(
   AbCalcSheet_col = "AbCalcSheet",
   AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
   conjugate_to_desc = T,
-  other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen",
-    "Conjugate"),
-  clear_previous = T
+  other_keywords = c(),
+  clear_previous = T,
+  ignore_duplicate_ag = F
 )
 }
 \arguments{
@@ -39,6 +39,8 @@ ab_panel_to_fcs(
 \item{other_keywords}{column names in AbCalcSheet of which keywords to write to fcs files}
 
 \item{clear_previous}{clear all previous entries (channel descriptions and keywords) in fcs files?}
+
+\item{ignore_duplicate_ag}{whether or not to ignore duplicate antigen entries in antibody calculation sheet}
 }
 \value{
 no return, but updated fcs files on disk
@@ -48,6 +50,9 @@ This writes channel descriptions and optional keywords to fcs files.
 }
 \examples{
 \dontrun{
-
+fcexpr::ab_panel_to_fcs(sampledescription = sd,
+FileNames = sd$FileName,
+FCS.file.folder = file.path(wd, "FCS_files"),
+other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"))
 }
 }

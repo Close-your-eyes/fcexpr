@@ -12,6 +12,7 @@
 #' @param other_keywords column names in AbCalcSheet of which keywords to write to fcs files
 #' @param AbCalcFile.folder path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile
 #' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
+#' @param ignore_duplicate_ag whether or not to ignore duplicate antigen entries in antibody calculation sheet
 #'
 #' @return no return, but updated fcs files on disk
 #' @export
@@ -35,7 +36,7 @@ ab_panel_to_fcs <- function(sampledescription,
                             conjugate_to_desc = T,
                             other_keywords = c(),
                             clear_previous = T,
-                            ignore_duplicate_ag = T) {
+                            ignore_duplicate_ag = F) {
 
   # how to handle non-fluorochrome conjugates?
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -135,7 +136,7 @@ ab_panel_to_fcs <- function(sampledescription,
           sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
-          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
+          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"]) && !ignore_duplicate_ag) {
             warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check. To ignore this warning and write information in FCS files anyway, pass 'ignore_duplicate_ag = TRUE'.")
           } else {
             ## read FCS here, then call the ccm function
