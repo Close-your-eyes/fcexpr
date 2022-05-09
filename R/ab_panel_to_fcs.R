@@ -20,7 +20,10 @@
 #'
 #' @examples
 #' \dontrun{
-#'
+#'fcexpr::ab_panel_to_fcs(sampledescription = sd,
+#'FileNames = sd$FileName,
+#'FCS.file.folder = file.path(wd, "FCS_files"),
+#'other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"))
 #' }
 ab_panel_to_fcs <- function(sampledescription,
                             FileNames,
@@ -30,8 +33,9 @@ ab_panel_to_fcs <- function(sampledescription,
                             AbCalcSheet_col = "AbCalcSheet",
                             AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
                             conjugate_to_desc = T,
-                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"),
-                            clear_previous = T) {
+                            other_keywords = c(),
+                            clear_previous = T,
+                            ignore_duplicate_ag = T) {
 
   # how to handle non-fluorochrome conjugates?
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -132,7 +136,7 @@ ab_panel_to_fcs <- function(sampledescription,
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
           if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
-            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check.")
+            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check. To ignore this warning and write information in FCS files anyway, pass 'ignore_duplicate_ag = TRUE'.")
           } else {
             ## read FCS here, then call the ccm function
             # for loop as sh is modified by the first FCS file
