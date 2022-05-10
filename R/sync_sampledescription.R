@@ -458,6 +458,8 @@ sync_sampledescription <- function(FCS.file.folder,
 
   sd[apply(sd,c(1,2),function(x) grepl("^ {1,}$", x))] <- NA # replace only-whitespace containing cells with NA
   sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
+  sd <- sd[which(!is.na(sd$identity)),]
+
   if (any(!c("FileName", "identity") %in% names(sd))) {
     stop("Columns FileName and identity have to exist is the sampledescription file.")
   }
