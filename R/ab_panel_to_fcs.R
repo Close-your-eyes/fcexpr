@@ -85,8 +85,19 @@ ab_panel_to_fcs <- function(sampledescription,
                     c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
   }
 
-  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = x, recursive = T, full.names = T))
-  sd[,"config"] <- sapply(flowCore::read.FCSheader(fcs.paths), "[", "CYTOMETER CONFIG NAME")
+  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
+                                                                                                                       "\\|" = "\\\\|", "\\(" = "\\\\(",
+                                                                                                                       "\\)" = "\\\\)", "\\[" = "\\\\[",
+                                                                                                                       "\\{" = "\\\\{", "\\*" = "\\\\*",
+                                                                                                                       "\\?" = "\\\\?")), recursive = T, full.names = T))
+
+  sd[,"config"] <- dplyr::coalesce(sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "CYTOMETER CONFIG NAME"),
+                                   sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "$CYT"))
+
+  if (any(is.na(sd[,"config"]))) {
+    stop("Config keyword could not be retrieved from all FCS files. Another FCS keyword is needed - fix the function.")
+  }
+  #glob2rx(x)
 
   # sd grouped by sheet and cytometers
   sd <-
@@ -94,6 +105,7 @@ ab_panel_to_fcs <- function(sampledescription,
     dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col), config) %>%
     dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
     as.data.frame()
+
 
   # loop though ab info files
   out <- lapply(split(sd, 1:nrow(sd)), function(x) {
