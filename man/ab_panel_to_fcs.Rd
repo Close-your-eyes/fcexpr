@@ -16,7 +16,8 @@ ab_panel_to_fcs(
   conjugate_to_desc = T,
   other_keywords = c(),
   clear_previous = T,
-  ignore_duplicate_ag = F
+  ignore_duplicate_ag = F,
+  machine = NULL
 )
 }
 \arguments{
@@ -41,6 +42,8 @@ ab_panel_to_fcs(
 \item{clear_previous}{clear all previous entries (channel descriptions and keywords) in fcs files?}
 
 \item{ignore_duplicate_ag}{whether or not to ignore duplicate antigen entries in antibody calculation sheet}
+
+\item{machine}{name of the Flow Cytometer the FCS were acquired on. Only necessary when channels cannot be matched unambiguously.}
 }
 \value{
 no return, but updated fcs files on disk
@@ -53,6 +56,6 @@ This writes channel descriptions and optional keywords to fcs files.
 fcexpr::ab_panel_to_fcs(sampledescription = sd,
 FileNames = sd$FileName,
 FCS.file.folder = file.path(wd, "FCS_files"),
-other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"))
+other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"))
 }
 }
