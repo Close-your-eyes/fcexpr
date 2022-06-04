@@ -427,6 +427,7 @@ dr_to_fcs <- function(ff.list,
   expr.logicle <- expr.logicle[, which(!grepl(exclude.extra.channels, colnames(expr.logicle)))]
   colnames(expr.logicle) <- paste0(colnames(expr.logicle), "_logicle")
 
+  ## add option to save inverse (~untransformed) data only to FCS
   if ("inverse" %in% names(ff.list)) {
     dim.red.data <- do.call(cbind, list(do.call(rbind, lapply(ff.list[["inverse"]], function(x) flowCore::exprs(x))), expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
   } else {
