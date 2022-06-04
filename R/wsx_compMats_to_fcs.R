@@ -6,7 +6,8 @@
 #' them easily and unambiguously available for other calculations outside of FlowJo (e.g. in R) when compensated channels are required.
 #'
 #' @param ws path to flowjo workspace
-#' @param ... additional arguments to fcexpr:::prep_spill(): max_match_dist, skip_check, verbose
+#' @param ... additional arguments to fcexpr:::prep_spill()
+#' @param groups which flowjo groups to get fcs files from
 #'
 #' @return no return but SPILL keyword updated in FCS files
 #' @export
@@ -15,7 +16,9 @@
 #'\dontrun{
 #' wsx_compMats_to_fcs(ws = "mypath/my.wsp")
 #'}
-wsx_compMats_to_fcs <- function(ws, ...) {
+wsx_compMats_to_fcs <- function(ws,
+                                groups = NULL,
+                                ...) {
 
   if (!requireNamespace("CytoML", quietly = T)){
     BiocManager::install("CytoML")
@@ -25,7 +28,15 @@ wsx_compMats_to_fcs <- function(ws, ...) {
   }
   ws <- check_ws(ws)
 
+
+  ids <- wsx_get_groups(ws)
+  if (is.null(groups)) {
+    groups <- unique(ids[,"group", drop=T])
+  }
+  ids <- ids[which(ids$group %in% groups),"sampleID"]
   ss <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), "Sample")
+  ss <- ss[which(sapply(seq_along(ss), function(x) xml2::xml_attrs(xml2::xml_child(ss[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
+
   compMats <- lapply(seq_along(ss), function(n) {
     sp <- xml2::xml_child(ss[[n]], "transforms:spilloverMatrix")
     if (!is.na(sp)) {

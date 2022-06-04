@@ -53,9 +53,31 @@ ab_info_to_panel <- function(panel_file,
   }
   panel <- panel[,c("Antigen", "Conjugate", "Box", "Lot")]
 
-  if (!file.exists(antibody_list)) {
-    stop("antibody_list not found.")
+  if (missing(antibody_list)) {
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      message("Trying to gues antibody_list location: '/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx'")
+    }
+    antibody_list <- "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx"
   }
+
+  if (missing(antibody_list)) {
+    if (Sys.info()[["sysname"]] == "Darwin") {
+      antibody_list <- "/Volumes/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx"
+    } else if (Sys.info()[["sysname"]] == "Windows") {
+      antibody_list <- "Y:/AG_Hiepe/_AG-HIEPE_Common/Antibody_List/20200705_antibody_list.xlsx"
+    }
+    if (file.exists(antibody_list)) {
+      ans <- readline(prompt = paste0("Use this antibody list as reference: ", antibody_list, "? y/n ?."))
+      if (ans == "n") {
+        stop("no antibody_list provided")
+      } else if (ans == "y") {
+        message("antibody list found.")
+      } else {
+        stop("Please type y for yes or n for n or provide the path to the antibody list manually.")
+      }
+    }
+  }
+
   if (!grepl("xlsx$", antibody_list)) {
     stop("antibody_list has to be an xlsx.")
   }

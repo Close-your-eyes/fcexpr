@@ -4,7 +4,7 @@
 \alias{wsx_get_popstats}
 \title{Import data from a wsp file}
 \usage{
-wsx_get_popstats(ws, groups = NULL, return_stats = T, ...)
+wsx_get_popstats(ws, groups = NULL, return_stats = T, lapply_fun = lapply, ...)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
@@ -13,7 +13,9 @@ wsx_get_popstats(ws, groups = NULL, return_stats = T, ...)
 
 \item{return_stats}{return statistics next to cells counts}
 
-\item{...}{arguments passed to wsx_get_groups}
+\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
+
+\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
 data frame with cells counts or a list with counts and statistics if return_stats = T

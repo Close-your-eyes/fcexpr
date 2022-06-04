@@ -1,13 +1,13 @@
 Package: fcexpr
-Title: Manage and statistically analzye flow cytometry experiments
-Version: 0.0.0.9940
+Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way.
+Version: 0.0.0.9950
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
            comment = c(ORCID = "0000-0002-6089-4769"))
-Description: After manual gating in flowjo one may want apply further analysis on gated populations. This may be advanced plotting of data, statistical analyses, dimension reductions and clustering. Several functions are provided to import either aggregated data (Counts, MFIs) or fluorescence intensities of single cells into R. For the latter wrapper-functions have been included that are heavily dependent on flowCore, flowWorkspace and/or CytoML. These wrappers may facilitate easier usage than the original ones. Additonally, before manual gating one may want to annotate fcs files with meta data (keywords). For that purpose a concept with respective functions is proposed.
+Description: After manually gating populations from a cohort of fcs files a big pile of numbers needs to be analyzed statistiscally which usually requires to get those numbers out of flowjo. Such task and a few other things can be done easily with fcexpr. 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
@@ -19,7 +19,6 @@ Imports:
     methods,
     tidyr,
     utils,
-    rstudioapi,
     xml2,
     dplyr,
     stringr,
@@ -27,6 +26,8 @@ Imports:
     magrittr,
 Suggests: 
     rmarkdown,
+    RColorBrewer,
+    rstudioapi,
     EmbedSOM,
     MASS,
     MUDAN,
@@ -54,5 +55,9 @@ Suggests:
     leiden,
     readODS,
     scales,
-    ClusterR
+    ClusterR,
+    ggpointdensity,
+    scattermore,
+    ggcyto,
+    purrr
 VignetteBuilder: knitr

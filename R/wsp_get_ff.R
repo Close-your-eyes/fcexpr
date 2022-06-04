@@ -22,7 +22,8 @@
 #' @param invert_samples logical whether to invert sample selection
 #' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
-#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events
+#' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
+#' FCS files equally or can be a vector of same length as FCS files
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
@@ -61,14 +62,6 @@ wsp_get_ff <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  if (is.numeric(downsample)) {
-    ds <- downsample
-  } else if (downsample == "min") {
-    ds <- 1
-  } else {
-    stop("downsample has to be numeric of 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
-  }
-
   checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
@@ -84,12 +77,31 @@ wsp_get_ff <- function(wsp,
     return(NULL)
   }
 
+  if (is.numeric(downsample)) {
+    ds <- downsample
+  } else if (all(downsample == "min")) {
+    ds <- 1
+  } else {
+    stop("downsample has to be numeric or 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
+  }
+
+  # check length of downsample equal to length of ind_mat or equal to 1
+  if (length(ds) != 1 && length(ds) != nrow(smpl)) {
+    stop("downsample has to have length 1 or length of ind_mat (one value for each FCS file).")
+  }
+
+  if (length(ds) != 1) {
+    smpl$downsample <- 1
+    for (x in 1:nrow(smpl)) {
+      smpl$downsample[x] <- ds[x]
+    }
+  }
+
   if (any(table(smpl$FilePath) > 1)) {
     warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
     stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
-  # check if population exists for each sample
   pp <- do.call(rbind, lapply(wsp, function(x) {
     wsx_get_poppaths(x, collapse = F)
   }))
@@ -116,7 +128,7 @@ wsp_get_ff <- function(wsp,
                         population = population,
                         ...)
 
-  if (downsample == "min") {
+  if (all(downsample == "min")) {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
     for (x in seq_along(ff.list)) {
       inds <- sample(c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min)))

@@ -56,9 +56,13 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
 }
 
 prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose = F) {
+
   # sp is SPILL keyword from fcs file
   # compMat is the matrix generated elsewhere (e.g. FlowJo)
   # max_match_dist is the maximum allowed string distance between channel names for matching; channel names from FCCF always contain a "/" which is replaced by "_"
+
+  original_colnames_sp <- colnames(sp)
+  colnames(sp) <- gsub("/", "_", colnames(sp))
 
   rownames(sp) <- colnames(sp)
   if (!all(colnames(compMat) %in% colnames(sp))) {
@@ -67,8 +71,8 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
     }
     # match channel names
     if (any(apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist)) {
-      message(colnames(compMat)[apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist])
-      message(colnames(sp))
+      print(colnames(compMat)[apply(utils::adist(colnames(compMat), colnames(sp)), 1, min) > max_match_dist])
+      print(colnames(sp))
       stop("Too big string distances between channel names of compMat and FCS file. Please, check the column names or make sure you provide the correct compensation matrix.")
     }
     match_ind <- apply(utils::adist(colnames(compMat), colnames(sp)), 1, which.min)
@@ -77,7 +81,7 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
     }
     if (verbose) {
       message("Matched channel names:")
-      message(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
+      print(data.frame(compMat = colnames(compMat), FCS = colnames(sp)[match_ind]))
     }
     colnames(compMat) <- colnames(sp)[match_ind]
     rownames(compMat) <- colnames(sp)[match_ind]
@@ -96,6 +100,7 @@ prep_spill <- function(sp, compMat, max_match_dist = 1, skip_check = T, verbose 
     }
   }
   rownames(sp) <- NULL
+  colnames(sp) <- original_colnames_sp
 
   return(sp)
 }

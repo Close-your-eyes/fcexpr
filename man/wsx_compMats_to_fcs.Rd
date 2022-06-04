@@ -4,12 +4,14 @@
 \alias{wsx_compMats_to_fcs}
 \title{Write the compensation matrices generated in a flowjo workspace to the SPILL keywords of respective FCS files}
 \usage{
-wsx_compMats_to_fcs(ws, ...)
+wsx_compMats_to_fcs(ws, groups = NULL, ...)
 }
 \arguments{
 \item{ws}{path to flowjo workspace}
 
-\item{...}{additional arguments to fcexpr:::prep_spill(): max_match_dist, skip_check, verbose}
+\item{groups}{which flowjo groups to get fcs files from}
+
+\item{...}{additional arguments to fcexpr:::prep_spill()}
 }
 \value{
 no return but SPILL keyword updated in FCS files

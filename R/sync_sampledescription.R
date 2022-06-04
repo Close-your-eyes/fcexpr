@@ -424,7 +424,8 @@ sync_sampledescription <- function(FCS.file.folder,
   datetime <- paste0(dd, "-", tt)
   # if analysis starts at 23:5x and ends at 00:xx then date of the next day is assigned - this is problematic though for ordering of samples and has
   # to be corrected; subtract the number of seconds of one day (86400) to get the correct date for ordering samples
-  sub <- ifelse(grepl("^2[[:digit:]]", tt) && grepl("^0[[:digit:]]", et), 86400, 0)
+
+  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
   datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
                                                                      "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
 
@@ -454,7 +455,11 @@ sync_sampledescription <- function(FCS.file.folder,
   if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
     #to do
   }
+
+  sd[apply(sd,c(1,2),function(x) grepl("^ {1,}$", x))] <- NA # replace only-whitespace containing cells with NA
   sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
+  sd <- sd[which(!is.na(sd$identity)),]
+
   if (any(!c("FileName", "identity") %in% names(sd))) {
     stop("Columns FileName and identity have to exist is the sampledescription file.")
   }

@@ -8,7 +8,8 @@
                            'Box','Box.x','Box.y','Conjugate','Conjugate.x','Conjugate.y','FileName','FilePath','Lot','Lot.x',
                            'Lot.y','Population','PopulationFullPath','antigen_case','channel','cluster','cluster_1','cluster_2',
                            'config','conjugate_case','diff_sign','diptest_not_p','diptest_p','diptest_p_1','diptest_p_2',
-                           'feature','gate.level','gate.path.full','group','mean_1','mean_2','mean_diff','mean_not','pval','pvalue','row.num','x','y','ws', 'sp'))
+                           'feature','gate.level','gate.path.full','group','mean_1','mean_2','mean_diff','mean_not','pval','pvalue','row.num','x','y','ws', 'sp',
+                           "GateLevel", "Parent"))
   }
 
 }

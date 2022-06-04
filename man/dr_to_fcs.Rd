@@ -170,23 +170,27 @@ marker <- dr[[3]][[1]][[1]]
 marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)
 marker <-
  marker \%>\%
- dplyr::mutate(pvalue = ifelse(pvalue == 0, 1e-300, marker$pvalue))
-dplyr::group_by(channel_desc2) \%>\%
+ dplyr::mutate(pvalue = ifelse(pvalue == 0, 1e-300, marker$pvalue)) \%>\%
+ dplyr::group_by(channel_desc2) \%>\%
  dplyr::mutate(mean_scaled = fcexpr:::min.max.normalization(mean))
+
 ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = -log10(pvalue))) +
  geom_tile(color = "black") +
  theme_bw() +
  geom_text(aes(label = diff_sign)) +
  scale_fill_viridis_c()
+
 ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_diff)) +
  geom_tile(color = "black") +
  theme_bw() +
  geom_text(aes(label = diff_sign)) +
  scale_fill_viridis_c()
+
 ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_scaled)) +
  geom_tile(color = "black") +
  theme_bw() +
  scale_fill_viridis_c()
+
 ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + #color = channel_desc2,
  geom_point() +
  theme_bw() +

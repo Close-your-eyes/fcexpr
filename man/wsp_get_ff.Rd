@@ -41,7 +41,8 @@ if NULL all samples (from selected groups) are read}
 \item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
 
 \item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
-which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events}
+which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
+FCS files equally or can be a vector of same length as FCS files}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
 

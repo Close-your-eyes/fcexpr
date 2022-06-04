@@ -12,6 +12,8 @@
 #' @param other_keywords column names in AbCalcSheet of which keywords to write to fcs files
 #' @param AbCalcFile.folder path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile
 #' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
+#' @param ignore_duplicate_ag whether or not to ignore duplicate antigen entries in antibody calculation sheet
+#' @param machine name of the Flow Cytometer the FCS were acquired on. Only necessary when channels cannot be matched unambiguously.
 #'
 #' @return no return, but updated fcs files on disk
 #' @export
@@ -20,7 +22,10 @@
 #'
 #' @examples
 #' \dontrun{
-#'
+#'fcexpr::ab_panel_to_fcs(sampledescription = sd,
+#'FileNames = sd$FileName,
+#'FCS.file.folder = file.path(wd, "FCS_files"),
+#'other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot"))
 #' }
 ab_panel_to_fcs <- function(sampledescription,
                             FileNames,
@@ -30,8 +35,10 @@ ab_panel_to_fcs <- function(sampledescription,
                             AbCalcSheet_col = "AbCalcSheet",
                             AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
                             conjugate_to_desc = T,
-                            other_keywords = c("Isotype", "Clone", "totalDF", "Vendor", "Cat", "Lot", "Antigen", "Conjugate"),
-                            clear_previous = T) {
+                            other_keywords = c(),
+                            clear_previous = T,
+                            ignore_duplicate_ag = F,
+                            machine = NULL) {
 
   # how to handle non-fluorochrome conjugates?
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -80,8 +87,19 @@ ab_panel_to_fcs <- function(sampledescription,
                     c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
   }
 
-  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = x, recursive = T, full.names = T))
-  sd[,"config"] <- sapply(flowCore::read.FCSheader(fcs.paths), "[", "CYTOMETER CONFIG NAME")
+  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
+                                                                                                                       "\\|" = "\\\\|", "\\(" = "\\\\(",
+                                                                                                                       "\\)" = "\\\\)", "\\[" = "\\\\[",
+                                                                                                                       "\\{" = "\\\\{", "\\*" = "\\\\*",
+                                                                                                                       "\\?" = "\\\\?")), recursive = T, full.names = T))
+
+  sd[,"config"] <- dplyr::coalesce(sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "CYTOMETER CONFIG NAME"),
+                                   sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "$CYT"))
+
+  if (any(is.na(sd[,"config"]))) {
+    stop("Config keyword could not be retrieved from all FCS files. Another FCS keyword is needed - fix the function.")
+  }
+  #glob2rx(x)
 
   # sd grouped by sheet and cytometers
   sd <-
@@ -115,7 +133,7 @@ ab_panel_to_fcs <- function(sampledescription,
             other_keywords <- intersect(other_keywords, names(sh))
           }
           # check for "channel" in other_keywords
-          sh <- sh[which(!is.na(sh[,"Antigen"])),c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker")]
+          sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
           if (is.na(sh[1,"LiveDeadMarker"])) {
             message("No LiveDeadMarker entered.")
           } else {
@@ -131,20 +149,25 @@ ab_panel_to_fcs <- function(sampledescription,
           sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
-          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) {
-            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check.")
+          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"]) && !ignore_duplicate_ag) {
+            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check. To ignore this warning and write information in FCS files anyway, pass 'ignore_duplicate_ag = TRUE'.")
           } else {
             ## read FCS here, then call the ccm function
             # for loop as sh is modified by the first FCS file
             for (j in x[,"FileNames"][[1]]) {
-              fcs.path <- list.files(FCS.file.folder, pattern = j, recursive = T, full.names = T)
+              fcs.path <- list.files(FCS.file.folder, pattern = stringr::str_replace_all(j, c("\\+" = "\\\\+", "\\." = "\\\\.",
+                                                                                              "\\|" = "\\\\|", "\\(" = "\\\\(",
+                                                                                              "\\)" = "\\\\)", "\\[" = "\\\\[",
+                                                                                              "\\{" = "\\\\{", "\\*" = "\\\\*",
+                                                                                              "\\?" = "\\\\?")), recursive = T, full.names = T)
+
               ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
               channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
               channels.inv <- stats::setNames(names(channels),channels)
 
               # special treatment on first index
               if (j == x[,"FileNames"][[1]][1]) {
-                matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm)
+                matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm, machine = machine)
                 if (any(duplicated(matches))) {
                   message("At least on channel used by more than one marker.")
                 }
@@ -203,13 +226,30 @@ ab_panel_to_fcs <- function(sampledescription,
 
 conjugate_to_channel <- function(conjugates,
                                  channels,
+                                 machine = NULL,
                                  channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr")) {
+
 
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
   matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
+  if (!is.null(machine)) {
+    if (length(machine) > 1) {
+      stop("Please provide only one machine name.")
+    }
+    if (!machine %in% matches$machine) {
+      stop("Machine not found in ccm matches: ", paste(unique(matches$machine), collapse = ", "))
+    }
+    matches <- matches[which(matches$machine == machine),]
+  }
+
+  matches_grouped <- dplyr::group_by(matches, Conjugate) %>% dplyr::summarise(n_ch = nlevels(as.factor(channel)))
+  if (any(matches_grouped$n_ch > 1)) {
+    stop("Conjugate could not be matched to channel unambiguously. Try to provide the correct name of the machine: ", paste(unique(matches$machine), collapse = ", "), ".")
+  }
+
   matches <- unique(matches[,c("Conjugate","channel")])
   matches <- stats::setNames(matches[,"channel"], nm = matches[,"Conjugate"])
-  names(matches) <- unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T))
+  names(matches) <- unique(unlist(sapply(names(matches), function(x) grep(paste0("^",x,"$"), conjugates, value = T, ignore.case = T), simplify = T, USE.NAMES = F)))
   if (any(duplicated(names(matches)))) {
     warning("Duplicate matches in ccm. Did you pass channels from multiple Flow Cytometers at once?")
   }

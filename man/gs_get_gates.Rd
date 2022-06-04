@@ -6,29 +6,42 @@
 \usage{
 gs_get_gates(
   gs,
-  binwidths = c(4, 4),
-  quantile_lim_filter = c(0.001, 0.999),
+  n_bins = 50^2,
+  quantile_lim_filter = c(1e-04, 0.9999),
   min_max_vals = c(0, 300),
-  scatter_lim = c(0, 250000),
-  x_statpos = 0.8,
-  y_statpos = 0.2,
-  stat_size = 4
+  min_max_vals_scatter = c(0, 250000),
+  x_statpos_name = 0.9,
+  y_statpos_name = 0.9,
+  x_statpos_pct = 0.9,
+  y_statpos_pct = 0.1,
+  statsize_name = 4,
+  statsize_pct = 4
 )
 }
 \arguments{
-\item{gs}{gatingset}
+\item{gs}{gs a gatingset, e.g. made with fcexpr::wsp_get_gs}
 
-\item{quantile_lim_filter}{quantiles of signals to set axis limits to}
+\item{n_bins}{number of bins in total, will be used equally in x and y direction, bin size is adjusted to ranges in x and y direction}
 
-\item{min_max_vals}{minimum and/or maximum required signal of one event in order to condider it for axis limit calculation (to filter extreme values)}
+\item{quantile_lim_filter}{min,max quantiles of signal intensities to set axis limits to; use quantiles to exclude extreme values}
 
-\item{scatter_lim}{manual limits for scatter channel, set to NULL to get the actual limits (min and max)}
+\item{min_max_vals}{min,max required signal intensitiy for fluorescence channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+in logicle transformation}
 
-\item{x_statpos}{x-position of percent labels for gates}
+\item{min_max_vals_scatter}{min,max required signal intensitiy for scatter channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+in inverse transformation which is equal to logicle transformation (for scatter channels)}
 
-\item{y_statpos}{y-position of percent labels for gates}
+\item{x_statpos_name}{x-position for gate name labels}
 
-\item{stat_size}{size of percent labels for gates}
+\item{y_statpos_name}{y-position for gate name labels}
+
+\item{x_statpos_pct}{x-position for gate percent labels}
+
+\item{y_statpos_pct}{y-position for gate percent labels}
+
+\item{statsize_name}{size of name label}
+
+\item{statsize_pct}{size of percent label}
 }
 \value{
 a data frame to loop over and produce plots with ggcyto
@@ -38,33 +51,6 @@ Gates from gatingset for plotting with ggcyto
 }
 \examples{
 \dontrun{
-gates <- gs_get_gates(gs = my_gs)
-
-out <- purrr::flatten(lapply(unique(gates$gate.level), function (z) {
-g <- gates[which(gates[,"gate.level"] == z),]
-# split into groups of equal gate.level, subset, xy-plane
-g <- split(g, paste(g$gate.level, g$subset, g$x, g$y, sep = "__"))
-p <- lapply(g, function(gg) {
- my.filter <- if (gg[1,"marginalFilter"]) {marginalFilter} else {NULL}
- p <- ggcyto(gs, subset = gg[1,"subset"], filter = my.filter, aes(!!sym(gg[1,"x"]), !!sym(gg[1,"y"])), max_nrow_to_plot = 5e4) +
-   geom_hex(bins = gg[1,"bins"]) +
-   theme_bw() +
-   xlab(gg[1,"x_lab"]) +
-   ylab(gg[1,"y_lab"]) +
-   ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x.up.lim"]), y = c(gg[1,"y_lowlim"], gg[1,"y.up.lim"]))) +
-   scale_fill_gradientn(colours = scexpr::col_pal("spectral"), trans = "pseudo_log") +
-   theme(legend.position = "none", strip.background = element_rect(fill = "white"), text = element_text(family = "Courier"), panel.grid = element_blank(), axis.text = element_blank()) +
-   facet_grid(cols = vars(Patient, TCR), rows = vars(stimulus)) # order inline: facet_grid(cols = vars(PBMC.donor.short, factor(IL15.pre.stim.conc.ug.ml, levels=c("0", "0.12", "0.37", "1.11", "3.33", "10"))), rows = vars(RPTECs, RPTEC.IFNg.pre.stim))
- for (i in 1:nrow(gg)) {
-   p <-
-     p +
-     geom_gate(gg[i,"gate.path.full"], colour = "black")
-   #geom_stats(gg[i,"gate.path.full"], type = "percent", size = gg[i,"gate.pct.stat.size"], color = "black", digits = 1, adjust = c(gg[i,"gate.pct.stat.x.pos"], gg[i,"gate.pct.stat.y.pos"]), fill = alpha(c("white"),0.5))
- }
- return(p)
-})
-return(p)
-}))
-
+gates <- gs_get_gates(gs)
 }
 }
