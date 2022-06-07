@@ -656,8 +656,6 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
-  ## prepare clustering algorithms below for metaclustering
-
   tryCatch(
     if (run.kmeans_arma) {
       temp_dots <- dots[which(grepl("^kmeans_arma__", names(dots), ignore.case = T))]
