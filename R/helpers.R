@@ -184,7 +184,8 @@ check_in <- function(wsp,
                      samples,
                      groups,
                      FCS.file.folder,
-                     inverse_transform) {
+                     return_untransformed,
+                     return_logicle_transformed) {
 
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
@@ -201,12 +202,12 @@ check_in <- function(wsp,
     if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
   }
 
-  if (!length(inverse_transform) %in% c(1,2)) {
-    stop("inverse_transform must be of length 1 or 2, T or F or c(T,F) or c(F,T)")
+  if (!return_untransformed && !return_logicle_transformed) {
+    stop("At least one of return_logicle_transformed or return_untransformed has to be TRUE.")
   }
-  if (any(duplicated(inverse_transform))) {
-    stop("inverse_transform cannot have duplicates.")
-  }
+
+  #inverse_transform <- unique(inverse_transform)
+  #if (!length(inverse_transform) %in% c(1,2)) {stop("inverse_transform must be of length 1 or 2, T or F or c(T,F) or c(F,T)")}
 
   return(list(groups = groups, samples = samples, FCS.file.folder = FCS.file.folder))
 }
@@ -247,7 +248,8 @@ get_inds <- function(x) {
 
 
 get_ff <- function(x,
-                   inverse_transform,
+                   return_untransformed = T,
+                   return_logicle_transformed = T,
                    downsample,
                    remove_redundant_channels,
                    population) {
@@ -282,9 +284,14 @@ get_ff <- function(x,
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
   }
 
-  ex <- lapply(inverse_transform, function (y) {
-    flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y))
-  })
+  if (return_untransformed && !return_logicle_transformed) {
+    inverse_transform <- T
+  } else if (!return_untransformed && return_logicle_transformed) {
+    inverse_transform <- F
+  } else if (return_untransformed && return_logicle_transformed) {
+    inverse_transform <- c(F,T)
+  }
+  ex <- lapply(inverse_transform, function (y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
 
@@ -446,15 +453,15 @@ get_gs <- function(x,
 
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
-      message(sapply(ff, function(x) {flowCore::parameters(x)$name}))
+      print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
       stop("Channels of flowFrames do not have the same names. This cannot be handled.")
     }
   })
 
   sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
-      message(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
-      warning("Channel description are not equal across flowFrames")
+      print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
+      warning("Channel description are not equal across flowFrames.")
     }
   })
 }

@@ -20,13 +20,14 @@
 #' @param samples vector or list of samples to select (names of FCS files), each index corresponds to the index in wsp;
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
-#' @param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 #' @param downsample numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
 #' which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
 #' FCS files equally or can be a vector of same length as FCS files
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
+#' @param return_untransformed logical; do return untransformed (inverse) data
+#' @param return_logicle_transformed logical; do return logicle-transformed data
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
@@ -45,11 +46,14 @@ wsp_get_ff <- function(wsp,
                        invert_groups = F,
                        samples = NULL,
                        invert_samples = F,
-                       inverse_transform = c(T,F),
+                       return_untransformed = T,
+                       return_logicle_transformed = T,
                        downsample = 1,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
                        ...) {
+
+  #@param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 
   if (!requireNamespace("BiocManager", quietly = T)) {
     utils::install.packages("BiocManager")
@@ -62,7 +66,9 @@ wsp_get_ff <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, inverse_transform = inverse_transform)
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder,
+                         return_untransformed = return_untransformed,
+                         return_logicle_transformed = return_logicle_transformed)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -122,7 +128,8 @@ wsp_get_ff <- function(wsp,
 
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
-                        inverse_transform = inverse_transform,
+                        return_untransformed = T,
+                        return_logicle_transformed = T,
                         downsample = ds,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,
@@ -140,10 +147,18 @@ wsp_get_ff <- function(wsp,
 
   ffs <- sapply(ff.list, "[", 1)
   names(ffs) <- smpl$FileName
-  ffs <- lapply(seq_along(ffs[[1]]), function(x) {
-    sapply(ffs, "[", x, simplify = T)
-  })
-  names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
+
+  ffs <- lapply(seq_along(ffs[[1]]), function(x) sapply(ffs, "[", x, simplify = T))
+
+  if (return_untransformed && !return_logicle_transformed) {
+    names(ffs) <- "untransformed"
+  } else if (!return_untransformed && return_logicle_transformed) {
+    names(ffs) <- "transformed"
+  } else if (return_untransformed && return_logicle_transformed) {
+    names(ffs) <- c("untransformed", "transformed")
+  }
+
+  #names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
 
   inds <- sapply(ff.list, "[", 2)
   names(inds) <- smpl$FileName
