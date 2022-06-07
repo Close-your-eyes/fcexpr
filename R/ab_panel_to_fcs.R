@@ -92,7 +92,6 @@ ab_panel_to_fcs <- function(sampledescription,
                                                                                                                        "\\)" = "\\\\)", "\\[" = "\\\\[",
                                                                                                                        "\\{" = "\\\\{", "\\*" = "\\\\*",
                                                                                                                        "\\?" = "\\\\?")), recursive = T, full.names = T))
-
   sd[,"config"] <- dplyr::coalesce(sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "CYTOMETER CONFIG NAME"),
                                    sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "$CYT"))
 
