@@ -44,6 +44,9 @@
 #' @param run.tsne calculate tsne dimension reduction with Rtsne::Rtsne
 #' @param run.som calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM
 #' @param run.gqtsom calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
+#' @param metaclustering.on SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
+#' may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
+#' if NULL, clustering is performed on original data
 #' @param run.louvain detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.leiden detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.kmeans detect clusters with stats::kmeans
@@ -67,6 +70,8 @@
 #' @param exclude.extra.channels when scaled and transform channels are written to FCS file, some channels may be redundant
 #' and will only occupy disk space, those are specified here; matched with grepl
 #' @param write.scaled.channels.to.FCS do save scaled channels (scale.whole, scale.samples) to FCS file
+#' @param write.transformed.channels.to.FCS do save transformed channels (e.g. logicle or arcsinh) to FCS file
+#' @param write.untransformed.channels.to.FCS do save untransformed channels (inverse) to FCS file
 #' @param timeChannel name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 #' to be detected automatically
 #' @param ... additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
@@ -77,7 +82,6 @@
 #' louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
 #' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
 #' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
-#'
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
@@ -160,6 +164,7 @@ dr_to_fcs <- function(ff.list,
                       run.tsne = F,
                       run.som = T,
                       run.gqtsom = F,
+                      metaclustering.on = NULL,
                       run.louvain = F,
                       run.kmeans = F,
                       run.minibatchkmeans = F,
@@ -175,9 +180,12 @@ dr_to_fcs <- function(ff.list,
                       mc.cores = 1,
                       save.to.disk = c("fcs", "rds"),
                       save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-                      exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle", "cluster.id", "FSC|SSC|Time|cluster.id"),
+                      exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "transformed", "cluster.id", "FSC|SSC|Time|cluster.id"),
+                      write.transformed.channels.to.FCS = T,
+                      write.untransformed.channels.to.FCS = T,
                       write.scaled.channels.to.FCS = F,
                       timeChannel = "Time",
+                      transformation_name = "trans",
                       ...) {
   # batch effect correction: https://cytekbio.com/blogs/blog/how-to-identify-and-prevent-batch-effects-in-longitudinal-flow-cytometry-research-studies
   # cytonorm (https://github.com/saeyslab/CytoNorm) requires reference sample for every batch - not always available
@@ -261,17 +269,11 @@ dr_to_fcs <- function(ff.list,
     dots_expanded <- NULL
   }
 
-  if (!"logicle" %in% names(ff.list)) {
-    stop("'logicle' not found in ff.list: one list of flowframes in ff.list has to be named 'logicle' as has to contain logicle transformed fluorescence intensities.")
-  }
+  #if (any(!names(ff.list) %in% c("untransformed", "logicle"))) {stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed) and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")}
 
-  if (any(!names(ff.list) %in% c("inverse", "logicle"))) {
-    stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed) and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")
-  }
-
-  # check if names in ff.list inverse and logicle are the same
+  # check if names in ff.list are the same
   if (length(unique(lengths(ff.list))) != 1) {
-    stop("number of flowframes in inverse and logicle has to be equal.")
+    stop("number of flowframes in untransformed and transformed has to be equal.")
   }
 
   for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "harmony", "mudan")) {
@@ -362,6 +364,18 @@ dr_to_fcs <- function(ff.list,
       stop("extra.cols has to be a numeric matrix.")
     }
   }
+  if (!is.null(metaclustering.on)) {
+    metaclustering.on <- match.arg(arg = metaclustering.on, choices = c("SOM", "GQTSOM"))
+  }
+
+  if (metaclustering.on == "SOM" && !run.som) {
+    run.som <- T
+    message("run.som set to TRUE to allow metaclustering on it.")
+  }
+  if (metaclustering.on == "GQTSOM" && !run.gqtsom) {
+    run.som <- T
+    message("run.gqtsom set to TRUE to allow metaclustering on it.")
+  }
 
   # check add.sample.info
   if (!is.null(add.sample.info)) {
@@ -404,43 +418,66 @@ dr_to_fcs <- function(ff.list,
   .check.ff.list(ff.list = ff.list)
 
   channels <- .get.channels(
-    ff = ff.list[["logicle"]][[1]],## channel names from first ff
+    ff = ff.list[["transformed"]][[1]],## channel names from first ff
     timeChannel = timeChannel,
     channels = channels
   )
 
   # overwrite channel desc in ffs
   # correct order is important, as provided by .get.channels
-  for (i in seq_along(ff.list[["logicle"]])) {
-    ff.list[["logicle"]][[i]]@parameters@data[["desc"]][which(ff.list[["logicle"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
+  if ("transformed" %in% names(ff.list)) {
+    for (i in seq_along(ff.list[["transformed"]])) {
+      ff.list[["transformed"]][[i]]@parameters@data[["desc"]][which(ff.list[["transformed"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
+    }
   }
-  if ("inverse" %in% names(ff.list)) {
-    for (i in seq_along(ff.list[["inverse"]])) {
-      ff.list[["inverse"]][[i]]@parameters@data[["desc"]][which(ff.list[["inverse"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
+  if ("untransformed" %in% names(ff.list)) {
+    for (i in seq_along(ff.list[["untransformed"]])) {
+      ff.list[["untransformed"]][[i]]@parameters@data[["desc"]][which(ff.list[["untransformed"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
     }
   }
 
   # first step to create matrix for fcs file; put here to allow early cluster calculation which then
   # allows for lda calculation before umap, som, etc.
   # prepare matrix for FCS file
-  expr.logicle <- do.call(rbind, lapply(ff.list[["logicle"]], function(x) flowCore::exprs(x)))
-  expr.logicle <- expr.logicle[, which(!grepl(exclude.extra.channels, colnames(expr.logicle)))]
-  colnames(expr.logicle) <- paste0(colnames(expr.logicle), "_logicle")
 
-  ## add option to save inverse (~untransformed) data only to FCS
-  if ("inverse" %in% names(ff.list)) {
-    dim.red.data <- do.call(cbind, list(do.call(rbind, lapply(ff.list[["inverse"]], function(x) flowCore::exprs(x))), expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
+
+  ## option to save inverse (~untransformed) data only to FCS
+  if (write.untransformed.channels.to.FCS && !"untransformed" %in% names(ff.list)) {
+    message("Untransformed (inverse) data not provided. Hence, cannot be saved to FCS.")
+    write.untransformed.channels.to.FCS <- F
+  }
+
+  ## initiate empty dim.red.data
+  dim.red.data <- data.frame()
+  ## write original data (transformed and/or untransformed) to fcs
+  if (write.untransformed.channels.to.FCS && "untransformed" %in% names(ff.list)) {
+    dim.red.data <- do.call(rbind, lapply(ff.list[["untransformed"]], function(x) flowCore::exprs(x)))
+  }
+  if (write.transformed.channels.to.FCS && "transformed" %in% names(ff.list)) {
+    expr_trans <- do.call(rbind, lapply(ff.list[["transformed"]], function(x) flowCore::exprs(x)))
+    expr_trans <- expr_trans[, which(!grepl(exclude.extra.channels, colnames(expr_trans)))]
+    colnames(expr_trans) <- paste0(colnames(expr_trans), "_", transformation_name)
+    dim.red.data <- cbind(dim.red.data, expr_trans)
+  }
+
+  ## write ident to fcs; any slot is fine
+  if ("untransformed" %in% names(ff.list)) {
+    dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[["untransformed"]]), sapply(ff.list[["untransformed"]], nrow)))
+  } else if ("transformed" %in% names(ff.list)) {
+    dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[["transformed"]]), sapply(ff.list[["transformed"]], nrow)))
+  }
+
+  ## apply scaling which was selected above and select channels to use for dimension reduction.
+  ## if transformed data is provided, these are used, if not then untransformed
+  if ("transformed" %in% names(ff.list)) {
+    expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
   } else {
-    dim.red.data <- do.call(cbind, list(expr.logicle, ident = rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow))))
+    expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["untransformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
   }
 
 
-  ## apply scaling which was selected above and select channels to use for dimension reduction.
-  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
-
-
   ### allow to pass expr.select here.
-
+  ## requires a lot of checking though
 
   # run harmony
   # if harmony is run with do_pca = T a subsequent pca should not be computed
@@ -456,6 +493,8 @@ dr_to_fcs <- function(ff.list,
     expr.select <- do.call(harmony::HarmonyMatrix, args = c(list(data_mat = expr.select), temp_dots))
   }
 
+  ## pca in harmony has to be set to TRUE explicitly, then harmony is performed in pc-space
+  ## in this case subsequent pca is not adviseable
   pca.result <- NULL
   if (run.pca) {
     if (n.pca.dims == 0) {
@@ -479,10 +518,52 @@ dr_to_fcs <- function(ff.list,
 
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.dims <- pca.result[["x"]]
+    ## overwrite original data with PCA embedding
     expr.select <- pca.dims[, 1:n.pca.dims]
     message("Done. ", Sys.time())
   }
 
+
+
+
+  if (metaclustering.on == "SOM") {
+    if (run.lda) {
+      warning("LDA not applied to SOM calculation.")
+    }
+    message("Calculating SOM. Start: ", Sys.time())
+    temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+
+    temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
+    som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
+    colnames(som.dims) <- c("SOM_1", "SOM_2")
+    message("End: ", Sys.time())
+  }
+
+  if (metaclustering.on == "GQTSOM") {
+    if (run.lda) {
+      warning("LDA not applied to GQTSOM calculation.")
+    }
+    message("Calculating GQTSOM. Start: ", Sys.time())
+    temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
+
+    temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
+    names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
+    gqtsom.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
+    colnames(gqtsom.dims) <- c("GQTSOM_1", "GQTSOM_2")
+    message("End: ", Sys.time())
+  }
+
+  ## in case of metaclustering set expr.clust to map-codes
+  if (!is.null(metaclustering.on)) {
+    expr.clust <- map[["codes"]]
+  } else {
+    expr.clust <- expr.select
+  }
 
   # find communities (clusters)
   tryCatch(
@@ -495,9 +576,9 @@ dr_to_fcs <- function(ff.list,
         temp_dots <- c(temp_dots, annoy.metric = "cosine")
       }
       message("Calculating snn for louvain and/or leiden. Start: ", Sys.time())
-      rownames(expr.select) <- 1:nrow(expr.select)
+      rownames(expr.clust) <- 1:nrow(expr.clust)
       # Seurat::FindNeighbors ignores all 'wrong' arguments; suppress the warnings though
-      snn <- suppressMessages(suppressWarnings(do.call(Seurat::FindNeighbors, args = c(list(object = expr.select), temp_dots))))
+      snn <- suppressMessages(suppressWarnings(do.call(Seurat::FindNeighbors, args = c(list(object = expr.clust), temp_dots))))
       message("End: ", Sys.time())
     },
     error = function(e) {
@@ -509,7 +590,6 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.louvain) {
-
       temp_dots <- dots[which(grepl("^louvain__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^louvain__", "", names(temp_dots), ignore.case = T)
 
@@ -528,9 +608,13 @@ dr_to_fcs <- function(ff.list,
         clust_idents <- apply(do.call(Seurat::FindClusters, args = c(list(object = snn$snn, resolution = x, algorithm = 1), temp_dots)), 2, as.numeric)
       }
 
+      if (!is.null(metaclustering.on)) {
+        clust_idents <- apply(clust_idents, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
       colnames(clust_idents) <- paste0("louvain_", temp_dots[["resolution"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
-      message(apply(clust_idents, 2, function(x) length(unique(x))))
+      print(apply(clust_idents, 2, function(x) length(unique(x))))
       message("End: ", Sys.time())
     },
     error = function(e) {
@@ -557,15 +641,22 @@ dr_to_fcs <- function(ff.list,
       } else {
         clust_idents <- do.call(leiden::leiden, args = c(list(object = snn$snn), temp_dots))
       }
+
+      if (!is.null(metaclustering.on)) {
+        clust_idents <- apply(clust_idents, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
       colnames(clust_idents) <- paste0("leiden_", temp_dots[["resolution_parameter"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, clust_idents))
-      message(apply(clust_idents, 2, function(x) length(unique(x))))
+      print(apply(clust_idents, 2, function(x) length(unique(x))))
       message("End: ", Sys.time())
     },
     error = function(e) {
       message("run.leiden with error")
     }
   )
+
+  ## prepare clustering algorithms below for metaclustering
 
   tryCatch(
     if (run.kmeans_arma) {
@@ -574,7 +665,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with kmeans_arma and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        ClusterR::predict_KMeans(data = expr.select, CENTROIDS = do.call(ClusterR::KMeans_arma, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
+        ClusterR::predict_KMeans(data = expr.clust, CENTROIDS = do.call(ClusterR::KMeans_arma, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("kmeans_arma_", temp_dots[["clusters"]])
@@ -593,7 +684,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with kmeans_rcpp and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        do.call(ClusterR::KMeans_rcpp, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
+        do.call(ClusterR::KMeans_rcpp, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("kmeans_rcpp_", temp_dots[["clusters"]])
@@ -612,7 +703,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with minibatchkmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
-        ClusterR::predict_MBatchKMeans(data = expr.select, CENTROIDS = do.call(ClusterR::MiniBatchKmeans, args = c(list(data = expr.select, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
+        ClusterR::predict_MBatchKMeans(data = expr.clust, CENTROIDS = do.call(ClusterR::MiniBatchKmeans, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("minibatchkmeans_", temp_dots[["clusters"]])
@@ -631,7 +722,7 @@ dr_to_fcs <- function(ff.list,
       message("Finding clusters with kmeans and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["centers"]], function(x) {
-        do.call(stats::kmeans, args = c(list(x = expr.select, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
+        do.call(stats::kmeans, args = c(list(x = expr.clust, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("kmeans_", temp_dots[["centers"]])
@@ -649,7 +740,7 @@ dr_to_fcs <- function(ff.list,
       names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       message("Finding clusters with hclust. Start: ", Sys.time())
 
-      d <- do.call(stats::dist, args = c(list(x = expr.select), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
+      d <- do.call(stats::dist, args = c(list(x = expr.clust), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
       h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
         stats::cutree(tree = h, k = x)
@@ -672,7 +763,7 @@ dr_to_fcs <- function(ff.list,
 
       message("Finding clusters with flowClust and parallel::mclapply using ", mc.cores, " cores. Start: ", Sys.time())
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["K"]], function(x) {
-        suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.select, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
+        suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.clust, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("flowClust_", temp_dots[["K"]])
@@ -694,7 +785,7 @@ dr_to_fcs <- function(ff.list,
 
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
         ## documentation is wrong (mat: cells as rows and features as cols!)
-        do.call(MUDAN::getComMembership, args = c(list(mat = expr.select, k = x), temp_dots[which(names(temp_dots) != "k")]))
+        do.call(MUDAN::getComMembership, args = c(list(mat = expr.clust, k = x), temp_dots[which(names(temp_dots) != "k")]))
       }, mc.cores = mc.cores))
 
       colnames(ks) <- paste0("MUDAN_", temp_dots[["k"]])
@@ -774,7 +865,9 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (run.som) {
+  ## this part of code is a duplicate, for now
+  ## only here lda applies if run.lda = TRUE
+  if (run.som && metaclustering.on != "SOM") {
     message("Calculating SOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
@@ -787,7 +880,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (run.gqtsom) {
+  if (run.gqtsom && metaclustering.on != "GQTSOM") {
     message("Calculating GQTSOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
@@ -801,7 +894,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (write.scaled.channels.to.FCS) {
-    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["logicle"]], function(x) {
+    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) {
       scale.samples(flowCore::exprs(x)[, channels])
     })))
     scaled.expr <- scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
@@ -839,7 +932,7 @@ dr_to_fcs <- function(ff.list,
   tryCatch(
     if (!is.null(add.sample.info)) {
       for (i in names(add.sample.info)) {
-        dim.red.data <- do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(rep(1:length(ff.list[["logicle"]]), sapply(ff.list[["logicle"]], nrow)))))))
+        dim.red.data <- do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(rep(1:length(ff.list[["transformed"]]), sapply(ff.list[["transformed"]], nrow)))))))
         names(dim.red.data)[length(dim.red.data)] <- i
       }
     },
@@ -859,8 +952,8 @@ dr_to_fcs <- function(ff.list,
 
 
   channel.desc_augment <- channel.desc
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled", colnames(dim.red.data))))], "_scaled")
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("logicle", colnames(dim.red.data))))], "_logicle")
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))], "_scaled$")
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))], paste0("_", transformation_name, "$"))
 
   channel.desc_augment[which(channel.desc_augment == "")] <- colnames(dim.red.data)[which(channel.desc_augment == "")]
   channel.desc_augment <- make.names(channel.desc_augment)
@@ -934,7 +1027,12 @@ dr_to_fcs <- function(ff.list,
   tryCatch({
     marker <- lapply(calc.cluster.markers, function (clust_col) {
       # do not use expr.select which may have become dimenions of LDA
-      dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, "_logicle")), which(colnames(dim.red.data) == clust_col))]
+      ## handle cases of transformed vs untransformed data
+      if ("transformed" %in% names(ff.list)) {
+        dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, paste0("_", transformation_name))), which(colnames(dim.red.data) == clust_col))]
+      } else {
+        dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% channels), which(colnames(dim.red.data) == clust_col))]
+      }
       split_var <- dat[,clust_col]
       split_var_levels <- sort(unique(split_var))
       ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
