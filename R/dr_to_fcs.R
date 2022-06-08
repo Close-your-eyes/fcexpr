@@ -526,7 +526,7 @@ dr_to_fcs <- function(ff.list,
     message("Done. ", Sys.time())
   }
 
-  if (metaclustering.on == "SOM") {
+  if (!is.null(metaclustering.on) && metaclustering.on == "SOM") {
     if (run.lda) {
       warning("LDA not applied to SOM calculation.")
     }
@@ -542,7 +542,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (metaclustering.on == "GQTSOM") {
+  if (!is.null(metaclustering.on) && metaclustering.on == "GQTSOM") {
     if (run.lda) {
       warning("LDA not applied to GQTSOM calculation.")
     }
@@ -823,6 +823,15 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
+'  tryCatch(
+    if (run.flowsom.consensus.clustering) {
+
+    },
+    error = function(e) {
+      message("run.MUDAN with error")
+    }
+  )
+'
   ### optionally run MUDAN::clusterBasedBatchCorrect here
   ## actually though harmony performs something similar with multiple iterations: https://portals.broadinstitute.org/harmony/articles/quickstart.html
   ## MUDAN advertises harmony: http://htmlpreview.github.io/?https://github.com/immunogenomics/harmony/blob/master/docs/mudan.html
