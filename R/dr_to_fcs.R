@@ -261,7 +261,7 @@ dr_to_fcs <- function(ff.list,
 
   dots <- list(...)
 
-  expect_dots <- "^harmony__|^hclust__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
+  expect_dots <- "^harmony__|^hclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
   if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))) {
     message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
   }
@@ -280,6 +280,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "harmony", "mudan")) {
+    # cutree and dist not captured
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
       message(par, " parameters provided in ... but ", "'run.", par, " = F'.")
     }
@@ -289,8 +290,8 @@ dr_to_fcs <- function(ff.list,
     stop("When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix.")
   }
 
-  if (run.hclust && !any(grepl("^hclust__k", names(dots)))) {
-    stop("When 'run.hclust = T' hclust__k has to be provided in ..., see ?stats::cutree.")
+  if (run.hclust && !any(grepl("^cutree__k", names(dots)))) {
+    stop("When 'run.hclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
   }
 
   if (run.flowClust && !any(grepl("^flowClust__K", names(dots)))) {
@@ -376,7 +377,7 @@ dr_to_fcs <- function(ff.list,
     message("run.som set to TRUE to allow metaclustering on it.")
   }
   if (metaclustering.on == "GQTSOM" && !run.gqtsom) {
-    run.som <- T
+    run.gqtsom <- T
     message("run.gqtsom set to TRUE to allow metaclustering on it.")
   }
 
@@ -526,7 +527,7 @@ dr_to_fcs <- function(ff.list,
     message("Done. ", Sys.time())
   }
 
-  if (!is.null(metaclustering.on) && metaclustering.on == "SOM") {
+  if (metaclustering.on == "SOM") {
     if (run.lda) {
       warning("LDA not applied to SOM calculation.")
     }
@@ -542,7 +543,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (!is.null(metaclustering.on) && metaclustering.on == "GQTSOM") {
+  if (metaclustering.on == "GQTSOM") {
     if (run.lda) {
       warning("LDA not applied to GQTSOM calculation.")
     }
@@ -750,12 +751,18 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.hclust) {
-      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
-      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       message("Finding clusters with hclust. Start: ", Sys.time())
 
+      temp_dots <- dots[which(grepl("^dist__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^dist__", "", names(temp_dots), ignore.case = T)
       d <- do.call(stats::dist, args = c(list(x = expr.clust), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
+
+      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
+
+      temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
         stats::cutree(tree = h, k = x)
       }, mc.cores = mc.cores))
@@ -764,7 +771,7 @@ dr_to_fcs <- function(ff.list,
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
 
-      colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
+      colnames(ks) <- paste0("cutree_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
     },
@@ -1056,6 +1063,7 @@ dr_to_fcs <- function(ff.list,
   if (!is.null(calc.cluster.markers)) {
     message("Calculating markers.")
   }
+  marker <- NULL
   tryCatch({
     marker <- lapply(calc.cluster.markers, function (clust_col) {
       # do not use expr.select which may have become dimenions of LDA
