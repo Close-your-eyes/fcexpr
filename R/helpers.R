@@ -184,8 +184,8 @@ check_in <- function(wsp,
                      samples,
                      groups,
                      FCS.file.folder,
-                     return_untransformed,
-                     return_logicle_transformed) {
+                     return_untransformed = NULL,
+                     return_logicle_transformed = NULL) {
 
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
@@ -202,7 +202,7 @@ check_in <- function(wsp,
     if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
   }
 
-  if (!return_untransformed && !return_logicle_transformed) {
+  if ((!is.null(return_untransformed) && !return_untransformed) && (!is.null(return_logicle_transformed) && !return_logicle_transformed)) {
     stop("At least one of return_logicle_transformed or return_untransformed has to be TRUE.")
   }
 

@@ -37,7 +37,7 @@ wsp_get_gs <- function(wsp,
   }
 
 
-  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder, inverse_transform = c(T,F))
+  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -47,8 +47,8 @@ wsp_get_gs <- function(wsp,
     return(NULL)
   }
   if (any(table(smpl$FilePath) > 1)) {
-    warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-    stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
+    print(smpl$FilePath[which(table(smpl$FilePath) > 1)])
+    stop("Same FCS files found in multiple workspaces or groups. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
   }
 
   smpl_list <- split(smpl, paste0(basename(smpl$wsp), "_-_", smpl$group))
