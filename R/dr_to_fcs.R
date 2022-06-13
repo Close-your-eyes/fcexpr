@@ -532,14 +532,26 @@ dr_to_fcs <- function(ff.list,
       warning("LDA not applied to SOM calculation.")
     }
     message("Calculating SOM. Start: ", Sys.time())
+
+    #temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
+    #names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+
+    #landmark_idx <- sample(nrow(expr.select) , 1000)
+    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
+
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots, list(coordsFn = EmbedSOM::tSNECoords(theta = 0))))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
     som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
+
+
+
     message("End: ", Sys.time())
   }
 
@@ -548,6 +560,14 @@ dr_to_fcs <- function(ff.list,
       warning("LDA not applied to GQTSOM calculation.")
     }
     message("Calculating GQTSOM. Start: ", Sys.time())
+
+    #landmark_idx <- sample(nrow(expr.select) , 1000)
+    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
+
+    #temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
+    #names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    #map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
+
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
