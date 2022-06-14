@@ -17,6 +17,7 @@ dr_to_fcs(
   run.tsne = F,
   run.som = T,
   run.gqtsom = F,
+  metaclustering.on = NULL,
   run.louvain = F,
   run.kmeans = F,
   run.minibatchkmeans = F,
@@ -33,10 +34,13 @@ dr_to_fcs(
   save.to.disk = c("fcs", "rds"),
   save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-  exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "logicle",
-    "cluster.id", "FSC|SSC|Time|cluster.id"),
+  exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) ==
+    "transformed", "cluster.id", "FSC|SSC|Time|cluster.id"),
+  write.transformed.channels.to.FCS = T,
+  write.untransformed.channels.to.FCS = T,
   write.scaled.channels.to.FCS = F,
   timeChannel = "Time",
+  transformation_name = "trans",
   ...
 )
 }
@@ -71,6 +75,10 @@ has to be provided in ...}
 \item{run.som}{calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
 
 \item{run.gqtsom}{calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
+
+\item{metaclustering.on}{SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
+may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
+if NULL, clustering is performed on original data}
 
 \item{run.louvain}{detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
 
@@ -110,6 +118,10 @@ could be a previously calculated dimension reduction or cluster annotation.}
 
 \item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be redundant
 and will only occupy disk space, those are specified here; matched with grepl}
+
+\item{write.transformed.channels.to.FCS}{do save transformed channels (e.g. logicle or arcsinh) to FCS file}
+
+\item{write.untransformed.channels.to.FCS}{do save untransformed channels (inverse) to FCS file}
 
 \item{write.scaled.channels.to.FCS}{do save scaled channels (scale.whole, scale.samples) to FCS file}
 

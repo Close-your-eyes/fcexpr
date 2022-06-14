@@ -321,7 +321,8 @@ get_ff <- function(x,
 get_ff2 <- function(x,
                     downsample,
                     population = population,
-                    inverse_transform,
+                    return_untransformed = T,
+                    return_logicle_transformed = T,
                     alias_attr_name,
                     path_attr_name) {
 
@@ -363,6 +364,15 @@ get_ff2 <- function(x,
 
   # which.lines with which(inds) argument is much slower!
   ff <- subset(flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F), inds)
+
+
+  if (return_untransformed && !return_logicle_transformed) {
+    inverse_transform <- T
+  } else if (!return_untransformed && return_logicle_transformed) {
+    inverse_transform <- F
+  } else if (return_untransformed && return_logicle_transformed) {
+    inverse_transform <- c(F,T)
+  }
 
   if (length(inverse_transform) == 2) {
     if (which(inverse_transform) == 1) {

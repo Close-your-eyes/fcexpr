@@ -10,7 +10,8 @@ inds_get_ff(
   alias_attr_name = "short_names",
   path_attr_name = "FilePath",
   downsample = 1,
-  inverse_transform = c(T, F),
+  return_untransformed = T,
+  return_logicle_transformed = T,
   lapply_fun = lapply,
   ...
 )
@@ -28,7 +29,9 @@ inds_get_ff(
 which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
 FCS files equally or can be a vector of same length as FCS files}
 
-\item{inverse_transform}{return inverse- (T) or logicle- (F) transform or both (c(T,F))}
+\item{return_untransformed}{logical; do return untransformed (inverse) data}
+
+\item{return_logicle_transformed}{logical; do return logicle-transformed data}
 
 \item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
