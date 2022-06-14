@@ -1,21 +1,25 @@
-#' Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concatenated) fcs file
+#' Calculate dimension reduction and cluster annotation with data from one or more flow frames and add these parameters to a (concatenated) fcs file
 #'
-#' Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
-#' The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is the transformation you see in flowjo).
-#' For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation, optionally additional scaling operations alogn the way (scale.whole, scale.samples)
-#' as well as cluster annotation will be written to the resulting (concatenated) fcs file for manual inspection in flowjo. Certain dimension reduction algorithms and cluster detection algorithm
-#' may become slow with a large number of events (e.g. > 1e6, see the details). In order to get a quick impression of what the algorithms can pull out for you, you may use the 'downsample'
+#' Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will be compatible with fcexpr::dr_to_fcs.
+#' The ff.list must contain a list of flowframes with untransformed fluorescence intensities (FI) and optionally may contain and additional list of flowframes with transformed FI. The transformation
+#' is your choice and may be logicle, arcsinh or whatever. It may be individual to channels and/or to flowframes. You have to calculate the transformation outside this function (dr_to_fcs) though.
+#' If a list of transformed flowframes is provided this one will be used for dimension reduction and clustering etc. If only a list untransformed flowframes is provided, this one will be used.
+#' Both, the transformed and/or untransformed values will be written to the concatenated fcs file (see function arguments). Calculated dimension reductions and cluster annotations will
+#' also be written as channels into that fcs file. Some dimension reduction and cluster detection algorithm may become slow with a large number of events (e.g. > 1e6, see the details).
+#' In order to get a quick impression of what the algorithms can pull out for you, you may use the 'downsample'
 #' argument in fcexpr::wsp_get_ff or fcexpr::inds_get_ff to conveniently sample a random subset of events from each fcs files (flowframe).
 #'
 #' Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
 #' Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
 #' Dimension reduction (low dimension embedding) algorithms are: UMAP, tSNE, SOM, GQTSOM, PCA. tSNE is expected to be too slow for more then 1e4 or 1e5 cells (depending
-#' precision set by tsne__theta). UMAP has been developed later and is well-know. SOM and GQTSOM are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
-#' but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
-#' respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
+#' precision set by tsne__theta). UMAP has been developed more recently, is well-know and quicker. SOM and GQTSOM are very quick and are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
+#' but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. SOMs also enable the so-called meta-clustering
+#' which massively speeds up cluster detection. The cost of preciseness has to be inspected manually.
+#' \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
 #' On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
-#' Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These assign events with similar properties in the high dimensional space a common discrete label. kmeans will be the quickest.
-#' Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
+#' Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. They assign events with similar properties in the high dimensional space a common discrete label.
+#' kmeans will be the quickest. Set metaclustering.on to 'SOM' or 'GQTSOM' to enable quick metaclustering. In this any of the clustering algorithms is performed on the SOM-map.
+#' Louvain is slower but may yield better results on original data (not meta-clustering). For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
 #' and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
 #' maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
 #' For kmeans, hclust, flowClust the number of expected cluster can be provided. louvain and leiden take a resolution parameter (lower resolution --> less clusters). MUDAN takes
@@ -40,28 +44,28 @@
 #' @param run.lda run Linear Discriminant Analysis before dimension reduction;
 #' should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
 #' has to be provided in ...
-#' @param run.umap calculate UMAP dimension reduction with uwot::umap
-#' @param run.tsne calculate tsne dimension reduction with Rtsne::Rtsne
-#' @param run.som calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM
-#' @param run.gqtsom calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
+#' @param run.umap logical, whether to calculate UMAP dimension reduction with uwot::umap
+#' @param run.tsne logical, whether to calculate tsne dimension reduction with Rtsne::Rtsne
+#' @param run.som logical, whether to calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM
+#' @param run.gqtsom logical, whether to calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
 #' @param metaclustering.on SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
 #' may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
 #' if NULL, clustering is performed on original data
-#' @param run.louvain detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
-#' @param run.leiden detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
-#' @param run.kmeans detect clusters with stats::kmeans
-#' @param run.minibatchkmeans detect clusters with ClusterR::MiniBatchKmeans
-#' @param run.kmeans_arma detect clusters with ClusterR::KMeans_arma
-#' @param run.kmeans_rcpp detect clusters with ClusterR::KMeans_rcpp
-#' @param run.hclust detect clusters with stats::dist, stats::hclust and stats::cutree
-#' @param run.flowClust detect clusters with flowClust::flowClust
-#' @param run.MUDAN detect clusters with MUDAN::getComMembership
-#' @param extra.cols vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
-#' has to be numeric; has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
+#' @param run.louvain logical, whether to detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
+#' @param run.leiden logical, whether to detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
+#' @param run.kmeans logical, whether to detect clusters with stats::kmeans
+#' @param run.minibatchkmeans logical, whether to detect clusters with ClusterR::MiniBatchKmeans
+#' @param run.kmeans_arma logical, whether to detect clusters with ClusterR::KMeans_arma
+#' @param run.kmeans_rcpp logical, whether to detect clusters with ClusterR::KMeans_rcpp
+#' @param run.hclust logical, whether to detect clusters with stats::dist, stats::hclust and stats::cutree
+#' @param run.flowClust logical, whether to detect clusters with flowClust::flowClust
+#' @param run.MUDAN logical, whether to detect clusters with MUDAN::getComMembership
+#' @param extra.cols numeric vector of an extra column (or matrix of multiple columns) with arbitraty information to add to the final fcs file;
+#' has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
 #' could be a previously calculated dimension reduction or cluster annotation.
 #' @param calc.cluster.markers if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
 #' using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
-#' is tested against other events and clusters are compaired pairwise. respective clustering calculation has to be provided in ...;
+#' is tested against other events and clusters are compared pairwise. respective clustering calculation has to be provided in ...;
 #' e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
 #' and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).
 #' @param mc.cores mc.cores to calculate clusterings, limited to parallel::detectCores()-1
@@ -257,11 +261,10 @@ dr_to_fcs <- function(ff.list,
 
   dots <- list(...)
 
-  expect_dots <- "^harmony__|^hclust__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
-  if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))) {
+  expect_dots <- "^harmony__|^hclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
+  if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))) {
     message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
   }
-
 
   if (length(dots) > 0) {
     dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
@@ -277,6 +280,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "harmony", "mudan")) {
+    # cutree and dist not captured
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
       message(par, " parameters provided in ... but ", "'run.", par, " = F'.")
     }
@@ -286,8 +290,8 @@ dr_to_fcs <- function(ff.list,
     stop("When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix.")
   }
 
-  if (run.hclust && !any(grepl("^hclust__k", names(dots)))) {
-    stop("When 'run.hclust = T' hclust__k has to be provided in ..., see ?stats::cutree.")
+  if (run.hclust && !any(grepl("^cutree__k", names(dots)))) {
+    stop("When 'run.hclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
   }
 
   if (run.flowClust && !any(grepl("^flowClust__K", names(dots)))) {
@@ -327,7 +331,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (is.logical(run.lda) && run.lda) {
-    stop("Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like louvain_0.4.")
+    stop("Do not set 'run.lda = T' but provide a clustering that should be used to calculate it, e.g. a pattern like 'louvain_0.4' or 'leiden_1.1' or 'kmeans_20'.")
   }
 
   if (!is.logical(run.lda)) {
@@ -373,7 +377,7 @@ dr_to_fcs <- function(ff.list,
     message("run.som set to TRUE to allow metaclustering on it.")
   }
   if (metaclustering.on == "GQTSOM" && !run.gqtsom) {
-    run.som <- T
+    run.gqtsom <- T
     message("run.gqtsom set to TRUE to allow metaclustering on it.")
   }
 
@@ -523,22 +527,31 @@ dr_to_fcs <- function(ff.list,
     message("Done. ", Sys.time())
   }
 
-
-
-
   if (metaclustering.on == "SOM") {
     if (run.lda) {
       warning("LDA not applied to SOM calculation.")
     }
     message("Calculating SOM. Start: ", Sys.time())
+
+    #temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
+    #names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+
+    #landmark_idx <- sample(nrow(expr.select) , 1000)
+    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
+
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
+    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots, list(coordsFn = EmbedSOM::tSNECoords(theta = 0))))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
     som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
+
+
+
     message("End: ", Sys.time())
   }
 
@@ -547,6 +560,14 @@ dr_to_fcs <- function(ff.list,
       warning("LDA not applied to GQTSOM calculation.")
     }
     message("Calculating GQTSOM. Start: ", Sys.time())
+
+    #landmark_idx <- sample(nrow(expr.select) , 1000)
+    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
+
+    #temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
+    #names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    #map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
+
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
@@ -656,8 +677,6 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
-  ## prepare clustering algorithms below for metaclustering
-
   tryCatch(
     if (run.kmeans_arma) {
       temp_dots <- dots[which(grepl("^kmeans_arma__", names(dots), ignore.case = T))]
@@ -667,6 +686,10 @@ dr_to_fcs <- function(ff.list,
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
         ClusterR::predict_KMeans(data = expr.clust, CENTROIDS = do.call(ClusterR::KMeans_arma, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")])))
       }, mc.cores = mc.cores))
+
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
 
       colnames(ks) <- paste0("kmeans_arma_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -687,6 +710,10 @@ dr_to_fcs <- function(ff.list,
         do.call(ClusterR::KMeans_rcpp, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["clusters"]]
       }, mc.cores = mc.cores))
 
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
       colnames(ks) <- paste0("kmeans_rcpp_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -705,6 +732,10 @@ dr_to_fcs <- function(ff.list,
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["clusters"]], function(x) {
         ClusterR::predict_MBatchKMeans(data = expr.clust, CENTROIDS = do.call(ClusterR::MiniBatchKmeans, args = c(list(data = expr.clust, clusters = x), temp_dots[which(names(temp_dots) != "clusters")]))[["centroids"]])
       }, mc.cores = mc.cores))
+
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
 
       colnames(ks) <- paste0("minibatchkmeans_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -725,6 +756,10 @@ dr_to_fcs <- function(ff.list,
         do.call(stats::kmeans, args = c(list(x = expr.clust, centers = x), temp_dots[which(names(temp_dots) != "centers")]))$cluster
       }, mc.cores = mc.cores))
 
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
       colnames(ks) <- paste0("kmeans_", temp_dots[["centers"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -736,17 +771,27 @@ dr_to_fcs <- function(ff.list,
 
   tryCatch(
     if (run.hclust) {
-      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
-      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       message("Finding clusters with hclust. Start: ", Sys.time())
 
+      temp_dots <- dots[which(grepl("^dist__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^dist__", "", names(temp_dots), ignore.case = T)
       d <- do.call(stats::dist, args = c(list(x = expr.clust), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
+
+      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
       h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
+
+      temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
         stats::cutree(tree = h, k = x)
       }, mc.cores = mc.cores))
 
-      colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
+      colnames(ks) <- paste0("cutree_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
     },
@@ -765,6 +810,10 @@ dr_to_fcs <- function(ff.list,
       ks <- do.call(cbind, parallel::mclapply(temp_dots[["K"]], function(x) {
         suppressMessages(do.call(flowClust::flowClust, args = c(list(x = expr.clust, K = x), temp_dots[which(names(temp_dots) != "K")]))@label)
       }, mc.cores = mc.cores))
+
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
 
       colnames(ks) <- paste0("flowClust_", temp_dots[["K"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -788,6 +837,10 @@ dr_to_fcs <- function(ff.list,
         do.call(MUDAN::getComMembership, args = c(list(mat = expr.clust, k = x), temp_dots[which(names(temp_dots) != "k")]))
       }, mc.cores = mc.cores))
 
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
+
       colnames(ks) <- paste0("MUDAN_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -797,6 +850,15 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
+'  tryCatch(
+    if (run.flowsom.consensus.clustering) {
+
+    },
+    error = function(e) {
+      message("run.MUDAN with error")
+    }
+  )
+'
   ### optionally run MUDAN::clusterBasedBatchCorrect here
   ## actually though harmony performs something similar with multiple iterations: https://portals.broadinstitute.org/harmony/articles/quickstart.html
   ## MUDAN advertises harmony: http://htmlpreview.github.io/?https://github.com/immunogenomics/harmony/blob/master/docs/mudan.html
@@ -894,9 +956,7 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (write.scaled.channels.to.FCS) {
-    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) {
-      scale.samples(flowCore::exprs(x)[, channels])
-    })))
+    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
     scaled.expr <- scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
     colnames(scaled.expr) <- paste0(colnames(scaled.expr), "_scaled")
     dim.red.data <- do.call(cbind, list(dim.red.data, scaled.expr))
@@ -949,7 +1009,6 @@ dr_to_fcs <- function(ff.list,
   for (i in seq_along(name.desc)) {
     channel.desc[grep(names(name.desc)[i], colnames(dim.red.data))] <- name.desc[i]
   }
-
 
   channel.desc_augment <- channel.desc
   channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))], "_scaled$")
@@ -1024,6 +1083,7 @@ dr_to_fcs <- function(ff.list,
   if (!is.null(calc.cluster.markers)) {
     message("Calculating markers.")
   }
+  marker <- NULL
   tryCatch({
     marker <- lapply(calc.cluster.markers, function (clust_col) {
       # do not use expr.select which may have become dimenions of LDA

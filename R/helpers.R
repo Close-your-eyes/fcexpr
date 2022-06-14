@@ -184,8 +184,8 @@ check_in <- function(wsp,
                      samples,
                      groups,
                      FCS.file.folder,
-                     return_untransformed,
-                     return_logicle_transformed) {
+                     return_untransformed = NULL,
+                     return_logicle_transformed = NULL) {
 
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
@@ -202,7 +202,7 @@ check_in <- function(wsp,
     if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
   }
 
-  if (!return_untransformed && !return_logicle_transformed) {
+  if ((!is.null(return_untransformed) && !return_untransformed) && (!is.null(return_logicle_transformed) && !return_logicle_transformed)) {
     stop("At least one of return_logicle_transformed or return_untransformed has to be TRUE.")
   }
 
@@ -320,7 +320,7 @@ get_ff <- function(x,
 
 get_ff2 <- function(x,
                     downsample,
-                    population = population,
+                    population,
                     return_untransformed = T,
                     return_logicle_transformed = T,
                     alias_attr_name,
@@ -365,28 +365,15 @@ get_ff2 <- function(x,
   # which.lines with which(inds) argument is much slower!
   ff <- subset(flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F), inds)
 
-
-  if (return_untransformed && !return_logicle_transformed) {
-    inverse_transform <- T
-  } else if (!return_untransformed && return_logicle_transformed) {
-    inverse_transform <- F
-  } else if (return_untransformed && return_logicle_transformed) {
-    inverse_transform <- c(F,T)
+  if (return_logicle_transformed) {
+    ff <- list(ff, lgcl_trsfrm_ff(ff))
   }
 
-  if (length(inverse_transform) == 2) {
-    if (which(inverse_transform) == 1) {
-      ff <- list(ff, lgcl_trsfrm_ff(ff))
-    } else {
-      ff <- list(lgcl_trsfrm_ff(ff), ff)
-    }
-  } else {
-    if (!inverse_transform) {
-      ff <- list(lgcl_trsfrm_ff(ff))
-    } else {
-      ff <- list(ff)
-    }
+  if (!return_untransformed) {
+    ## test!
+    ff <- list(ff[[2]])
   }
+
 
   return(ff)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/dr_to_fcs.R
 \name{dr_to_fcs}
 \alias{dr_to_fcs}
-\title{Calculate dimension reductions and cluster annotations with data from one or more flow frames and add these parameters to a (concatenated) fcs file}
+\title{Calculate dimension reduction and cluster annotation with data from one or more flow frames and add these parameters to a (concatenated) fcs file}
 \usage{
 dr_to_fcs(
   ff.list,
@@ -68,46 +68,46 @@ when a pca is before in harmony.}
 should be F (FALSE) or a clustering calculated before, e.g. louvain_0.8 or leiden_1.1, kmeans_12 etc.; respective clustering calculation
 has to be provided in ...}
 
-\item{run.umap}{calculate UMAP dimension reduction with uwot::umap}
+\item{run.umap}{logical, whether to calculate UMAP dimension reduction with uwot::umap}
 
-\item{run.tsne}{calculate tsne dimension reduction with Rtsne::Rtsne}
+\item{run.tsne}{logical, whether to calculate tsne dimension reduction with Rtsne::Rtsne}
 
-\item{run.som}{calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
+\item{run.som}{logical, whether to calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
 
-\item{run.gqtsom}{calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
+\item{run.gqtsom}{logical, whether to calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
 
 \item{metaclustering.on}{SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
 may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
 if NULL, clustering is performed on original data}
 
-\item{run.louvain}{detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
+\item{run.louvain}{logical, whether to detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
 
-\item{run.kmeans}{detect clusters with stats::kmeans}
+\item{run.kmeans}{logical, whether to detect clusters with stats::kmeans}
 
-\item{run.minibatchkmeans}{detect clusters with ClusterR::MiniBatchKmeans}
+\item{run.minibatchkmeans}{logical, whether to detect clusters with ClusterR::MiniBatchKmeans}
 
-\item{run.kmeans_arma}{detect clusters with ClusterR::KMeans_arma}
+\item{run.kmeans_arma}{logical, whether to detect clusters with ClusterR::KMeans_arma}
 
-\item{run.kmeans_rcpp}{detect clusters with ClusterR::KMeans_rcpp}
+\item{run.kmeans_rcpp}{logical, whether to detect clusters with ClusterR::KMeans_rcpp}
 
-\item{run.leiden}{detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
+\item{run.leiden}{logical, whether to detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
 
-\item{run.hclust}{detect clusters with stats::dist, stats::hclust and stats::cutree}
+\item{run.hclust}{logical, whether to detect clusters with stats::dist, stats::hclust and stats::cutree}
 
-\item{run.flowClust}{detect clusters with flowClust::flowClust}
+\item{run.flowClust}{logical, whether to detect clusters with flowClust::flowClust}
 
-\item{run.MUDAN}{detect clusters with MUDAN::getComMembership}
+\item{run.MUDAN}{logical, whether to detect clusters with MUDAN::getComMembership}
 
 \item{n.pca.dims}{number of principle components to calculate}
 
 \item{calc.cluster.markers}{if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
 using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
-is tested against other events and clusters are compaired pairwise. respective clustering calculation has to be provided in ...;
+is tested against other events and clusters are compared pairwise. respective clustering calculation has to be provided in ...;
 e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
 and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).}
 
-\item{extra.cols}{vector of one extra column (or matrix of multiple columns) to add to the final fcs file;
-has to be numeric; has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
+\item{extra.cols}{numeric vector of an extra column (or matrix of multiple columns) with arbitraty information to add to the final fcs file;
+has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
 could be a previously calculated dimension reduction or cluster annotation.}
 
 \item{mc.cores}{mc.cores to calculate clusterings, limited to parallel::detectCores()-1}
@@ -142,23 +142,27 @@ A list with 3 elements: (i) The matrix of fluorescence intensities and appended 
 (ii) A character vector of meaningful column names which may be used for the table in R (rather for convenience). (iii) Tables of marker features (each cluster vs all other events and all clusters pairwise).
 }
 \description{
-Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will compatible with fcexpr::dr_to_fcs.
-The list must contain logicle transformed fluorescence intensities (FI) and optionally may contain corresponding inverse transformed FI (which is the transformation you see in flowjo).
-For dimension reduction logicle transformed FI are used. Currently, this is obligatory. This transformation, optionally additional scaling operations alogn the way (scale.whole, scale.samples)
-as well as cluster annotation will be written to the resulting (concatenated) fcs file for manual inspection in flowjo. Certain dimension reduction algorithms and cluster detection algorithm
-may become slow with a large number of events (e.g. > 1e6, see the details). In order to get a quick impression of what the algorithms can pull out for you, you may use the 'downsample'
+Prepare a list of flowframes (ff.list) with fcexpr::wsp_get_ff or fcexpr::inds_get_ff. The objects returned from these function will be compatible with fcexpr::dr_to_fcs.
+The ff.list must contain a list of flowframes with untransformed fluorescence intensities (FI) and optionally may contain and additional list of flowframes with transformed FI. The transformation
+is your choice and may be logicle, arcsinh or whatever. It may be individual to channels and/or to flowframes. You have to calculate the transformation outside this function (dr_to_fcs) though.
+If a list of transformed flowframes is provided this one will be used for dimension reduction and clustering etc. If only a list untransformed flowframes is provided, this one will be used.
+Both, the transformed and/or untransformed values will be written to the concatenated fcs file (see function arguments). Calculated dimension reductions and cluster annotations will
+also be written as channels into that fcs file. Some dimension reduction and cluster detection algorithm may become slow with a large number of events (e.g. > 1e6, see the details).
+In order to get a quick impression of what the algorithms can pull out for you, you may use the 'downsample'
 argument in fcexpr::wsp_get_ff or fcexpr::inds_get_ff to conveniently sample a random subset of events from each fcs files (flowframe).
 }
 \details{
 Logicle transformation of FI has been described here: \href{https://pubmed.ncbi.nlm.nih.gov/16604519/}{Parks, et al., 2006, PMID: 16604519  DOI: 10.1002/cyto.a.20258}.
 Different transformations have been compared for instance here: \href{https://dillonhammill.github.io/CytoExploreR/articles/CytoExploreR-Transformations.html}{Transformations}.
 Dimension reduction (low dimension embedding) algorithms are: UMAP, tSNE, SOM, GQTSOM, PCA. tSNE is expected to be too slow for more then 1e4 or 1e5 cells (depending
-precision set by tsne__theta). UMAP has been developed later and is well-know. SOM and GQTSOM are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
-but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. Also SOM and GQTSOM may be superior with
-respect to calculation speed. \href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
+precision set by tsne__theta). UMAP has been developed more recently, is well-know and quicker. SOM and GQTSOM are very quick and are similar to \href{https://github.com/SofieVG/FlowSOM}{flowSOM}
+but are much more convenient to use in programming as they accept matrices whereas flowSOM strictly requires flowFrames. SOMs also enable the so-called meta-clustering
+which massively speeds up cluster detection. The cost of preciseness has to be inspected manually.
+\href{"https://www.youtube.com/watch?v=FgakZw6K1QQ"}{PCA} will be orders of magnitude faster than UMAP especially on large numbers of events (1e6 and above).
 On the other hand it will not produce as nicely separated clusters as it is a linear algorithm.
-Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. These assign events with similar properties in the high dimensional space a common discrete label. kmeans will be the quickest.
-Start with this one and progress to using louvain which is slower but may yield better results. For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
+Cluster (community) detection algorithms are louvain, leiden, kmeans, hclust, flowClust and MUDAN. They assign events with similar properties in the high dimensional space a common discrete label.
+kmeans will be the quickest. Set metaclustering.on to 'SOM' or 'GQTSOM' to enable quick metaclustering. In this any of the clustering algorithms is performed on the SOM-map.
+Louvain is slower but may yield better results on original data (not meta-clustering). For a low number of events (e.g. below 1e6) louvain will perform in a reasonable amount of time
 and could used immediately in parallel to kmeans. leiden will require the original python library and is approximately similar to louvain with respect to calculation time,
 maybe a bit slower. leiden is an enhancement of louvain, though louvain does not produce "wrong" results per se. flowClust, MUDAN, and hclust have not been tested extensively.
 For kmeans, hclust, flowClust the number of expected cluster can be provided. louvain and leiden take a resolution parameter (lower resolution --> less clusters). MUDAN takes

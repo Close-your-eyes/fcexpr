@@ -100,7 +100,14 @@ inds_get_ff <- function(ind_mat,
   ffs <- lapply(seq_along(inverse_transform), function(x) {
     sapply(ff.list, "[", x, simplify = T)
   })
-  names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
+
+  if (return_untransformed && !return_logicle_transformed) {
+    names(ffs) <- "untransformed"
+  } else if (!return_untransformed && return_logicle_transformed) {
+    names(ffs) <- "transformed"
+  } else if (return_untransformed && return_logicle_transformed) {
+    names(ffs) <- c("untransformed", "transformed")
+  }
 
   return(ffs)
 }
