@@ -1,5 +1,5 @@
 Package: fcexpr
-Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way.
+Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
 Version: 0.0.0.9950
 Authors@R: 
     person(given = "Christopher Mark",
@@ -12,7 +12,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 Imports: 
     openxlsx,
     stats,
@@ -22,6 +22,7 @@ Imports:
     xml2,
     dplyr,
     stringr,
+    tibble,
     rlang,
     magrittr,
 Suggests: 

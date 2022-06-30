@@ -319,9 +319,9 @@ get_ff <- function(x,
 
 get_ff2 <- function(x,
                     downsample,
-                    population = population,
-                    return_untransformed = return_untransformed,
-                    return_logicle_transformed = return_logicle_transformed,
+                    population,
+                    return_untransformed = T,
+                    return_logicle_transformed = T,
                     alias_attr_name,
                     path_attr_name) {
 
@@ -372,6 +372,7 @@ get_ff2 <- function(x,
     ## test!
     ff <- list(ff[[2]])
   }
+
 
   return(ff)
 }

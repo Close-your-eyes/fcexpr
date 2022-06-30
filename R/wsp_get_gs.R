@@ -38,6 +38,7 @@ wsp_get_gs <- function(wsp,
 
 
   checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
+
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
