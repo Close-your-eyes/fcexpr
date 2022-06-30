@@ -128,8 +128,8 @@ wsp_get_ff <- function(wsp,
 
   ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                         get_ff,
-                        return_untransformed = T,
-                        return_logicle_transformed = T,
+                        return_untransformed = return_untransformed,
+                        return_logicle_transformed = return_logicle_transformed,
                         downsample = ds,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,
@@ -155,7 +155,7 @@ wsp_get_ff <- function(wsp,
   } else if (!return_untransformed && return_logicle_transformed) {
     names(ffs) <- "transformed"
   } else if (return_untransformed && return_logicle_transformed) {
-    names(ffs) <- c("untransformed", "transformed")
+    names(ffs) <- c("transformed", "untransformed")
   }
 
   #names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]

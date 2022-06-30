@@ -271,7 +271,6 @@ get_ff <- function(x,
   } else {
     path <- x$FCS.file.folder
   }
-
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,

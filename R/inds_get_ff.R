@@ -110,7 +110,7 @@ inds_get_ff <- function(ind_mat,
   } else if (!return_untransformed && return_logicle_transformed) {
     names(ffs) <- "transformed"
   } else if (return_untransformed && return_logicle_transformed) {
-    names(ffs) <- c("untransformed", "transformed")
+    names(ffs) <- c("transformed", "untransformed")
   }
 
   return(ffs)
