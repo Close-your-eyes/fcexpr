@@ -372,11 +372,11 @@ dr_to_fcs <- function(ff.list,
     metaclustering.on <- match.arg(arg = metaclustering.on, choices = c("SOM", "GQTSOM"))
   }
 
-  if (metaclustering.on == "SOM" && !run.som) {
+  if (!is.null(metaclustering.on) && metaclustering.on == "SOM" && !run.som) {
     run.som <- T
     message("run.som set to TRUE to allow metaclustering on it.")
   }
-  if (metaclustering.on == "GQTSOM" && !run.gqtsom) {
+  if (!is.null(metaclustering.on) && metaclustering.on == "GQTSOM" && !run.gqtsom) {
     run.gqtsom <- T
     message("run.gqtsom set to TRUE to allow metaclustering on it.")
   }
@@ -527,7 +527,7 @@ dr_to_fcs <- function(ff.list,
     message("Done. ", Sys.time())
   }
 
-  if (metaclustering.on == "SOM") {
+  if (!is.null(metaclustering.on) && metaclustering.on == "SOM") {
     if (run.lda) {
       warning("LDA not applied to SOM calculation.")
     }
@@ -555,7 +555,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (metaclustering.on == "GQTSOM") {
+  if (!is.null(metaclustering.on) && metaclustering.on == "GQTSOM") {
     if (run.lda) {
       warning("LDA not applied to GQTSOM calculation.")
     }
@@ -929,7 +929,7 @@ dr_to_fcs <- function(ff.list,
 
   ## this part of code is a duplicate, for now
   ## only here lda applies if run.lda = TRUE
-  if (run.som && metaclustering.on != "SOM") {
+  if (run.som && !is.null(metaclustering.on) && metaclustering.on != "SOM") {
     message("Calculating SOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
@@ -942,7 +942,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (run.gqtsom && metaclustering.on != "GQTSOM") {
+  if (run.gqtsom && !is.null(metaclustering.on) && metaclustering.on != "GQTSOM") {
     message("Calculating GQTSOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
