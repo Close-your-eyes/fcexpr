@@ -272,7 +272,9 @@ dr_to_fcs <- function(ff.list,
     dots_expanded <- NULL
   }
 
-  #if (any(!names(ff.list) %in% c("untransformed", "logicle"))) {stop("ff.list has to contain a list of flowframes named 'logicle' (logicle transformed) and optionally an additional list named 'inverse' (inverse transformed, original as in flowjo.).")}
+  if (any(!names(ff.list) %in% c("untransformed", "transformed"))) {
+    stop("ff.list has to contain a list of flowframes named 'transformed' and optionally an additional list named 'untransformed' (inverse transformed, original as in flowjo.). Check the output of fcexpr::wsp_get_ff for valid input.")
+  }
 
   # check if names in ff.list are the same
   if (length(unique(lengths(ff.list))) != 1) {
@@ -457,11 +459,16 @@ dr_to_fcs <- function(ff.list,
   if (write.untransformed.channels.to.FCS && "untransformed" %in% names(ff.list)) {
     dim.red.data <- do.call(rbind, lapply(ff.list[["untransformed"]], function(x) flowCore::exprs(x)))
   }
+
   if (write.transformed.channels.to.FCS && "transformed" %in% names(ff.list)) {
     expr_trans <- do.call(rbind, lapply(ff.list[["transformed"]], function(x) flowCore::exprs(x)))
     expr_trans <- expr_trans[, which(!grepl(exclude.extra.channels, colnames(expr_trans)))]
     colnames(expr_trans) <- paste0(colnames(expr_trans), "_", transformation_name)
-    dim.red.data <- cbind(dim.red.data, expr_trans)
+    if (nrow(dim.red.data) > 0) {
+      dim.red.data <- cbind(dim.red.data, expr_trans)
+    } else {
+      dim.red.data <- expr_trans
+    }
   }
 
   ## write ident to fcs; any slot is fine
@@ -549,8 +556,6 @@ dr_to_fcs <- function(ff.list,
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
     som.dims <- do.call(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = map), temp_dots))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
-
-
 
     message("End: ", Sys.time())
   }
@@ -850,7 +855,7 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
-'  tryCatch(
+  '  tryCatch(
     if (run.flowsom.consensus.clustering) {
 
     },
@@ -929,7 +934,7 @@ dr_to_fcs <- function(ff.list,
 
   ## this part of code is a duplicate, for now
   ## only here lda applies if run.lda = TRUE
-  if (run.som && !is.null(metaclustering.on) && metaclustering.on != "SOM") {
+  if (run.som && (is.null(metaclustering.on) || metaclustering.on != "SOM")) {
     message("Calculating SOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
@@ -942,7 +947,7 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
-  if (run.gqtsom && !is.null(metaclustering.on) && metaclustering.on != "GQTSOM") {
+  if (run.gqtsom && (is.null(metaclustering.on) || metaclustering.on != "GQTSOM")) {
     message("Calculating GQTSOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
