@@ -96,9 +96,9 @@ inds_get_ff <- function(ind_mat,
 
   # maybe not necessary
   names(ff.list) <- unname(sapply(ind_mat, function(x) basename(attr(x, path_attr_name))))
-
+  # rearrange
   ff.list <- stats::setNames(lapply(names(ff.list[[1]]), function(x) {
-    sapply(ff.list, "[", x, simplify = T)
+    lapply(ff.list, "[", x)
   }), nm = names(ff.list[[1]]))
 
   return(ff.list)
