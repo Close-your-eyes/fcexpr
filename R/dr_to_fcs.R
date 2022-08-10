@@ -86,6 +86,7 @@
 #' louvain: Seurat::FindNeighbors and Seurat::FindCluster, leiden: Seurat::FindNeighbors and leiden::leiden.
 #' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
 #' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
+#' @param transformation_name name of the applied transformation (will appear in FCS file as channel desc)
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.

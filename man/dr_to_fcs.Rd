@@ -128,6 +128,8 @@ and will only occupy disk space, those are specified here; matched with grepl}
 \item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
 to be detected automatically}
 
+\item{transformation_name}{name of the applied transformation (will appear in FCS file as channel desc)}
+
 \item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
 \href{https://github.com/immunogenomics/harmony}{harmony}, \href{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
 provide arguments as follows: UMAP__n_neighbors = c(15,20,25), or tsne__theta = 0.3, etc.
