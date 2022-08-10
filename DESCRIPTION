@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
-Version: 0.0.0.9950
+Version: 0.0.0.9960
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
