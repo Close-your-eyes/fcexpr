@@ -289,7 +289,10 @@ get_ff <- function(x,
     inverse_transform <- F
   } else if (return_untransformed && return_logicle_transformed) {
     inverse_transform <- c(F,T)
+  } else {
+    stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
   }
+
   ex <- lapply(inverse_transform, function (y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
 
   inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
@@ -324,6 +327,10 @@ get_ff2 <- function(x,
                     return_logicle_transformed = T,
                     alias_attr_name,
                     path_attr_name) {
+
+  if (!return_untransformed && !return_logicle_transformed) {
+    stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
+  }
 
   if (!path_attr_name %in% names(attributes(x))) {
     message(path_attr_name, " not found in attributes.")
@@ -364,16 +371,18 @@ get_ff2 <- function(x,
   # which.lines with which(inds) argument is much slower!
   ff <- subset(flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F), inds)
 
+  ## ff is now a flow frame with untransformed values in expr
+
   if (return_logicle_transformed) {
     ff <- list(ff, lgcl_trsfrm_ff(ff))
+    names(ff) <- c("untransformed", "transformed")
+  } else {
+    ff <- list(ff)
+    names(ff) <- c("untransformed")
   }
-
   if (!return_untransformed) {
-    ## test!
-    ff <- list(ff[[2]])
+    ff <- ff[2]
   }
-
-
   return(ff)
 }
 

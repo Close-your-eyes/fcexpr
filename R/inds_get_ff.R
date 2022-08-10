@@ -97,17 +97,9 @@ inds_get_ff <- function(ind_mat,
   # maybe not necessary
   names(ff.list) <- unname(sapply(ind_mat, function(x) basename(attr(x, path_attr_name))))
 
-  ffs <- lapply(seq_along(inverse_transform), function(x) {
+  ff.list <- stats::setNames(lapply(names(ff.list[[1]]), function(x) {
     sapply(ff.list, "[", x, simplify = T)
-  })
+  }), nm = names(ff.list[[1]]))
 
-  if (return_untransformed && !return_logicle_transformed) {
-    names(ffs) <- "untransformed"
-  } else if (!return_untransformed && return_logicle_transformed) {
-    names(ffs) <- "transformed"
-  } else if (return_untransformed && return_logicle_transformed) {
-    names(ffs) <- c("transformed", "untransformed")
-  }
-
-  return(ffs)
+  return(ff.list)
 }
