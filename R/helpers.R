@@ -61,10 +61,10 @@ check_ws <- function(ws) {
       stop("ws not found.")
     }
     if (length(ws) > 1) {
-      stop("Only one ws at a time.")
+      stop("Only provide one workspace (ws) at a time.")
     }
     if (!grepl("\\.", basename(ws))) {
-      stop("Did you pass a directory as ws? Please pass the path the wsp-file.")
+      stop("Did you pass a directory as ws? Please pass the full path to the wsp-file.")
     }
     if (rev(strsplit(ws, "\\.")[[1]])[1] != "wsp") {
       stop("ws has to be a file path that ends with .wsp.")

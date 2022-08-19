@@ -5,8 +5,9 @@
 #' the respective FCS files once the gating has been conducted.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
-#' @param return_stats return statistics next to cells counts
-#' @param groups which flowjo groups to include
+#' @param return_stats logical (T,F) whether to return statistics next to cells counts
+#' @param groups vector of flowjo group names to consider
+#' @param invert_groups logical whether to exclude the selected groups
 #' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
@@ -25,6 +26,7 @@
 #' }
 wsx_get_popstats <- function(ws,
                              groups = NULL,
+                             invert_groups = F,
                              return_stats = T,
                              lapply_fun = lapply,
                              ...) {
@@ -34,11 +36,19 @@ wsx_get_popstats <- function(ws,
 
   ws <- check_ws(ws)
 
-  ids <- wsx_get_groups(ws)
+  group_df <- wsx_get_groups(ws, collapse_groups = F)
   if (is.null(groups)) {
-    groups <- unique(ids[,"group", drop=T])
+    groups <- unique(group_df[,"group", drop=T])
   }
-  ids <- ids[which(ids$group %in% groups),"sampleID"]
+
+  if (invert_groups) {
+    group_df <- group_df[which(!group_df$group %in% groups),]
+  } else {
+    group_df <- group_df[which(group_df$group %in% groups),]
+  }
+  # each sample which may be in multiple groups only considered once
+  ids <- unique(group_df[,"sampleID",drop=T])
+
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
@@ -154,8 +164,12 @@ wsx_get_popstats <- function(ws,
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
   }
 
+  # if any sample is in at least two groups, the group column becomes a list
+  if (any(table(group_df$sampleID) > 1)) {
+    group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), group = list(group))
+  }
   gates_out <- do.call(rbind, gates_list)
-  gates_out <- dplyr::left_join(gates_out, wsx_get_groups(ws), by = "sampleID") # ...
+  gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID") # ...
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
