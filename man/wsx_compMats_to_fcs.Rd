@@ -4,12 +4,15 @@
 \alias{wsx_compMats_to_fcs}
 \title{Write the compensation matrices generated in a flowjo workspace to the SPILL keywords of respective FCS files}
 \usage{
-wsx_compMats_to_fcs(ws, groups = NULL, ...)
+wsx_compMats_to_fcs(ws, groups = NULL, alt_FCS_file_folder = NULL, ...)
 }
 \arguments{
 \item{ws}{path to flowjo workspace}
 
 \item{groups}{which flowjo groups to get fcs files from}
+
+\item{alt_FCS_file_folder}{if FCS files paths on disk are not the same as
+in flowjos wsp file, then provide the correct path here}
 
 \item{...}{additional arguments to fcexpr:::prep_spill()}
 }
