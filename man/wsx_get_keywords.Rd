@@ -4,10 +4,12 @@
 \alias{wsx_get_keywords}
 \title{Get keywords from a flowjo workspace}
 \usage{
-wsx_get_keywords(ws)
+wsx_get_keywords(ws, return_type = c("data.frame", "vector"))
 }
 \arguments{
 \item{ws}{a path to a workspace or a the parsed xml document (xml2::read_xml(ws))}
+
+\item{return_type}{how to return keywords: data.frame with 2 column or named vector?}
 }
 \value{
 a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword

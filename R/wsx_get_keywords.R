@@ -7,6 +7,7 @@
 #'
 #'
 #' @param ws a path to a workspace or a the parsed xml document (xml2::read_xml(ws))
+#' @param return_type how to return keywords: data.frame with 2 column or named vector?
 #'
 #' @return a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword
 #' @export
@@ -30,15 +31,22 @@
 #' # sd is your sampledescription
 #' sd <- dplyr::left_join(sd, kk, by = "FileName")
 #' }
-wsx_get_keywords <- function(ws) {
+wsx_get_keywords <- function(ws,
+                             return_type = c("data.frame", "vector")) {
 
   ws <- check_ws(ws)
+  return_type <- match.arg(arg = return_type, choices = c("data.frame", "vector"))
 
   keywords <- lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
     k <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
-    df <- data.frame(name = sapply(k, "[", 1), value = sapply(k, "[", 2))
-    rownames(df) <- NULL
-    return(df)
+
+    if (return_type == "vector") {
+      ret <- stats::setNames(sapply(k, "[", 2), sapply(k, "[", 1))
+    } else if (return_type == "data.frame") {
+      ret <- data.frame(name = sapply(k, "[", 1), value = sapply(k, "[", 2))
+      rownames(ret) <- NULL
+    }
+    return(ret)
   })
 
   names(keywords) <- wsp_xml_get_samples(ws)[,"FileName"]

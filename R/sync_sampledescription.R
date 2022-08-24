@@ -395,14 +395,8 @@ sync_sampledescription <- function(FCS.file.folder,
 
 }'
 
-.check.FCS.files <- function(FCS.file.folder, exclude.folders = NULL) {
-
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
+.check.FCS.files <- function(FCS.file.folder,
+                             exclude.folders = NULL) {
 
   fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = T, recursive = T, ignore.case = T)
   if (!is.null(exclude.folders)) {
@@ -413,7 +407,9 @@ sync_sampledescription <- function(FCS.file.folder,
     stop("No FCS files found or left after filtering for exclusion folders.")
   }
 
-  out <- flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
+  return(.get_fcs_identities(kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)))
+
+'  out <- flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
   dd <- sapply(out, "[", "$DATE")
   tt <- sapply(out, "[", "$BTIM")
   et <- sapply(out, "[", "$ETIM")
@@ -437,9 +433,59 @@ sync_sampledescription <- function(FCS.file.folder,
   if (length(unique(fcs.files)) != length(fcs.files)) {
     stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs.files[duplicated(fcs.files) |
                                                                                                                                      duplicated(fcs.files, fromLast = T)]), collapse = "\n")))
-  }
-  return(fcs.files)
+  }'
 }
+
+
+.get_fcs_identities <- function(kwl) {
+
+  if (!requireNamespace("BiocManager", quietly = T)){
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("flowCore", quietly = T)){
+    BiocManager::install("flowCore")
+  }
+
+  # kwl = keyword_list; needs names
+  # kwl can be provided from FCS files: kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
+  # or kwl can be provided from wsp: kwl = wsx_get_keywords(ws = ws, return_type = "vector")
+
+  if (!methods::is(kwl, "list")) {
+    stop("keyword list not a list. Could be made a list but then names are missing. Try to fix.")
+  }
+  if (is.null(names(kwl))) {
+    stop("keyword list needs names")
+  }
+  if (any(duplicated(names(kwl)))) {
+    stop("names of keyword list are not unique")
+  }
+
+  dd <- sapply(kwl, "[", "$DATE")
+  tt <- sapply(kwl, "[", "$BTIM")
+  et <- sapply(kwl, "[", "$ETIM")
+  fil <- sapply(kwl, "[", "$FIL")
+  tot <- sapply(kwl, "[", "$TOT")
+
+  if (any(nchar(tt) - nchar(gsub(":", "", tt)) > 2)) {
+    tt_fix_ind <- which(nchar(tt) - nchar(gsub(":", "", tt)) > 2)
+    tt[tt_fix_ind] <- paste(rev(rev(strsplit(tt[tt_fix_ind], ":")[[1]])[-1]), collapse = ":")
+  }
+  datetime <- paste0(dd, "-", tt)
+  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
+  datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
+                                                                     "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
+  if (any(is.na(datetime))) {
+    warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
+  }
+  fcs_identities <- stats::setNames(paste0(fil, "_-_", trimws(tot), "_-_", datetime), nm = names(kwl))
+  if (length(unique(fcs_identities)) != length(fcs_identities)) {
+    stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs_identities[duplicated(fcs_identities) |
+                                                                                                                                     duplicated(fcs_identities, fromLast = T)]), collapse = "\n")))
+  }
+  return(fcs_identities)
+}
+
+
 
 .read.and.check.sd <- function(wd, file.name, fcs.files, file.sep) {
   if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {

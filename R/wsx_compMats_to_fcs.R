@@ -31,7 +31,6 @@ wsx_compMats_to_fcs <- function(ws,
   }
   ws <- check_ws(ws)
 
-
   ids <- wsx_get_groups(ws)
   if (is.null(groups)) {
     groups <- unique(ids[,"group", drop=T])
@@ -65,11 +64,12 @@ wsx_compMats_to_fcs <- function(ws,
     # get identity from keyword entries in wsp file below
     # make this a seperate functions somewhen
 
-    k <- wsx_get_keywords(ws = ws)
+    fcs_identities <- .get_fcs_identities(kwl = wsx_get_keywords(ws = ws, return_type = "vector"))
+
+    'k <- wsx_get_keywords(ws = ws, return_type = "vector")
     kk <- do.call(rbind, k)
     kk$FileName <- rep(names(k), sapply(k,nrow))
     kk <- dplyr::distinct(kk)
-
     ## taken from .check.FCS.files - made analogous
     filenames <- unique(kk$FileName)
     dd <- kk[which(kk$name == "$DATE"), "value"]
@@ -94,11 +94,11 @@ wsx_compMats_to_fcs <- function(ws,
     if (length(unique(fcs.files)) != length(fcs.files)) {
       stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs.files[duplicated(fcs.files) |
                                                                                                                                        duplicated(fcs.files, fromLast = T)]), collapse = "\n")))
-    }
+    }'
 
     alt_fcs_files <- .check.FCS.files(alt_FCS_file_folder)
     # replace paths with identity
-    names(compMats) <- unname(fcs.files[basename(names(compMats))])
+    names(compMats) <- unname(fcs_identities[basename(names(compMats))])
     alt_fcs_files <- alt_fcs_files[which(alt_fcs_files %in% names(compMats))] # actually not needed
     compMats <- compMats[which(names(compMats) %in% alt_fcs_files)]
     alt_fcs_files_rev <- stats::setNames(names(alt_fcs_files), nm = alt_fcs_files)
@@ -106,10 +106,9 @@ wsx_compMats_to_fcs <- function(ws,
     message(length(names(compMats)), " FCS files in alt_FCS_file_folder matched with those from the workspace. CompMats will be written to those.")
   }
 
-
   for (i in seq_along(compMats)) {
     if (!file.exists(names(compMats)[i])) {
-      warning("File ", names(compMats)[i], " not found. Did you change the names of FCS files and have not reconnected them to the workspace? Or did you copy the workspace from somewhere else? If so, open the workspace, reconnect the fcs files and save.")
+      warning("File ", names(compMats)[i], " not found. Did you change the names of FCS files and have not reconnected them to the workspace? Or did you copy the workspace from somewhere else? If so, open the workspace, reconnect the fcs files and save. Alternatively, provide alt_FCS_file_folder.")
     }
     ff <- flowCore::read.FCS(names(compMats)[i], truncate_max_range = F, emptyValue = F)
     sp <- flowCore::keyword(ff)[["SPILL"]]
