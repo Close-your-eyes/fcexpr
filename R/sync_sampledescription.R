@@ -396,9 +396,10 @@ sync_sampledescription <- function(FCS.file.folder,
 }'
 
 .check.FCS.files <- function(FCS.file.folder,
-                             exclude.folders = NULL) {
+                             exclude.folders = NULL,
+                             recursive = T) {
 
-  fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = T, recursive = T, ignore.case = T)
+  fcs.file.paths <- list.files(path = FCS.file.folder, pattern = "\\.fcs", full.names = T, recursive = recursive, ignore.case = T)
   if (!is.null(exclude.folders)) {
     fcs.file.paths <- fcs.file.paths[which(!grepl(paste0(tolower(exclude.folders), collapse = "|"), tolower(fcs.file.paths)))]
   }
