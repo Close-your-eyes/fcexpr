@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
-Version: 0.0.0.9963
+Version: 0.0.0.9965
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
@@ -60,5 +60,7 @@ Suggests:
     ggpointdensity,
     scattermore,
     ggcyto,
-    purrr
+    purrr,
+    ggraph,
+    igraph
 VignetteBuilder: knitr
