@@ -224,22 +224,26 @@ ab_panel_to_fcs <- function(sampledescription,
 
 
 conjugate_to_channel <- function(conjugates,
-                                 channels,
+                                 channels = NULL,
                                  machine = NULL,
                                  channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr")) {
 
 
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
-  matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
   if (!is.null(machine)) {
     if (length(machine) > 1) {
       stop("Please provide only one machine name.")
     }
-    if (!machine %in% matches$machine) {
-      stop("Machine not found in ccm matches: ", paste(unique(matches$machine), collapse = ", "))
+    if (!machine %in% unique(ccm$machine)) {
+      stop("Machine not found in ccm matches. Please choose from: ", paste(unique(ccm$machine), collapse = ", "))
     }
-    matches <- matches[which(matches$machine == machine),]
+    ccm <- ccm[which(ccm$machine == machine),]
   }
+  if (is.null(channels) && !is.null(machine)) {
+    channels <- unique(ccm$channel)
+  }
+
+  matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
 
   matches_grouped <- dplyr::group_by(matches, Conjugate) %>% dplyr::summarise(n_ch = nlevels(as.factor(channel)))
   if (any(matches_grouped$n_ch > 1)) {
