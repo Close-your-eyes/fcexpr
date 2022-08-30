@@ -7,6 +7,7 @@
 #' @param layout layout for plotting, see ?ggraph::ggraph or ?ggraph::layout_tbl_graph_igraph
 #' @param find_short_gating_path if PopulationFullPath is a vector without names find the shortest unique
 #' gating path from these full paths for plotting
+#' @param ... additional argument to ggrepel, like max.overlaps
 #'
 #' @return list of plot, graph and data.frame
 #' @export
@@ -27,7 +28,8 @@
 #' }
 gating_tree_plot <- function(PopulationFullPath,
                              layout = "tree",
-                             find_short_gating_path = T) {
+                             find_short_gating_path = T,
+                             ...) {
 
   if (!requireNamespace("ggraph", quietly = T)) {
     utils::install.packages("ggraph")
@@ -85,7 +87,7 @@ gating_tree_plot <- function(PopulationFullPath,
   plot <- ggraph::ggraph(graph, layout = layout) +
     ggraph::geom_edge_link() +
     ggraph::geom_node_point(size = 4) +
-    ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T)
+    ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T, ...)
 
   return(list(plot = plot, graph = graph, df = from_to_df3))
 }
