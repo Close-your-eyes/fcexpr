@@ -20,13 +20,13 @@
 #' # generate graph
 #' graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = unique(ps_counts$PopulationFullPath))
 #' # manual plotting graph to modify (e.g. layout)
-#' plot <- ggraph::ggraph(graph_list[["graph"]], layout = "kk") +
+#' plot <- ggraph::ggraph(graph_list[["graph"]], layout = "tree") +
 #' ggraph::geom_edge_link() +
 #' ggraph::geom_node_point(size = 4) +
 #' ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T)
 #' }
 gating_tree_plot <- function(PopulationFullPath,
-                             layout = "kk",
+                             layout = "tree",
                              find_short_gating_path = T) {
 
   if (!requireNamespace("ggraph", quietly = T)) {
