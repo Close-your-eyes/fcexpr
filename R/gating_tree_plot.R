@@ -18,7 +18,7 @@
 #' # check if gatingtree is unique
 #' dplyr::group_by(ps_counts, PopulationFullPath) %>% dplyr::count()
 #' # generate graph
-#' graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = stats::setNames(ps_counts$PopulationFullPath, ps_counts$Population))
+#' graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = unique(ps_counts$PopulationFullPath))
 #' # manual plotting graph to modify (e.g. layout)
 #' plot <- ggraph::ggraph(graph_list[["graph"]], layout = "kk") +
 #' ggraph::geom_edge_link() +
@@ -74,9 +74,9 @@ gating_tree_plot <- function(PopulationFullPath,
 
   if (is.null(names(PopulationFullPath))) {
     if (find_short_gating_path) {
-      igraph::V(graph)$Population <- c("root",fcexpr:::shortest_unique_path(igraph::V(graph)$name))
+      igraph::V(graph)$Population <- fcexpr:::shortest_unique_path(igraph::V(graph)$name)
     } else {
-      igraph::V(graph)$Population <- c("root", igraph::V(graph)$name)
+      igraph::V(graph)$Population <- igraph::V(graph)$name
     }
   } else {
     igraph::V(graph)$Population <- c("root", stats::setNames(names(PopulationFullPath), PopulationFullPath)[from_to_df3$to])
