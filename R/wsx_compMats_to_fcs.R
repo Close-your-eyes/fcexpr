@@ -41,8 +41,9 @@ wsx_compMats_to_fcs <- function(ws,
 
   compMats <- lapply(seq_along(ss), function(n) {
     sp <- xml2::xml_child(ss[[n]], "transforms:spilloverMatrix")
+    # xml2::xml_children(sp)[2:length(xml2::xml_children(sp))]
     if (!is.na(sp)) {
-      compMat <- t(do.call(cbind, lapply(xml2::xml_children(sp)[2:length(xml2::xml_children(sp))], function(x) {
+      compMat <- t(do.call(cbind, lapply(xml2::xml_children(sp)[which(xml2::xml_name(xml2::xml_children(sp)) == "spillover")], function(x) {
         mat <- as.matrix(stats::setNames(as.numeric(xml2::xml_attr(xml2::xml_children(x), "value")), xml2::xml_attr(xml2::xml_children(x), "parameter")), nrow = 1, byrow = T)
         colnames(mat) <- xml2::xml_attr(x, "parameter")
         return(mat)
