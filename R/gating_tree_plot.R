@@ -70,16 +70,16 @@ gating_tree_plot <- function(PopulationFullPath,
   }), purrr::negate(is.null)))
 
   from_to_df3 <- dplyr::mutate(from_to_df2, to =  gsub("root/", "", to), from =  gsub("root/", "", from))
-  graph <- igraph::graph_from_data_frame(from_to_df3, directed = T)
+  graph <- igraph::graph_from_data_frame(d = from_to_df3, directed = T)
 
   if (is.null(names(PopulationFullPath))) {
     if (find_short_gating_path) {
-      igraph::V(graph)$Population <- c("root",shortest_unique_path(from_to_df3$to))
+      igraph::V(graph)$Population <- c("root",fcexpr:::shortest_unique_path(igraph::V(graph)$name))
     } else {
-      igraph::V(graph)$Population <- c("root",from_to_df3$to)
+      igraph::V(graph)$Population <- c("root", igraph::V(graph)$name)
     }
   } else {
-    igraph::V(graph)$Population <- c("root",stats::setNames(names(PopulationFullPath), PopulationFullPath)[from_to_df3$to])
+    igraph::V(graph)$Population <- c("root", stats::setNames(names(PopulationFullPath), PopulationFullPath)[from_to_df3$to])
   }
 
   plot <- ggraph::ggraph(graph, layout = layout) +
@@ -87,5 +87,5 @@ gating_tree_plot <- function(PopulationFullPath,
     ggraph::geom_node_point(size = 4) +
     ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T)
 
-  return(list(plot = plot, graph = graph, df = from_to_df2))
+  return(list(plot = plot, graph = graph, df = from_to_df3))
 }
