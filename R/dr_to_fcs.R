@@ -204,26 +204,17 @@ dr_to_fcs <- function(ff.list,
   # MUDAN: https://github.com/JEFworks/MUDAN
 
   # harmony: return whole object??
-
   # MUDAN::getComMembership offers to pass one of many algorithms (seen here: https://slowkow.com/notes/harmony-animation/), though how to pass individual arguments? e.g. for igraph::cluster_leiden
-
   # optionally add: MUDAN::clusterBasedBatchCorrect
   ## allow to provide expr.select directly instead of ff.list
+
   ## preprocessCore::normalize.quantiles() - allow to normalize channel of ffs within defined groups
   # but this can put a really strong bias on the data:
-  'df <- data.frame(x1 = c(rnorm(1e5,0,1), rnorm(1e4,15,1)),
-                   x2 = c(rnorm(1e5,1,1), rnorm(1e4,9,1)),
-                   x3 = c(rnorm(1e4,-1,4), rnorm(1e5,30,5)))
-  df <- as.data.frame(preprocessCore::normalize.quantiles(as.matrix(df)))
-  names(df) <- paste0("x", 1:ncol(df))
-  df <-
-    df %>%
-    tidyr::pivot_longer(names_to = "name", values_to = "value", cols = c(x1,x2,x3))
-
-
-  ggplot(df, aes(x = value, y = name))+
-    ggridges::geom_density_ridges() +
-    ggridges::theme_ridges()'
+  #df <- data.frame(x1 = c(rnorm(1e5,0,1), rnorm(1e4,15,1)), x2 = c(rnorm(1e5,1,1), rnorm(1e4,9,1)),x3 = c(rnorm(1e4,-1,4), rnorm(1e5,30,5)))
+  #df <- as.data.frame(preprocessCore::normalize.quantiles(as.matrix(df)))
+  #names(df) <- paste0("x", 1:ncol(df))
+  #df <- tidyr::pivot_longer(df, names_to = "name", values_to = "value", cols = c(x1,x2,x3))
+  #ggplot(df, aes(x = value, y = name)) + ggridges::geom_density_ridges() + ggridges::theme_ridges()'
 
   ## ---- checks --------
   if (!requireNamespace("diptest", quietly = T)) {
