@@ -90,6 +90,7 @@
 #' @param transformation_name name of the applied transformation (will appear in FCS file as channel desc)
 #' @param return_processed_raw_data_only do not calculate dimension reduction etc but only return the preprocessed
 #' data for external calculations or tryouts
+#' @param seed set a seed for reproduction of dimension reductions
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
