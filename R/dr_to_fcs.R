@@ -88,6 +88,8 @@
 #' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
 #' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
 #' @param transformation_name name of the applied transformation (will appear in FCS file as channel desc)
+#' @param return_processed_raw_data_only do not calculate dimension reduction etc but only return the preprocessed
+#' data for external calculations or tryouts
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
@@ -192,6 +194,8 @@ dr_to_fcs <- function(ff.list,
                       write.scaled.channels.to.FCS = F,
                       timeChannel = "Time",
                       transformation_name = "trans",
+                      return_processed_raw_data_only = F,
+                      seed = 42,
                       ...) {
   # batch effect correction: https://cytekbio.com/blogs/blog/how-to-identify-and-prevent-batch-effects-in-longitudinal-flow-cytometry-research-studies
   # cytonorm (https://github.com/saeyslab/CytoNorm) requires reference sample for every batch - not always available
@@ -221,6 +225,7 @@ dr_to_fcs <- function(ff.list,
     ggridges::geom_density_ridges() +
     ggridges::theme_ridges()'
 
+  ## ---- checks --------
   if (!requireNamespace("diptest", quietly = T)) {
     utils::install.packages("diptest")
   }
@@ -245,7 +250,7 @@ dr_to_fcs <- function(ff.list,
   if (!requireNamespace("devtools", quietly = T)) {
     utils::install.packages("devtools")
   }
-  if (!requireNamespace("presto", quietly = T)) {
+  if (!is.null(calc.cluster.markers) && !requireNamespace("presto", quietly = T)) {
     devtools::install_github('immunogenomics/presto')
   }
   if (run.harmony && !requireNamespace("harmony", quietly = T)) {
@@ -405,6 +410,10 @@ dr_to_fcs <- function(ff.list,
     }
   }
 
+  # check if channel names and desc are equal
+  .check.ff.list(ff.list = ff.list)
+
+  # set scaling funs
   scale.samples <-
     switch(match.arg(scale.samples, c("none", "z.score", "min.max")),
            z.score = scale,
@@ -423,14 +432,8 @@ dr_to_fcs <- function(ff.list,
            }
     )
 
-  # check if channel names and desc are equal
-  .check.ff.list(ff.list = ff.list)
-
-  channels <- .get.channels(
-    ff = ff.list[["transformed"]][[1]],## channel names from first ff
-    timeChannel = timeChannel,
-    channels = channels
-  )
+  ## channel names from first ff
+  channels <- .get.channels(ff = ff.list[[1]][[1]], timeChannel = timeChannel, channels = channels)
 
   # overwrite channel desc in ffs
   # correct order is important, as provided by .get.channels
@@ -455,6 +458,8 @@ dr_to_fcs <- function(ff.list,
     message("Untransformed (inverse) data not provided. Hence, cannot be saved to FCS.")
     write.untransformed.channels.to.FCS <- F
   }
+
+  ## ---- prepare data -------
 
   ## initiate empty dim.red.data
   dim.red.data <- data.frame()
@@ -489,7 +494,6 @@ dr_to_fcs <- function(ff.list,
     expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["untransformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
   }
 
-
   ### allow to pass expr.select here.
   ## requires a lot of checking though
 
@@ -517,25 +521,18 @@ dr_to_fcs <- function(ff.list,
       n.pca.dims <- min(ncol(expr.select) - 1, n.pca.dims)
     }
     message("Calculating PCA. Start: ", Sys.time())
-    # https://slowkow.com/notes/pca-benchmark/
-    ## version 1
-    # mat_irlba2 <- irlba::irlba(A = expr.select, nv = n.pca.dims)
-    # mat_irlba2$x <- mat_irlba2$u %*% diag(mat_irlba2$d)
-    ## version 2
-    #X_center <- rowMeans(X)
-    #X_scale <- proxyC::rowSds(X)
-    #suppressWarnings({
-    # retval <- irlba::irlba(A = t(X), nv = 20, center = X_center, scale = X_scale)
-    #})
-    #retval$x <- retval$u %*% diag(retval$d)
-    #retval
-
     pca.result <- stats::prcomp(expr.select, scale. = F, center = F)
     pca.dims <- pca.result[["x"]]
-    ## overwrite original data with PCA embedding
-    expr.select <- pca.dims[, 1:n.pca.dims]
+    expr.select <- pca.dims[, 1:n.pca.dims] # overwrite original data with PCA embedding
     message("Done. ", Sys.time())
   }
+
+  # first exit here
+  if (return_processed_raw_data_only) {
+    return(expr.select)
+  }
+
+  ## ---- metaclustering -------
 
   if (!is.null(metaclustering.on) && metaclustering.on == "SOM") {
     if (run.lda) {
@@ -543,17 +540,9 @@ dr_to_fcs <- function(ff.list,
     }
     message("Calculating SOM. Start: ", Sys.time())
 
-    #temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
-    #names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
-    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
-
-    #landmark_idx <- sample(nrow(expr.select) , 1000)
-    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
-
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
-    #map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots, list(coordsFn = EmbedSOM::tSNECoords(theta = 0))))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^EmbedSOM__", "", names(temp_dots), ignore.case = T)
@@ -568,13 +557,6 @@ dr_to_fcs <- function(ff.list,
       warning("LDA not applied to GQTSOM calculation.")
     }
     message("Calculating GQTSOM. Start: ", Sys.time())
-
-    #landmark_idx <- sample(nrow(expr.select) , 1000)
-    #map <- list(codes=expr.select[landmark_idx,], grid=Rtsne::Rtsne(expr.select[landmark_idx,], theta = 0)$Y)
-
-    #temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
-    #names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
-    #map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
 
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
@@ -594,6 +576,7 @@ dr_to_fcs <- function(ff.list,
     expr.clust <- expr.select
   }
 
+  ## ---- clusterings -------
   # find communities (clusters)
   tryCatch(
     if (run.louvain || run.leiden) {
@@ -858,15 +841,6 @@ dr_to_fcs <- function(ff.list,
     }
   )
 
-  '  tryCatch(
-    if (run.flowsom.consensus.clustering) {
-
-    },
-    error = function(e) {
-      message("run.MUDAN with error")
-    }
-  )
-'
   ### optionally run MUDAN::clusterBasedBatchCorrect here
   ## actually though harmony performs something similar with multiple iterations: https://portals.broadinstitute.org/harmony/articles/quickstart.html
   ## MUDAN advertises harmony: http://htmlpreview.github.io/?https://github.com/immunogenomics/harmony/blob/master/docs/mudan.html
@@ -878,6 +852,8 @@ dr_to_fcs <- function(ff.list,
     expr.select <- stats::predict(ldam, as.data.frame(cbind(expr.select, com = dim.red.data[, run.lda])))$x
   }
 
+
+  ## ---- dim reds -------
   if (run.umap) {
     temp_dots <- dots[which(grepl("^UMAP__", names(dots), ignore.case = T))]
     names(temp_dots) <-gsub("^UMAP__", "", names(temp_dots), ignore.case = T)
@@ -963,6 +939,8 @@ dr_to_fcs <- function(ff.list,
     message("End: ", Sys.time())
   }
 
+  ## ---- prepare final fcs file -------
+
   if (write.scaled.channels.to.FCS) {
     scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
     scaled.expr <- scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
@@ -1029,7 +1007,7 @@ dr_to_fcs <- function(ff.list,
 
 
 
-  #### write FCS file
+  ## ---- write flowframe file -------
 
   # get common (intersecting keywords)
   # a bit unhandy but vectorized version (below) did not work
@@ -1089,7 +1067,8 @@ dr_to_fcs <- function(ff.list,
   # https://github.com/RGLab/flowCore/issues/201
   #flowCore::keyword(ff) <- flowCore:::updateTransformKeywords(ff)
 
-  # get cluster markers
+
+  ## ---- calc cluster markers -------
   ## always used logicle transformed data?!?!
   if (!is.null(calc.cluster.markers)) {
     message("Calculating markers.")
@@ -1098,7 +1077,7 @@ dr_to_fcs <- function(ff.list,
   tryCatch({
     marker <- lapply(calc.cluster.markers, function (clust_col) {
       # do not use expr.select which may have become dimenions of LDA
-      ## handle cases of transformed vs untransformed data
+      # handle cases of transformed vs untransformed data
       if ("transformed" %in% names(ff.list)) {
         dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, paste0("_", transformation_name))), which(colnames(dim.red.data) == clust_col))]
       } else {
@@ -1190,8 +1169,7 @@ p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.va
 
 
 
-
-  # save results
+  ## ---- write to disk -------
   if (!is.null(save.path) && !is.na(save.path)) {
     message("Writing files to disk.")
     t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
