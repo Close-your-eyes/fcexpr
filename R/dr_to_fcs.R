@@ -268,7 +268,8 @@ dr_to_fcs <- function(ff.list,
   }
 
   if (length(dots) > 0) {
-    dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots), "__"), "[", 1), dots, sep = "_")))
+    dots_sub <- dots[which(!sapply(dots, is.function))]
+    dots_expanded <- unname(unlist(mapply(paste, sapply(strsplit(names(dots_sub), "__"), "[", 1), dots_sub, sep = "_")))
   } else {
     dots_expanded <- NULL
   }
@@ -1148,6 +1149,7 @@ dr_to_fcs <- function(ff.list,
           dplyr::select(feature, pval) %>%
           dplyr::rename("pvalue" = pval) %>%
           dplyr::rename("channel" = feature)
+
 
         #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
         # parallel::mclapply

@@ -81,7 +81,7 @@ gating_tree_plot <- function(PopulationFullPath,
       igraph::V(graph)$Population <- igraph::V(graph)$name
     }
   } else {
-    igraph::V(graph)$Population <- c("root", stats::setNames(names(PopulationFullPath), PopulationFullPath)[from_to_df3$to])
+    igraph::V(graph)$Population <- stats::setNames(names(PopulationFullPath), PopulationFullPath)[igraph::V(graph)$name]
   }
 
   plot <- ggraph::ggraph(graph, layout = layout) +
