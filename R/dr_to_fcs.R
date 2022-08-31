@@ -533,6 +533,7 @@ dr_to_fcs <- function(ff.list,
 
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    set.seed(seed)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
@@ -551,6 +552,7 @@ dr_to_fcs <- function(ff.list,
 
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    set.seed(seed)
     map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
@@ -856,7 +858,8 @@ dr_to_fcs <- function(ff.list,
 
     message("Calculating UMAP. Start: ", Sys.time())
     if (any(grepl("n_neighbors", names(temp_dots), ignore.case = T))) {
-      umap.dims <- do.call(cbind,parallel::mclapply(temp_dots[["n_neighbors"]], function(z) {
+      umap.dims <- do.call(cbind, parallel::mclapply(temp_dots[["n_neighbors"]], function(z) {
+        set.seed(seed)
         out <- do.call(uwot::umap, args = c(list(X = expr.select, verbose = F, n_neighbors = z),temp_dots[which(names(temp_dots) != "n_neighbors")]))
         colnames(out) <- c(paste0("UMAP_1_", z), paste0("UMAP_2_", z))
         return(out)
@@ -865,6 +868,7 @@ dr_to_fcs <- function(ff.list,
       if (!any(grepl("verbose", names(temp_dots)), ignore.case = T)) {
         temp_dots <- c(temp_dots, verbose = T)
       }
+      set.seed(seed)
       umap.dims <- do.call(uwot::umap, args = c(list(X = expr.select), temp_dots))
     }
     if (!any(grepl("n_neighbors", names(temp_dots), ignore.case = T)) || length(temp_dots[["n_neighbors"]]) == 1) {
@@ -889,11 +893,13 @@ dr_to_fcs <- function(ff.list,
     message("Calculating tSNE. Start: ", Sys.time())
     if (any(grepl("perplexity", names(temp_dots), ignore.case = T))) {
       tsne.dims <- do.call(cbind, parallel::mclapply(temp_dots[["perplexity"]], function(z) {
+        set.seed(seed)
         out <- do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = F, perplexity = z), temp_dots[which(names(temp_dots) != "perplexity")]))$Y
         colnames(out) <- c(paste0("tSNE_1_", z), paste0("tSNE_2_", z))
         return(out)
       }, mc.cores = mc.cores))
     } else {
+      set.seed(seed)
       tsne.dims <- do.call(Rtsne::Rtsne, args = c(list(X = expr.select, verbose = T), temp_dots))$Y
     }
     if (!any(grepl("perplexity", names(temp_dots), ignore.case = T)) || length(temp_dots[["perplexity"]]) == 1) {
@@ -908,6 +914,7 @@ dr_to_fcs <- function(ff.list,
     message("Calculating SOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^SOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^SOM__", "", names(temp_dots), ignore.case = T)
+    set.seed(seed)
     map <- do.call(EmbedSOM::SOM, args = c(list(data = expr.select), temp_dots))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
@@ -921,6 +928,7 @@ dr_to_fcs <- function(ff.list,
     message("Calculating GQTSOM. Start: ", Sys.time())
     temp_dots <- dots[which(grepl("^GQTSOM__", names(dots), ignore.case = T))]
     names(temp_dots) <- gsub("^GQTSOM__", "", names(temp_dots), ignore.case = T)
+    set.seed(seed)
     map <- do.call(EmbedSOM::GQTSOM, args = c(list(data = expr.select), temp_dots))
 
     temp_dots <- dots[which(grepl("^EmbedSOM__", names(dots), ignore.case = T))]
