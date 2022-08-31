@@ -48,9 +48,10 @@
 #' @param run.tsne logical, whether to calculate tsne dimension reduction with Rtsne::Rtsne
 #' @param run.som logical, whether to calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM
 #' @param run.gqtsom logical, whether to calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM
-#' @param metaclustering.on SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
+#' @param metaclustering.on SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM
 #' may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
-#' if NULL, clustering is performed on original data
+#' if NULL, clustering is performed on original data; recommendation: when applying meta-clustering choose run.hclust = T and supply hclust__method = "average"
+#' and cutree__k = c(xx) with xx being the number of desired/expected clusters
 #' @param run.louvain logical, whether to detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.leiden logical, whether to detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)
 #' @param run.kmeans logical, whether to detect clusters with stats::kmeans
@@ -1025,10 +1026,13 @@ dr_to_fcs <- function(ff.list,
   channel.desc_augment <- make.names(channel.desc_augment)
   names(channel.desc_augment) <- colnames(dim.red.data)
 
-  # write FCS file
+
+
+
+  #### write FCS file
 
   # get common (intersecting keywords)
-  # a bit unhandy but belows vectorized version did not work
+  # a bit unhandy but vectorized version (below) did not work
   all <- lapply(ff.list[[1]], flowCore::keyword)
   new_kw <- as.list(unlist(lapply(names(all[[1]]), function(x) {
     if (length(unique(unlist(sapply(all, "[", x)))) == 1) {
@@ -1182,8 +1186,7 @@ p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.va
   }, error = function(e) {
     message("cluster marker calculation caused an error.")
     marker <- NULL
-  }
-  )
+  })
 
 
 
