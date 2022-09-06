@@ -676,6 +676,9 @@ dr_to_fcs <- function(ff.list,
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
 
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
+
       colnames(ks) <- paste0("kmeans_arma_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -698,6 +701,9 @@ dr_to_fcs <- function(ff.list,
       if (!is.null(metaclustering.on)) {
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
+
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
 
       colnames(ks) <- paste0("kmeans_rcpp_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -722,6 +728,9 @@ dr_to_fcs <- function(ff.list,
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
 
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
+
       colnames(ks) <- paste0("minibatchkmeans_", temp_dots[["clusters"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -744,6 +753,9 @@ dr_to_fcs <- function(ff.list,
       if (!is.null(metaclustering.on)) {
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
+
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
 
       colnames(ks) <- paste0("kmeans_", temp_dots[["centers"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -776,6 +788,9 @@ dr_to_fcs <- function(ff.list,
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
 
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
+
       colnames(ks) <- paste0("cutree_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       message("End: ", Sys.time())
@@ -799,6 +814,9 @@ dr_to_fcs <- function(ff.list,
       if (!is.null(metaclustering.on)) {
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
+
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
 
       colnames(ks) <- paste0("flowClust_", temp_dots[["K"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -825,6 +843,9 @@ dr_to_fcs <- function(ff.list,
       if (!is.null(metaclustering.on)) {
         ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
+
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
 
       colnames(ks) <- paste0("MUDAN_", temp_dots[["k"]])
       dim.red.data <- do.call(cbind, list(dim.red.data, ks))
@@ -1183,3 +1204,14 @@ p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.va
   }
   return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker))
 }
+
+
+.cluster_ordering <- function(ks) {
+  ks <- apply(ks, 2, function (x) {
+    new_order <- stats::setNames(names(table(x)), nm = names(sort(table(x), decreasing = T)))
+    return(as.numeric(new_order[as.character(x)]))
+  })
+  return(ks)
+}
+
+

@@ -57,7 +57,9 @@ split_flowjo_export_image <- function(img,
 
 
   if (!missing(pptx_name)) {
-    if (!"officer" %in% rownames(utils::installed.packages())) {utils::install.packages("officer")}
+    if (!requireNamespace("officer", quietly = T)){
+      utils::install.packages("officer")
+    }
     pptx <- officer::read_pptx()
     pptx <- officer::add_slide(pptx, layout = "Title and Content", master = "Office Theme")
 
