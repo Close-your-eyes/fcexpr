@@ -88,7 +88,6 @@
 #' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
 #' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
 #' @param transformation_name name of the applied transformation (will appear in FCS file as channel desc)
-#' @param run.mhclust logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)
 #' @param return_processed_raw_data_only do not calculate dimension reduction etc but only return the preprocessed
 #' data for external calculations or tryouts
 #' @param seed set a seed for reproduction of dimension reductions
@@ -182,7 +181,7 @@ dr_to_fcs <- function(ff.list,
                       run.kmeans_rcpp = F,
                       run.leiden = F,
                       run.hclust = F,
-                      run.mhclust = F,
+                      #run.mhclust = F,
                       run.flowClust = F,
                       run.MUDAN = F,
                       n.pca.dims = 0,
@@ -259,13 +258,20 @@ dr_to_fcs <- function(ff.list,
   if ((run.minibatchkmeans || run.kmeans_rcpp || run.kmeans_arma) && !requireNamespace("ClusterR", quietly = T)) {
     utils::install.packages("ClusterR")
   }
-  if (run.mhclust && !requireNamespace("mhca", quietly = T)) {
+  # 2022 09 07
+  run.mhclust <- F
+  if (run.mhclust && !is.null(metaclustering.on) && !requireNamespace("mhca", quietly = T)) {
     devtools::install_github("tsieger/mhca")
+  }
+
+  if (run.mhclust && is.null(metaclustering.on)) {
+    run.mhclust <- F
+    message("run.mhclust should only be ran with metaclustering.on = T. Otherwise it will be too slow. run.mhclust is set FALSE now.")
   }
 
   dots <- list(...)
 
-  expect_dots <- "^harmony__|^hclust__|^mhclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
+  expect_dots <- "^harmony__|^hclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
   if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))) {
     message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
   }
@@ -297,8 +303,8 @@ dr_to_fcs <- function(ff.list,
     stop("When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix.")
   }
 
-  if ((run.hclust || run.mhclust) && !any(grepl("^cutree__k", names(dots)))) {
-    stop("When 'run.hclust = T' or 'run.mhclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
+  if (run.hclust && !any(grepl("^cutree__k", names(dots)))) {
+    stop("When 'run.hclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
   }
 
   if (run.flowClust && !any(grepl("^flowClust__K", names(dots)))) {
@@ -772,53 +778,62 @@ dr_to_fcs <- function(ff.list,
   )
 
   tryCatch(
-    if (run.hclust || run.mhclust) {
+    if (run.hclust) {
       message("Finding clusters with hclust. Start: ", Sys.time())
 
       temp_dots <- dots[which(grepl("^dist__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^dist__", "", names(temp_dots), ignore.case = T)
       d <- do.call(stats::dist, args = c(list(x = expr.clust), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
 
-      if (run.hclust) {
-        temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
-        h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
+      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
+      h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
 
-        temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
-        ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
+      temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
 
-        if (!is.null(metaclustering.on)) {
-          ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
-        }
-        # make sure that cluster 1 is the largest and so on
-        ks <- .cluster_ordering(ks = ks)
-
-        colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
-        dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
       }
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
 
-      if (run.mhclust) {
-        temp_dots <- dots[which(grepl("^mhclust__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^mhclust__", "", names(temp_dots), ignore.case = T)
-        h <- do.call(mhca::mhclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(mhca::mhclust))[-1])]))
-
-        temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
-        ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
-
-        if (!is.null(metaclustering.on)) {
-          ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
-        }
-        # make sure that cluster 1 is the largest and so on
-        ks <- .cluster_ordering(ks = ks)
-
-        colnames(ks) <- paste0("mhclust_", temp_dots[["k"]])
-        dim.red.data <- do.call(cbind, list(dim.red.data, ks))
-      }
+      colnames(ks) <- paste0("cutree_", temp_dots[["k"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      message("End: ", Sys.time())
     },
     error = function(e) {
-      message("run.hclust and/or run.mhclust with error")
+      message("run.hclust with error")
+    }
+  )
+
+
+  tryCatch(
+    if (run.mhclust) {
+      #run.mhclust logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)
+      # 2022 09 07: how to suplly apriori clusters?
+      message("Finding clusters with mhclust. Start: ", Sys.time())
+      temp_dots <- dots[which(grepl("^mhclust__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^mhclust__", "", names(temp_dots), ignore.case = T)
+      temp_dots <- c(list(g = ks[,1]), temp_dots)
+      h <- do.call(mhca::mhclust, args = c(list(x = expr.select), temp_dots[which(names(temp_dots) %in% names(formals(mhca::mhclust))[-1])]))
+
+      temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+      names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
+      ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
+
+      if (!is.null(metaclustering.on)) {
+        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      }
+      # make sure that cluster 1 is the largest and so on
+      ks <- .cluster_ordering(ks = ks)
+
+      colnames(ks) <- paste0("mhclust_", temp_dots[["k"]])
+      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+    },
+    error = function(e) {
+      message("run.mhclust with error")
     }
   )
 
@@ -1131,7 +1146,7 @@ dr_to_fcs <- function(ff.list,
       ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
       dat_split <- split(dat, split_var)
       dat <- as.matrix(dat)
-      dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col)]))
+      dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col),drop=F]))
       all_pairs <- utils::combn(split_var_levels, 2, simplify = F)
 
       ## all pairwise
@@ -1143,14 +1158,6 @@ dr_to_fcs <- function(ff.list,
           dplyr::select(feature, pval) %>%
           dplyr::rename("pvalue" = pval) %>%
           dplyr::rename("channel" = feature)
-
-        ## wilcox.test procedure:
-        '      p <- lapply(seq_along(colnames(dat_split[[as.character(x[1])]])), function(k) wilcox.test(dat_split[[as.character(x[1])]][,k], dat_split[[as.character(x[2])]][,k])[["p.value"]])
-      names(p) <- colnames(dat_split[[as.character(x[1])]])
-      out <- utils::stack(p)
-      out[,2] <- as.character(out[,2])
-      names(out) <- c("pvalue", "channel")'
-
         out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
         out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
         out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
@@ -1167,28 +1174,15 @@ dr_to_fcs <- function(ff.list,
       pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
 
       marker_table <- dplyr::bind_rows(parallel::mclapply(split_var_levels, function(x) {
-        y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)])
-        z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)])
+        y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col),drop = F])
+        z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col),drop = F])
         out <-
           presto::wilcoxauc(cbind(y,z), c(rep("y", ncol(y)), rep("z", ncol(z)))) %>%
           dplyr::filter(group == "y") %>%
           dplyr::select(feature, pval) %>%
           dplyr::rename("pvalue" = pval) %>%
           dplyr::rename("channel" = feature)
-
-
         #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
-        # parallel::mclapply
-        ## wilcox.test procedure:
-        '
-y <- dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col)]
-      z <- dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col)]
-p <- lapply(seq_along(colnames(y)), function(k) wilcox.test(y[,k], z[,k])[["p.value"]])
-      names(p) <- colnames(y)
-      out <- utils::stack(p)
-      out[,2] <- as.character(out[,2])
-      names(out) <- c("pvalue", "channel")'
-
         out[,"mean"] <- round(matrixStats::rowMeans2(y), 2)
         out[,"mean_not"] <- round(matrixStats::rowMeans2(z), 2)
         out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
