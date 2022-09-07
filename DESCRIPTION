@@ -62,5 +62,6 @@ Suggests:
     ggcyto,
     purrr,
     ggraph,
-    igraph
+    igraph,
+    mhca
 VignetteBuilder: knitr

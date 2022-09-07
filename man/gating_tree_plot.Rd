@@ -4,7 +4,12 @@
 \alias{gating_tree_plot}
 \title{Plot gating tree as a graph to explore how populations are gated in a simple way}
 \usage{
-gating_tree_plot(PopulationFullPath, layout = "kk", find_short_gating_path = T)
+gating_tree_plot(
+  PopulationFullPath,
+  layout = "tree",
+  find_short_gating_path = T,
+  ...
+)
 }
 \arguments{
 \item{PopulationFullPath}{vector of all populations path (full) gated in a (flowjo) workspace;
@@ -14,6 +19,8 @@ optionally provide named vector (e.g. with short names) which will be plotted in
 
 \item{find_short_gating_path}{if PopulationFullPath is a vector without names find the shortest unique
 gating path from these full paths for plotting}
+
+\item{...}{additional argument to ggrepel, like max.overlaps}
 }
 \value{
 list of plot, graph and data.frame
@@ -28,9 +35,9 @@ ps_counts <- fcexpr::wsx_get_popstats(ws = ws)[["counts"]]
 # check if gatingtree is unique
 dplyr::group_by(ps_counts, PopulationFullPath) \%>\% dplyr::count()
 # generate graph
-graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = stats::setNames(ps_counts$PopulationFullPath, ps_counts$Population))
+graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = unique(ps_counts$PopulationFullPath))
 # manual plotting graph to modify (e.g. layout)
-plot <- ggraph::ggraph(graph_list[["graph"]], layout = "kk") +
+plot <- ggraph::ggraph(graph_list[["graph"]], layout = "tree") +
 ggraph::geom_edge_link() +
 ggraph::geom_node_point(size = 4) +
 ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T)

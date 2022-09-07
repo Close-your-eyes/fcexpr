@@ -25,6 +25,7 @@ dr_to_fcs(
   run.kmeans_rcpp = F,
   run.leiden = F,
   run.hclust = F,
+  run.mhclust = F,
   run.flowClust = F,
   run.MUDAN = F,
   n.pca.dims = 0,
@@ -41,6 +42,8 @@ dr_to_fcs(
   write.scaled.channels.to.FCS = F,
   timeChannel = "Time",
   transformation_name = "trans",
+  return_processed_raw_data_only = F,
+  seed = 42,
   ...
 )
 }
@@ -76,9 +79,10 @@ has to be provided in ...}
 
 \item{run.gqtsom}{logical, whether to calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
 
-\item{metaclustering.on}{SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM can be
+\item{metaclustering.on}{SOM or GQTSOM; run clustering-algorithms not on original data but on SOM map (so called metaclustering); SOM or GQTSOM
 may be selected for metaclustering; this is expected to yield a substantial improvement to calculation speed on large data sets;
-if NULL, clustering is performed on original data}
+if NULL, clustering is performed on original data; recommendation: when applying meta-clustering choose run.hclust = T and supply hclust__method = "average"
+and cutree__k = c(xx) with xx being the number of desired/expected clusters}
 
 \item{run.louvain}{logical, whether to detect clusters (communities, groups) of cells with the louvain algorithm, implemented in Seurat::FindClusters (subsequent to snn detection by Seurat::FindNeighbors)}
 
@@ -93,6 +97,8 @@ if NULL, clustering is performed on original data}
 \item{run.leiden}{logical, whether to detect clusters (communities, groups) of cells with the leiden algorithm, with leiden::leiden (subsequent to snn detection by Seurat::FindNeighbors)}
 
 \item{run.hclust}{logical, whether to detect clusters with stats::dist, stats::hclust and stats::cutree}
+
+\item{run.mhclust}{logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)}
 
 \item{run.flowClust}{logical, whether to detect clusters with flowClust::flowClust}
 
@@ -129,6 +135,11 @@ and will only occupy disk space, those are specified here; matched with grepl}
 to be detected automatically}
 
 \item{transformation_name}{name of the applied transformation (will appear in FCS file as channel desc)}
+
+\item{return_processed_raw_data_only}{do not calculate dimension reduction etc but only return the preprocessed
+data for external calculations or tryouts}
+
+\item{seed}{set a seed for reproduction of dimension reductions}
 
 \item{...}{additional parameters to calculations of \href{https://github.com/jlmelville/uwot}{UMAP}, \href{https://github.com/jkrijthe/Rtsne}{tSNE}, \href{https://github.com/exaexa/EmbedSOM}{SOM, GQTSOM, EmbedSOM}, louvain, \href{https://github.com/TomKellyGenetics/leiden}{leiden},
 \href{https://github.com/immunogenomics/harmony}{harmony}, \href{https://www.bioconductor.org/packages/release/bioc/html/flowClust.html}{flowClust}, hclust, \href{https://github.com/JEFworks/MUDAN}{MUDAN}, kmeans;
