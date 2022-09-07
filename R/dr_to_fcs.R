@@ -88,6 +88,7 @@
 #' hclust: stats::dist and stats::hclust, MUDAN: MUDAN::getComMembership, stats::kmeans,
 #' ClusterR::MiniBatchKmeans, ClusterR::KMeans_rcpp, ClusterR::KMeans_arma
 #' @param transformation_name name of the applied transformation (will appear in FCS file as channel desc)
+#' @param run.mhclust logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
@@ -178,6 +179,7 @@ dr_to_fcs <- function(ff.list,
                       run.kmeans_rcpp = F,
                       run.leiden = F,
                       run.hclust = F,
+                      run.mhclust = F,
                       run.flowClust = F,
                       run.MUDAN = F,
                       n.pca.dims = 0,
@@ -260,10 +262,13 @@ dr_to_fcs <- function(ff.list,
   if ((run.minibatchkmeans || run.kmeans_rcpp || run.kmeans_arma) && !requireNamespace("ClusterR", quietly = T)) {
     utils::install.packages("ClusterR")
   }
+  if (run.mhclust && !requireNamespace("mhca", quietly = T)) {
+    devtools::install_github("tsieger/mhca")
+  }
 
   dots <- list(...)
 
-  expect_dots <- "^harmony__|^hclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
+  expect_dots <- "^harmony__|^hclust__|^mhclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
   if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))) {
     message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
   }
@@ -284,7 +289,7 @@ dr_to_fcs <- function(ff.list,
     stop("number of flowframes in untransformed and transformed has to be equal.")
   }
 
-  for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "harmony", "mudan")) {
+  for (par in c("louvain", "leiden", "umap", "tsne", "som", "gqtsom", "harmony", "kmeans", "kmeans_rcpp", "kmeans_arma", "minibatchkmeans", "flowclust", "hclust", "mhclust", "harmony", "mudan")) {
     # cutree and dist not captured
     if (any(grepl(paste0("^", par, "__"), names(dots), ignore.case = T)) &&!eval(rlang::sym(paste0("run.", par)))) {
       message(par, " parameters provided in ... but ", "'run.", par, " = F'.")
@@ -295,8 +300,8 @@ dr_to_fcs <- function(ff.list,
     stop("When 'run.harmony = T' harmony__meta_data has to be provided in ..., see ?harmony::HarmonyMatrix.")
   }
 
-  if (run.hclust && !any(grepl("^cutree__k", names(dots)))) {
-    stop("When 'run.hclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
+  if ((run.hclust || run.mhclust) && !any(grepl("^cutree__k", names(dots)))) {
+    stop("When 'run.hclust = T' or 'run.mhclust = T' cutree__k has to be provided in ..., see ?stats::cutree.")
   }
 
   if (run.flowClust && !any(grepl("^flowClust__K", names(dots)))) {
@@ -778,33 +783,51 @@ dr_to_fcs <- function(ff.list,
   )
 
   tryCatch(
-    if (run.hclust) {
+    if (run.hclust || run.mhclust) {
       message("Finding clusters with hclust. Start: ", Sys.time())
 
       temp_dots <- dots[which(grepl("^dist__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^dist__", "", names(temp_dots), ignore.case = T)
       d <- do.call(stats::dist, args = c(list(x = expr.clust), temp_dots[which(names(temp_dots) %in% names(formals(stats::dist))[-1])]))
 
-      temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
-      names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
-      h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
+      if (run.hclust) {
+        temp_dots <- dots[which(grepl("^hclust__", names(dots), ignore.case = T))]
+        names(temp_dots) <- gsub("^hclust__", "", names(temp_dots), ignore.case = T)
+        h <- do.call(stats::hclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(stats::hclust))[-1])]))
 
-      temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
-      names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
-      ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) {
-        stats::cutree(tree = h, k = x)
-      }, mc.cores = mc.cores))
+        temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+        names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
+        ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
 
-      if (!is.null(metaclustering.on)) {
-        ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+        if (!is.null(metaclustering.on)) {
+          ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+        }
+
+        colnames(ks) <- paste0("hclust_", temp_dots[["k"]])
+        dim.red.data <- do.call(cbind, list(dim.red.data, ks))
       }
 
-      colnames(ks) <- paste0("cutree_", temp_dots[["k"]])
-      dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      if (run.mhclust) {
+        temp_dots <- dots[which(grepl("^mhclust__", names(dots), ignore.case = T))]
+        names(temp_dots) <- gsub("^mhclust__", "", names(temp_dots), ignore.case = T)
+        h <- do.call(mhca::mhclust, args = c(list(d = d), temp_dots[which(names(temp_dots) %in% names(formals(mhca::mhclust))[-1])]))
+
+        temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]
+        names(temp_dots) <- gsub("^cutree__", "", names(temp_dots), ignore.case = T)
+        ks <- do.call(cbind, parallel::mclapply(temp_dots[["k"]], function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
+
+        if (!is.null(metaclustering.on)) {
+          ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+        }
+
+        colnames(ks) <- paste0("mhclust_", temp_dots[["k"]])
+        dim.red.data <- do.call(cbind, list(dim.red.data, ks))
+      }
+
       message("End: ", Sys.time())
     },
     error = function(e) {
-      message("run.hclust with error")
+      message("run.hclust and/or run.mhclust with error")
     }
   )
 
