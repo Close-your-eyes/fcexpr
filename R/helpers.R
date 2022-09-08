@@ -250,9 +250,10 @@ get_inds <- function(x) {
 get_ff <- function(x,
                    return_untransformed = T,
                    return_logicle_transformed = T,
-                   downsample,
-                   remove_redundant_channels,
-                   population) {
+                   downsample = 1,
+                   remove_redundant_channels = F,
+                   population,
+                   seed = 42) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
   # pass full path as attr and check consistency later?
@@ -302,12 +303,11 @@ get_ff <- function(x,
     downsample <- x$downsample
   }
 
-  s <- if (downsample < 1) {
-    sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
-  } else if (downsample > 1) {
-    sort(sample(which(inds), min(length(which(inds)), downsample)))
+  if (downsample != 1) {
+    set.seed(seed)
+    s <- sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)), downsample))))
   } else {
-    which(inds)
+    s <- which(inds)
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
 
@@ -321,12 +321,13 @@ get_ff <- function(x,
 
 
 get_ff2 <- function(x,
-                    downsample,
+                    downsample = 1,
                     population,
                     return_untransformed = T,
                     return_logicle_transformed = T,
                     alias_attr_name,
-                    path_attr_name) {
+                    path_attr_name,
+                    seed = 42) {
 
   if (!return_untransformed && !return_logicle_transformed) {
     stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
@@ -359,12 +360,11 @@ get_ff2 <- function(x,
     downsample <- attr(x, "downsample")
   }
 
-  s <- if (downsample < 1) {
-    sort(sample(which(inds), ceiling(length(which(inds))*downsample)))
-  } else if (downsample > 1) {
-    sort(sample(which(inds), min(length(which(inds)),downsample)))
+  if (downsample != 1) {
+    set.seed(seed)
+    s <- sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)),downsample))))
   } else {
-    which(inds)
+    s <- which(inds)
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
 

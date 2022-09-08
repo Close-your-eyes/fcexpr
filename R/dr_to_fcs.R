@@ -64,11 +64,11 @@
 #' @param extra.cols numeric vector of an extra column (or matrix of multiple columns) with arbitraty information to add to the final fcs file;
 #' has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
 #' could be a previously calculated dimension reduction or cluster annotation.
-#' @param calc.cluster.markers if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
+#' @param clustering.for.marker.calc if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
 #' using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
 #' is tested against other events and clusters are compared pairwise. respective clustering calculation has to be provided in ...;
-#' e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
-#' and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).
+#' e.g. if louvain__resolution = 0.5 is provided set clustering.for.marker.calc = louvain_0.5;
+#' and if in addition leiden__resolution_parameter = 0.7 then set clustering.for.marker.calc = c(louvain_0.5, leiden_0.7).
 #' @param mc.cores mc.cores to calculate clusterings, limited to parallel::detectCores()-1
 #' @param save.to.disk what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list
 #' @param save.path where to save elements specified in save.to.disk; set to NULL to have nothing written to disk
@@ -91,6 +91,8 @@
 #' @param return_processed_raw_data_only do not calculate dimension reduction etc but only return the preprocessed
 #' data for external calculations or tryouts
 #' @param seed set a seed for reproduction of dimension reductions
+#' @param calc.global.markers logical whether to calculate global cluster markers: so each cluster vs. all other cells
+#' @param calc.pairwise.markers logical whether to calculate pairwise cluster markers: so each cluster vs. each cluster
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
@@ -108,7 +110,7 @@
 #' channels = channels,
 #' louvain__resolution = 0.5,
 #' run.lda = "louvain_0.5",
-#' calc.cluster.markers = c("louvain_0.5"),
+#' clustering.for.marker.calc = c("louvain_0.5"),
 #' save.path = NULL)
 #' marker <- dr[[3]][[1]][[1]]
 #'marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)
@@ -185,7 +187,9 @@ dr_to_fcs <- function(ff.list,
                       run.flowClust = F,
                       run.MUDAN = F,
                       n.pca.dims = 0,
-                      calc.cluster.markers = NULL,
+                      clustering.for.marker.calc = NULL,
+                      calc.global.markers = T,
+                      calc.pairwise.markers = F,
                       extra.cols = NULL,
                       mc.cores = 1,
                       save.to.disk = c("fcs", "rds"),
@@ -243,7 +247,7 @@ dr_to_fcs <- function(ff.list,
   if (!requireNamespace("devtools", quietly = T)) {
     utils::install.packages("devtools")
   }
-  if (!is.null(calc.cluster.markers) && !requireNamespace("presto", quietly = T)) {
+  if (!is.null(clustering.for.marker.calc) && !requireNamespace("presto", quietly = T)) {
     devtools::install_github('immunogenomics/presto')
   }
   if (run.harmony && !requireNamespace("harmony", quietly = T)) {
@@ -361,9 +365,9 @@ dr_to_fcs <- function(ff.list,
     warning("harmony is calculated with do_pca = T, hence a subsequnt pca (run.pca = T) is not required. Consider setting run.pca to FALSE.")
   }
 
-  if (!is.null(calc.cluster.markers)) {
-    if (!any(calc.cluster.markers %in% dots_expanded)) {
-      stop("calc.cluster.markers: ", calc.cluster.markers[which(!calc.cluster.markers %in% dots_expanded)], " not found in ... .")
+  if (!is.null(clustering.for.marker.calc)) {
+    if (!any(clustering.for.marker.calc %in% dots_expanded)) {
+      stop("clustering.for.marker.calc: ", clustering.for.marker.calc[which(!clustering.for.marker.calc %in% dots_expanded)], " not found in ... .")
     }
   }
 
@@ -1125,80 +1129,43 @@ dr_to_fcs <- function(ff.list,
   # https://github.com/RGLab/flowCore/issues/201
   #flowCore::keyword(ff) <- flowCore:::updateTransformKeywords(ff)
 
-
   ## ---- calc cluster markers -------
   ## always used logicle transformed data?!?!
-  if (!is.null(calc.cluster.markers)) {
+  if (!is.null(clustering.for.marker.calc)) {
     message("Calculating markers.")
   }
   marker <- NULL
   tryCatch({
-    marker <- lapply(calc.cluster.markers, function (clust_col) {
-      # do not use expr.select which may have become dimenions of LDA
+    marker <- lapply(clustering.for.marker.calc, function (clust_col) {
+      # do not use expr.select which may have become dimensions of LDA
       # handle cases of transformed vs untransformed data
+
       if ("transformed" %in% names(ff.list)) {
-        dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% paste0(channels, paste0("_", transformation_name))), which(colnames(dim.red.data) == clust_col))]
-      } else {
-        dat <- dim.red.data[,c(which(colnames(dim.red.data) %in% channels), which(colnames(dim.red.data) == clust_col))]
+        channels <- paste0(channels, paste0("_", transformation_name))
       }
-      split_var <- dat[,clust_col]
-      split_var_levels <- sort(unique(split_var))
-      ## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
-      dat_split <- split(dat, split_var)
-      dat <- as.matrix(dat)
-      dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col),drop=F]))
-      all_pairs <- utils::combn(split_var_levels, 2, simplify = F)
+      dat <- as.matrix(dim.red.data[,which(colnames(dim.red.data) %in% channels)])
+      split_var <- dim.red.data[,which(colnames(dim.red.data) == clust_col)]
 
-      ## all pairwise
-      pair_marker_table <- dplyr::bind_rows(parallel::mclapply(all_pairs, function(x) {
-        #out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
-        out <-
-          presto::wilcoxauc(cbind(t(dat_split[[as.character(x[1])]]),t(dat_split[[as.character(x[2])]])), c(rep("y", nrow(dat_split[[as.character(x[1])]])), rep("z", nrow(dat_split[[as.character(x[2])]])))) %>%
-          dplyr::filter(group == "y") %>%
-          dplyr::select(feature, pval) %>%
-          dplyr::rename("pvalue" = pval) %>%
-          dplyr::rename("channel" = feature)
-        out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
-        out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
-        out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
-        out[,"diptest_p_1"] <- suppressMessages(round(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-        out[,"diptest_p_2"] <- suppressMessages(round(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-        #out <- tibble::rownames_to_column(out, "channel")
-        out[,"cluster_1"] <- x[1]
-        out[,"cluster_2"] <- x[2]
-        out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
-        out <- dplyr::select(out, channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_p_1, diptest_p_2)
-        out <- dplyr::arrange(out, pvalue)
-        return(out)
-      }, mc.cores = mc.cores))
-      pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
+      browser()
+      # global markers
+      if (calc.global.markers) {
+        marker_table <- .calc.global.cluster.marker(dat = dat, cluster = split_var, mc.cores = mc.cores)
+        marker_table[,"channel_desc"] <- channel.desc_augment[marker_table[,"channel"]]
+      } else {
+        marker_table <- NULL
+      }
 
-      marker_table <- dplyr::bind_rows(parallel::mclapply(split_var_levels, function(x) {
-        y <- t(dat[which(dat[,clust_col] == x),which(colnames(dat) != clust_col),drop = F])
-        z <- t(dat[which(dat[,clust_col] != x),which(colnames(dat) != clust_col),drop = F])
-        out <-
-          presto::wilcoxauc(cbind(y,z), c(rep("y", ncol(y)), rep("z", ncol(z)))) %>%
-          dplyr::filter(group == "y") %>%
-          dplyr::select(feature, pval) %>%
-          dplyr::rename("pvalue" = pval) %>%
-          dplyr::rename("channel" = feature)
-        #out <- matrixTests::col_wilcoxon_twosample(y, z) # produced error once
-        out[,"mean"] <- round(matrixStats::rowMeans2(y), 2)
-        out[,"mean_not"] <- round(matrixStats::rowMeans2(z), 2)
-        out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
-        out[,"diptest_p"] <- suppressMessages(round(apply(y, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-        out[,"diptest_not_p"] <- suppressMessages(round(apply(z, 1, function(x) diptest::dip.test(x)[["p.value"]]), 2))
-        #out <- tibble::rownames_to_column(out, "channel")
-        out[,"cluster"] <- x
-        out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
-        out <- dplyr::select(out, channel, cluster, pvalue, mean, mean_not, mean_diff, diff_sign, diptest_p, diptest_not_p)
-        out <- dplyr::arrange(out, pvalue)
-        return(out)
-      }, mc.cores = mc.cores))
-      marker_table[,"channel_desc"] <- channel.desc_augment[marker_table[,"channel"]]
+      ## pairwise markers
+      if (calc.pairwise.markers) {
+        pair_marker_table <- .calc.pairwise.cluster.marker(dat = dat, cluster = split_var, mc.cores = mc.cores)
+        pair_marker_table[,"channel_desc"] <- channel.desc_augment[pair_marker_table[,"channel"]]
+      } else {
+        pair_marker_table <- NULL
+      }
+
       return(list(marker_table = marker_table, pairwise_marker_table = pair_marker_table))
     })
-    names(marker) <- calc.cluster.markers
+    names(marker) <- clustering.for.marker.calc
   }, error = function(e) {
     message("cluster marker calculation caused an error.")
     marker <- NULL
@@ -1228,6 +1195,81 @@ dr_to_fcs <- function(ff.list,
     return(as.numeric(new_order[as.character(x)]))
   })
   return(ks)
+}
+
+#split_var_levels <- sort(unique(split_var))
+## keep dat a data frame until here to allow split (works only on data.frame); after that convert to matrix
+#dat_split <- split(dat, split_var)
+#dat <- as.matrix(dat)
+#dat_split <- lapply(dat_split, function(x) as.matrix(x[,-which(names(x) == clust_col),drop=F]))
+
+.calc.pairwise.cluster.marker <- function(dat, cluster, mc.cores) {
+  dat_split <- split_mat(x = dat, f = cluster)
+  all_pairs <- utils::combn(sort(unique(cluster)), 2, simplify = F)
+
+  dplyr::bind_rows(parallel::mclapply(all_pairs, function(x) {
+    #out <- matrixTests::col_wilcoxon_twosample(dat_split[[as.character(x[1])]], dat_split[[as.character(x[2])]])
+    out <-
+      presto::wilcoxauc(cbind(t(dat_split[[as.character(x[1])]]),t(dat_split[[as.character(x[2])]])), c(rep("y", nrow(dat_split[[as.character(x[1])]])), rep("z", nrow(dat_split[[as.character(x[2])]])))) %>%
+      dplyr::filter(group == "y") %>%
+      dplyr::select(feature, pval) %>%
+      dplyr::rename("pvalue" = pval) %>%
+      dplyr::rename("channel" = feature)
+    out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[1])]]), 2)
+    out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[as.character(x[2])]]), 2)
+    out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
+    out[,"diptest_p_1"] <- suppressMessages(round(apply(dat_split[[as.character(x[1])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+    out[,"diptest_p_2"] <- suppressMessages(round(apply(dat_split[[as.character(x[2])]], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+    #out <- tibble::rownames_to_column(out, "channel")
+    out[,"cluster_1"] <- x[1]
+    out[,"cluster_2"] <- x[2]
+    out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+    out <- dplyr::select(out, channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_p_1, diptest_p_2)
+    out <- dplyr::arrange(out, pvalue)
+    return(out)
+  }, mc.cores = mc.cores))
+}
+
+.calc.global.cluster.marker <- function(dat, cluster, mc.cores, method = c("presto", "matrixTests")) {
+
+  method <- match.arg(method, c("presto", "matrixTests"))
+  # cluster is ident for each row in dat
+  if (nrow(dat) != length(cluster)) {
+    stop("nrow(dat) != length(cluster)")
+  }
+  levels <- sort(unique(cluster))
+
+  ## try matrixStats first and on error run presto which requires transposation though;
+  ## matrixStats caused an error once
+  dplyr::bind_rows(parallel::mclapply(levels, function(x) {
+    if (method == "presto") {
+      out <-
+        presto::wilcoxauc(cbind(t(dat[which(cluster == x),,drop = F]),
+                                t(dat[which(cluster != x),,drop = F])), c(rep("y", length(which(cluster == x))),
+                                                                          rep("z", length(which(cluster != x))))) %>%
+        dplyr::filter(group == "y") %>%
+        dplyr::select(feature, pval) %>%
+        dplyr::rename("pvalue" = pval) %>%
+        dplyr::rename("channel" = feature)
+    } else if (method == "matrixTests") {
+      out <- matrixTests::col_wilcoxon_twosample(dat[which(cluster == x),,drop = F],
+                                                  dat[which(cluster != x),,drop = F]) %>%
+        dplyr::select(pvalue) %>%
+        tibble::rownames_to_column("channel")
+    }
+
+    out[,"mean"] <- round(matrixStats::colMeans2(dat[which(cluster == x),,drop = F]), 2)
+    out[,"mean_not"] <- round(matrixStats::colMeans2(dat[which(cluster != x),,drop = F]), 2)
+    out[,"mean_diff"] <- round(out[,"mean"] - out[,"mean_not"], 2)
+    out[,"diptest_p"] <- suppressMessages(round(apply(dat[which(cluster == x),,drop = F], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+    out[,"diptest_not_p"] <- suppressMessages(round(apply(dat[which(cluster != x),,drop = F], 2, function(x) diptest::dip.test(x)[["p.value"]]), 2))
+    #out <- tibble::rownames_to_column(out, "channel")
+    out[,"cluster"] <- x
+    out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+    out <- dplyr::select(out, channel, cluster, pvalue, mean, mean_not, mean_diff, diff_sign, diptest_p, diptest_not_p)
+    out <- dplyr::arrange(out, pvalue)
+    return(out)
+  }, mc.cores = mc.cores))
 }
 
 

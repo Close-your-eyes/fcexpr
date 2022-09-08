@@ -33,6 +33,7 @@ inds_get_ff <- function(ind_mat,
                         return_untransformed = T,
                         return_logicle_transformed = T,
                         lapply_fun = lapply,
+                        seed = 42,
                         ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -80,6 +81,7 @@ inds_get_ff <- function(ind_mat,
                         return_logicle_transformed = return_logicle_transformed,
                         alias_attr_name = alias_attr_name,
                         path_attr_name = path_attr_name,
+                        seed = seed,
                         ...)
 
   if (all(downsample == "min")) {

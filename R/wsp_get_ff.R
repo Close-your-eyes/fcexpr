@@ -5,9 +5,8 @@
 #' relevant rows (indices) of fcs files. The compensation matrix as defined in flowjo will be used
 #' to compensate fluorescence intensities.
 #'
-#' If it is intended to pass flowframes to fcexpr::dr_to_fcs, inverse_transform has to contain 'F' which
-#' will return flowframes with logicle transformation. The logicle transformation is required for fcexpr::dr_to_fcs.
-#' The (default) inverse transformation is basically the one you see in flowjo.
+#' If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have transformed
+#' and untransformed expression values returned.
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
@@ -51,9 +50,8 @@ wsp_get_ff <- function(wsp,
                        downsample = 1,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
+                       seed = 42,
                        ...) {
-
-  #@param inverse_transform return inverse- (T) or logicle- (F) transform or both (c(T,F))
 
   if (!requireNamespace("BiocManager", quietly = T)) {
     utils::install.packages("BiocManager")
@@ -133,6 +131,7 @@ wsp_get_ff <- function(wsp,
                         downsample = ds,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,
+                        seed = seed,
                         ...)
 
   if (all(downsample == "min")) {
