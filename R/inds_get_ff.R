@@ -84,7 +84,6 @@ inds_get_ff <- function(ind_mat,
                         path_attr_name = path_attr_name,
                         seed = seed,
                         ...)
-  browser()
 
   if (all(downsample == "min")) {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
