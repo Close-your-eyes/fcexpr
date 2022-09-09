@@ -16,6 +16,7 @@
 #' @param return_logicle_transformed logical; do return logicle-transformed data
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun
+#' @param seed set a seed to reproduce downsampling
 #'
 #' @return list of flow frames, one for each ind_mat
 #' @export

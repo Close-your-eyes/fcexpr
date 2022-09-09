@@ -27,6 +27,7 @@
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #' @param return_untransformed logical; do return untransformed (inverse) data
 #' @param return_logicle_transformed logical; do return logicle-transformed data
+#' @param seed set a seed to reproduce downsampling
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
