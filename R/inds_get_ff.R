@@ -84,6 +84,7 @@ inds_get_ff <- function(ind_mat,
                         path_attr_name = path_attr_name,
                         seed = seed,
                         ...)
+  browser()
 
   if (all(downsample == "min")) {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
@@ -100,8 +101,8 @@ inds_get_ff <- function(ind_mat,
   # maybe not necessary
   names(ff.list) <- unname(sapply(ind_mat, function(x) basename(attr(x, path_attr_name))))
   # rearrange
-  ff.list <- stats::setNames(lapply(names(ff.list[[1]]), function(x) {
-    lapply(ff.list, "[", x)
+  ff.list2 <- stats::setNames(lapply(names(ff.list[[1]]), function(x) {
+    lapply(ff.list, "[[", x)
   }), nm = names(ff.list[[1]]))
 
   return(ff.list)
