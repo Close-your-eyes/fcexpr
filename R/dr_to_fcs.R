@@ -282,7 +282,7 @@ dr_to_fcs <- function(ff.list,
 
   expect_dots <- "^harmony__|^hclust__|^dist__|^cutree__|^flowClust_|^MUDAN__|^kmeans__|^louvain__|^leiden__|^som__|^gqtsom__|^tsne__|^umap__|^EmbedSOM|^kmeans_arma__|^kmeans_rcpp__|^minibatchkmeans__"
   if (any(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))) {
-    message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots)))], collapse = ", "))
+    message("These arguments are unknown: ", paste(names(dots)[which(!names(dots) %in% names(formals(dr_to_fcs)) & !grepl(expect_dots, names(dots), ignore.case = T))], collapse = ", "))
   }
 
   if (length(dots) > 0) {
