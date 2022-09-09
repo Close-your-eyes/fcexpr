@@ -12,7 +12,7 @@
 #' @param byrow split by rows (T) or by columns (F)
 #' @param ... arguments passed to split
 #'
-#' @return
+#' @return a list of length unique(f) of splitted matrices in returned
 #' @export
 #'
 #' @examples

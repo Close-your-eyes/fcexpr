@@ -63,5 +63,6 @@ Suggests:
     purrr,
     ggraph,
     igraph,
+    matrixTests,
     mhca
 VignetteBuilder: knitr

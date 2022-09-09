@@ -252,6 +252,9 @@ dr_to_fcs <- function(ff.list,
   if (!is.null(clustering.for.marker.calc) && !requireNamespace("presto", quietly = T)) {
     devtools::install_github('immunogenomics/presto')
   }
+  if (!is.null(clustering.for.marker.calc) && !requireNamespace("matrixTests", quietly = T)) {
+    utils::install.packages("matrixTests")
+  }
   if (run.harmony && !requireNamespace("harmony", quietly = T)) {
     devtools::install_github("immunogenomics/harmony")
   }

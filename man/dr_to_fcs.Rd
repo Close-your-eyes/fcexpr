@@ -25,11 +25,12 @@ dr_to_fcs(
   run.kmeans_rcpp = F,
   run.leiden = F,
   run.hclust = F,
-  run.mhclust = F,
   run.flowClust = F,
   run.MUDAN = F,
   n.pca.dims = 0,
-  calc.cluster.markers = NULL,
+  clustering.for.marker.calc = NULL,
+  calc.global.markers = T,
+  calc.pairwise.markers = F,
   extra.cols = NULL,
   mc.cores = 1,
   save.to.disk = c("fcs", "rds"),
@@ -98,25 +99,28 @@ and cutree__k = c(xx) with xx being the number of desired/expected clusters}
 
 \item{run.hclust}{logical, whether to detect clusters with stats::dist, stats::hclust and stats::cutree}
 
-\item{run.mhclust}{logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)}
-
 \item{run.flowClust}{logical, whether to detect clusters with flowClust::flowClust}
 
 \item{run.MUDAN}{logical, whether to detect clusters with MUDAN::getComMembership}
 
 \item{n.pca.dims}{number of principle components to calculate}
 
-\item{calc.cluster.markers}{if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
+\item{clustering.for.marker.calc}{if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
 using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc} for the provided clustering(s). each cluster
 is tested against other events and clusters are compared pairwise. respective clustering calculation has to be provided in ...;
-e.g. if louvain__resolution = 0.5 is provided set calc.cluster.markers = louvain_0.5;
-and if in addition leiden__resolution_parameter = 0.7 then set calc.cluster.markers = c(louvain_0.5, leiden_0.7).}
+e.g. if louvain__resolution = 0.5 is provided set clustering.for.marker.calc = louvain_0.5;
+and if in addition leiden__resolution_parameter = 0.7 then set clustering.for.marker.calc = c(louvain_0.5, leiden_0.7).}
+
+\item{calc.global.markers}{logical whether to calculate global cluster markers: so each cluster vs. all other cells}
+
+\item{calc.pairwise.markers}{logical whether to calculate pairwise cluster markers: so each cluster vs. each cluster}
 
 \item{extra.cols}{numeric vector of an extra column (or matrix of multiple columns) with arbitraty information to add to the final fcs file;
 has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
 could be a previously calculated dimension reduction or cluster annotation.}
 
-\item{mc.cores}{mc.cores to calculate clusterings, limited to parallel::detectCores()-1}
+\item{mc.cores}{number of cores to use for parallel computing of cluster markers and multiple cluster resolutions;
+mc.cores is passed to parallel::mclapply or parallel::mcmapply; limited to parallel::detectCores()-1}
 
 \item{save.to.disk}{what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list}
 
@@ -193,7 +197,7 @@ dr <- fcexpr::dr_to_fcs(ff.list = ffs,
 channels = channels,
 louvain__resolution = 0.5,
 run.lda = "louvain_0.5",
-calc.cluster.markers = c("louvain_0.5"),
+clustering.for.marker.calc = c("louvain_0.5"),
 save.path = NULL)
 marker <- dr[[3]][[1]][[1]]
 marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)

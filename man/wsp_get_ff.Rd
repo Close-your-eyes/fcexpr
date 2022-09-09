@@ -17,6 +17,7 @@ wsp_get_ff(
   downsample = 1,
   remove_redundant_channels = F,
   lapply_fun = lapply,
+  seed = 42,
   ...
 )
 }
@@ -51,6 +52,8 @@ FCS files equally or can be a vector of same length as FCS files}
 
 \item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
+\item{seed}{set a seed to reproduce downsampling}
+
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
@@ -63,9 +66,8 @@ relevant rows (indices) of fcs files. The compensation matrix as defined in flow
 to compensate fluorescence intensities.
 }
 \details{
-If it is intended to pass flowframes to fcexpr::dr_to_fcs, inverse_transform has to contain 'F' which
-will return flowframes with logicle transformation. The logicle transformation is required for fcexpr::dr_to_fcs.
-The (default) inverse transformation is basically the one you see in flowjo.
+If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have transformed
+and untransformed expression values returned.
 }
 \examples{
 \dontrun{
