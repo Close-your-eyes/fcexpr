@@ -456,19 +456,33 @@ get_gs <- function(x,
 
 .check.ff.list <- function(ff.list) {
 
-  sapply(ff.list, function (ff) {
+  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))
+  out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
+  if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
+    warning("Channels of flowFrames do not have the same names. This cannot be handled. Will return data frame(s) of channel names.")
+    return(purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name)))
+  }
+
+  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$desc))
+  out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
+  if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
+    warning("Channel description are not equal across flowFrames.")
+  }
+
+
+'  sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
       print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
       stop("Channels of flowFrames do not have the same names. This cannot be handled.")
     }
-  })
+  })'
 
-  sapply(ff.list, function (ff) {
+'  sapply(ff.list, function (ff) {
     if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
       print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
       warning("Channel description are not equal across flowFrames.")
     }
-  })
+  })'
 }
 
 
