@@ -125,7 +125,7 @@ wsp_get_ff <- function(wsp,
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
 
-  ff.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
+  ff.list <- lapply_fun(stats::setNames(split(smpl, 1:nrow(smpl)), smpl$FileName),
                         get_ff,
                         return_untransformed = return_untransformed,
                         return_logicle_transformed = return_logicle_transformed,
@@ -138,30 +138,16 @@ wsp_get_ff <- function(wsp,
   if (all(downsample == "min")) {
     min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
     for (x in seq_along(ff.list)) {
+      set.seed(seed)
       inds <- sample(c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min)))
       for (y in seq_along(ff.list[[x]][[1]])) {
         ff.list[[x]][[1]][[y]] <- subset(ff.list[[x]][[1]][[y]], inds)
       }
+      ff.list[[x]][["ind_mat"]] <- ff.list[[x]][["ind_mat"]][inds,]
     }
   }
 
-  ffs <- sapply(ff.list, "[", 1)
-  names(ffs) <- smpl$FileName
-
-  ffs <- lapply(seq_along(ffs[[1]]), function(x) sapply(ffs, "[", x, simplify = T))
-
-  if (return_untransformed && !return_logicle_transformed) {
-    names(ffs) <- "untransformed"
-  } else if (!return_untransformed && return_logicle_transformed) {
-    names(ffs) <- "transformed"
-  } else if (return_untransformed && return_logicle_transformed) {
-    names(ffs) <- c("transformed", "untransformed")
-  }
-
-  #names(ffs) <- stats::setNames(c("inverse", "logicle"), c(T,F))[as.character(inverse_transform)]
-
-  inds <- sapply(ff.list, "[", 2)
-  names(inds) <- smpl$FileName
-
-  return(list(flowframes = ffs, indices = inds))
+  return(list(flowframes = lapply(stats::setNames(seq_along(ff.list[[1]][[1]]), names(ff.list[[1]][[1]])),
+                                  function(x) sapply(sapply(ff.list, "[", 1), "[", x, simplify = T)),
+              indices = stats::setNames(sapply(ff.list, "[", 2), smpl$FileName)))
 }

@@ -71,6 +71,7 @@ wsp_get_indices <- function(wsp,
 
   ind.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
                          get_inds,
+                         return_ind_mat_only = T,
                          ...)
   names(ind.list) <- smpl$FileName
   return(ind.list)

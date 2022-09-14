@@ -35,7 +35,8 @@
 #' }
 sync_sampledescription <- function(FCS.file.folder,
                                    file.name = "sampledescription.xlsx",
-                                   exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files"),
+                                   exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files",
+                                                       "8_peak_bead", "rainbow_bead"),
                                    init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
                                    write.log = T) {
 

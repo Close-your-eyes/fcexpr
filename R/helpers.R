@@ -212,48 +212,14 @@ check_in <- function(wsp,
   return(list(groups = groups, samples = samples, FCS.file.folder = FCS.file.folder))
 }
 
-get_inds <- function(x) {
-
-  if (nrow(x) > 1) {
-    stop("Only one fcs file at a time.")
-  }
-
-  if (is.na(x$FCS.file.folder)) {
-    #path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
-    #names(path)[which(names(path) == "FilePath")] <- "file"
-    path <- dirname(x$FilePath)
-    if (!file.exists(path)) {
-      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provide the FCS.file.folder(s) on the current computer."))
-    }
-  } else {
-    path <- x$FCS.file.folder
-  }
-
-  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
-                                    name = x$group,
-                                    path = path,
-                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
-                                    truncate_max_range = F,
-                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"),
-                                    additional.keys = c("$TOT", "$BEGINDATA"))
-
-  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
-  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-  attr(ind_mat, "ws") <- x$wsp
-  attr(ind_mat, "FilePath") <- x$FilePath
-
-  flowWorkspace::gs_cleanup_temp(gs)
-  return(ind_mat)
-}
-
-
 get_ff <- function(x,
                    return_untransformed = T,
                    return_logicle_transformed = T,
                    downsample = 1,
                    remove_redundant_channels = F,
                    population,
-                   seed = 42) {
+                   seed = 42,
+                   return_ind_mat_only = F) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
   # pass full path as attr and check consistency later?
@@ -263,8 +229,6 @@ get_ff <- function(x,
   }
 
   if (is.na(x$FCS.file.folder)) {
-    #path <- x[,which(names(x) %in% c("sampleID", "FilePath")),drop=F]
-    #names(path)[which(names(path) == "FilePath")] <- "file"
     path <- dirname(x$FilePath)
     if (!file.exists(path)) {
       stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provide the FCS.file.folder(s) on the current computer."))
@@ -272,31 +236,50 @@ get_ff <- function(x,
   } else {
     path <- x$FCS.file.folder
   }
+
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,
                                     subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
                                     truncate_max_range = F,
+                                    transform = T,
                                     keywords = c("$FIL", "$TOT", "$BEGINDATA"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))
+
+  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
+  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
+  attr(ind_mat, "ws") <- x$wsp
+  attr(ind_mat, "FilePath") <- x$FilePath
+  if (return_ind_mat_only) {
+    return(ind_mat)
+  }
+
+
+  #browser()
+  #transes <<- flowWorkspace::gh_get_transformations(gs[[1]])
+  #attrs(transes[[1]])
+
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
   }
 
   if (return_untransformed && !return_logicle_transformed) {
-    inverse_transform <- T
+    inverse_transform <- stats::setNames(T, "untransformed")
   } else if (!return_untransformed && return_logicle_transformed) {
-    inverse_transform <- F
+    inverse_transform <- stats::setNames(F, "transformed")
   } else if (return_untransformed && return_logicle_transformed) {
-    inverse_transform <- c(F,T)
+    inverse_transform <- stats::setNames(c(F,T), c("transformed", "untransformed"))
   } else {
     stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
   }
 
-  ex <- lapply(inverse_transform, function (y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
+  ex <- lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
 
-  inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
+  #inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
+  inds <- ind_mat[,ifelse(population %in% attr(ind_mat, "short_names"),
+                          names(which(attr(ind_mat, "short_names") == population)),
+                          population),drop=T]
 
   ## overwrite downsample argument if provided as attr in x
   if ("downsample" %in% names(x)) {
@@ -305,7 +288,7 @@ get_ff <- function(x,
 
   if (downsample != 1) {
     set.seed(seed)
-    s <- sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)), downsample))))
+    s <- sort(sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)), downsample)))))
   } else {
     s <- which(inds)
   }
@@ -316,7 +299,7 @@ get_ff <- function(x,
   }
 
   flowWorkspace::gs_cleanup_temp(gs)
-  return(list(ex, inds))
+  return(list(expr = ex, ind_mat = ind_mat[which(inds),,drop=F]))
 }
 
 
@@ -454,35 +437,54 @@ get_gs <- function(x,
   return(channels)
 }
 
-.check.ff.list <- function(ff.list) {
+.check.ff.list <- function(ff.list, channels = NULL, strict = T) {
 
-  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))
-  out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
-  if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
-    warning("Channels of flowFrames do not have the same names. This cannot be handled. Will return data frame(s) of channel names.")
-    return(purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name)))
-  }
-
-  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$desc))
-  out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
-  if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
-    warning("Channel description are not equal across flowFrames.")
-  }
-
-
-'  sapply(ff.list, function (ff) {
-    if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$name}), 1, function(x) length(unique(x))) == 1)) {
-      print(sapply(ff, function(x) {flowCore::parameters(x)$name}))
-      stop("Channels of flowFrames do not have the same names. This cannot be handled.")
+  if (strict) {
+    out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))
+    out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
+    if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
+      warning("Channels of flowFrames do not have the same names. This cannot be handled. Will return data frame(s) of channel names.")
+      return(purrr::map(.x = ff.list, .f = ~purrr::map(.x = .x, .f = ~flowCore::parameters(.x)$name)))
     }
-  })'
 
-'  sapply(ff.list, function (ff) {
-    if(!all(apply(sapply(ff, function(x) {flowCore::parameters(x)$desc}), 1, function(x) length(unique(x))) == 1)) {
-      print(sapply(ff, function(x) {flowCore::parameters(x)$desc}))
+    out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$desc))
+    out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
+    if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
       warning("Channel description are not equal across flowFrames.")
     }
-  })'
+    return(NULL)
+  }
+
+
+  #### to do .... complicated
+  # check for equal channel names
+  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))[[1]]
+  if (any(!apply(out, 2, function(x) length(unique(x))) == 1)) {
+    out2 <- out[,which(apply(out, 2, function(x) length(unique(x))) != 1)]
+    if (any(channels %in% unique(unlist(out2)))) {
+      warning("Selected channels do not exist in every FCS file provided. Data frame with channels is returned.")
+      return(out)
+      ## if channels contain channel descriptions only do not print warning
+    } else if (any(channels %in% unique(unlist(out)))) {
+      warning("FCS files contain different channels but selected ones are not affected/included.")
+    }
+  }
+
+  # check for equal channel descs
+  out <- purrr::map(.x = ff.list, .f = ~purrr::map(.x = .x, .f = function(x) {
+    flowCore::parameters(x)$desc
+  }))
+  if (any(!apply(out, 2, function(x) length(unique(x))) == 1)) {
+    out2 <- out[,which(apply(out, 2, function(x) length(unique(x))) != 1)]
+    if (any(channels %in% unique(unlist(out2)))) {
+      warning("Selected channels do not exist in every FCS file provided. Data frame with channels is returned.")
+      return(out)
+      ## if channels contain channel descriptions only do not print warning
+    } else if (any(channels %in% unique(unlist(out)))) {
+      warning("FCS files contain different channels but selected ones are not affected/included.")
+    }
+  }
+
 }
 
 

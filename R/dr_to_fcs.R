@@ -409,10 +409,10 @@ dr_to_fcs <- function(ff.list,
       stop("add.sample.info has to be a list.")
     }
     if (is.null(names(add.sample.info))) {
-      stop("add.sample.info has to have names. These names become channel names in the FCS file.")
+      stop("add.sample.info has to have names. These names will become channel names in the FCS file.")
     }
     if (!all(unlist(lapply(add.sample.info, function(x) is.numeric(x))))) {
-      stop("Please only provide numeric values as additional sample infos.")
+      stop("Please provide numeric values only in add.sample.info: E.g. use as.numeric(as.factor(x)), where x is numeric.")
     }
     if (any(unlist(lapply(add.sample.info, function(x) is.na(x))))) {
       stop("NA found in sample infos.")
@@ -423,7 +423,9 @@ dr_to_fcs <- function(ff.list,
   }
 
   # check if channel names and desc are equal
-  .check.ff.list(ff.list = ff.list)
+  if (!is.null(fcs_check <- .check.ff.list(ff.list = ff.list, channels = channels, strict = T))) {
+    return(fcs_check)
+  }
 
   # set scaling funs
   scale.samples <-
@@ -467,7 +469,7 @@ dr_to_fcs <- function(ff.list,
 
   ## option to save inverse (~untransformed) data only to FCS
   if (write.untransformed.channels.to.FCS && !"untransformed" %in% names(ff.list)) {
-    message("Untransformed (inverse) data not provided. Hence, cannot be saved to FCS.")
+    message("Untransformed data not provided. Hence, cannot be saved to FCS.")
     write.untransformed.channels.to.FCS <- F
   }
 
@@ -477,11 +479,11 @@ dr_to_fcs <- function(ff.list,
   dim.red.data <- data.frame()
   ## write original data (transformed and/or untransformed) to fcs
   if (write.untransformed.channels.to.FCS && "untransformed" %in% names(ff.list)) {
-    dim.red.data <- do.call(rbind, lapply(ff.list[["untransformed"]], function(x) flowCore::exprs(x)))
+    dim.red.data <- do.call(rbind, lapply(ff.list[["untransformed"]], flowCore::exprs))
   }
 
   if (write.transformed.channels.to.FCS && "transformed" %in% names(ff.list)) {
-    expr_trans <- do.call(rbind, lapply(ff.list[["transformed"]], function(x) flowCore::exprs(x)))
+    expr_trans <- do.call(rbind, lapply(ff.list[["transformed"]], flowCore::exprs))
     expr_trans <- expr_trans[, which(!grepl(exclude.extra.channels, colnames(expr_trans)))]
     colnames(expr_trans) <- paste0(colnames(expr_trans), "_", transformation_name)
     if (nrow(dim.red.data) > 0) {
@@ -491,20 +493,15 @@ dr_to_fcs <- function(ff.list,
     }
   }
 
-  ## write ident to fcs; any slot is fine
-  if ("untransformed" %in% names(ff.list)) {
-    dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[["untransformed"]]), sapply(ff.list[["untransformed"]], nrow)))
-  } else if ("transformed" %in% names(ff.list)) {
-    dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[["transformed"]]), sapply(ff.list[["transformed"]], nrow)))
-  }
+  ## if transformed data is provided, these are used, if not then untransformed
+  ff.list_index <- ifelse("transformed" %in% names(ff[["flowframes"]]), "transformed", "untransformed")
+
+  ## write ident to fcs; any transformed or untransformed is fine
+  dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[[ff.list_index]]), sapply(ff.list[[ff.list_index]], nrow)))
 
   ## apply scaling which was selected above and select channels to use for dimension reduction.
-  ## if transformed data is provided, these are used, if not then untransformed
-  if ("transformed" %in% names(ff.list)) {
-    expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
-  } else {
-    expr.select <- scale.whole(do.call(rbind, lapply(ff.list[["untransformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
-  }
+  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[[ff.list_index]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
+
 
   ### allow to pass expr.select here.
   ## requires a lot of checking though
@@ -996,7 +993,7 @@ dr_to_fcs <- function(ff.list,
   ## ---- prepare final fcs file -------
 
   if (write.scaled.channels.to.FCS) {
-    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[["transformed"]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
+    scaled.expr <- scale.whole(do.call(rbind, lapply(ff.list[[ff.list_index]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
     scaled.expr <- scaled.expr[, which(!grepl(exclude.extra.channels, colnames(scaled.expr)))]
     colnames(scaled.expr) <- paste0(colnames(scaled.expr), "_scaled")
     dim.red.data <- do.call(cbind, list(dim.red.data, scaled.expr))
@@ -1032,7 +1029,7 @@ dr_to_fcs <- function(ff.list,
   if (!is.null(add.sample.info)) {
     tryCatch({
       for (i in names(add.sample.info)) {
-        dim.red.data <- do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(rep(1:length(ff.list[["transformed"]]), sapply(ff.list[["transformed"]], nrow)))))))
+        dim.red.data <- do.call(cbind, list(dim.red.data, rep(add.sample.info[[i]], times = as.numeric(table(rep(1:length(ff.list[[ff.list_index]]), sapply(ff.list[[ff.list_index]], nrow)))))))
         names(dim.red.data)[length(dim.red.data)] <- i
       }
     }, error = function(err) {
@@ -1122,13 +1119,13 @@ dr_to_fcs <- function(ff.list,
   #flowCore::keyword(ff) <- flowCore:::updateTransformKeywords(ff)
 
   ## ---- calc cluster markers -------
-  ## always use logicle transformed data if provided
+  ## always use transformed data if provided
   if (!is.null(clustering.for.marker.calc)) {
     message("Calculating markers.")
     tryCatch({
       marker <- lapply(clustering.for.marker.calc, function (clust_col) {
         message("Clustering: ", clust_col)
-        if ("transformed" %in% names(ff.list)) {
+        if (ff.list_index == "transformed") {
           # when transformed data is provided always use them for marker calc
           channels <- paste0(channels, "_", transformation_name)
         }
