@@ -41,5 +41,15 @@ plot <- ggraph::ggraph(graph_list[["graph"]], layout = "tree") +
 ggraph::geom_edge_link() +
 ggraph::geom_node_point(size = 4) +
 ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T)
+
+## color nodes by a lineage marker
+igraph::V(graph_list[["graph"]])$subname <- dplyr::case_when(grepl("CD3\\\\+", igraph::V(graph_list[["graph"]])$name) &
+                                                         !grepl("CD8\\\\+|CD4\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD3+",
+                                                         grepl("CD8\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD8+",
+                                                         grepl("CD4\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD4+",
+                                                         grepl("CD19\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD19+",
+                                                         grepl("CD66b\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD66b+",
+                                                         grepl("CD11c\\\\+", igraph::V(graph_list[["graph"]])$name) ~ "CD11c+",
+                                                         grepl("CD56\\\\+|NK", igraph::V(graph_list[["graph"]])$name) ~ "NK")
 }
 }

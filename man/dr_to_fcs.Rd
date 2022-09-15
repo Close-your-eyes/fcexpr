@@ -249,5 +249,19 @@ ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + 
  # this depends on the interpretation of the scientist though
 
 
+ ##############################################
+ ### overlay gated populations from flowjo ####
+ ### on dimension reduction plot (SOM/UMAP) ###
+ ##############################################
+
+common_cols <- Reduce(intersect, purrr::map(ff[["indices"]], colnames))
+ff[["indices"]] <- purrr::map(ff[["indices"]], function(x) x[,which(colnames(x) \%in\% common_cols)])
+ind_mat <- do.call(rbind, ff[["indices"]])
+
+som <- ggplot(out[["df"]], aes(SOM_1, SOM_2, color = as.factor(cutree_30))) +
+geom_point(size = 0.5) +
+geom_density2d(data = . \%>\% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black") +
+guides(color = guide_legend(override.aes = list(size = 2)))
+
 }
 }

@@ -148,6 +148,6 @@ wsp_get_ff <- function(wsp,
   }
 
   return(list(flowframes = lapply(stats::setNames(seq_along(ff.list[[1]][[1]]), names(ff.list[[1]][[1]])),
-                                  function(x) sapply(sapply(ff.list, "[", 1), "[", x, simplify = T)),
+                                  function(x) lapply(lapply(ff.list, "[[", 1), "[[", x)),
               indices = stats::setNames(sapply(ff.list, "[", 2), smpl$FileName)))
 }

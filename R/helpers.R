@@ -298,8 +298,13 @@ get_ff <- function(x,
     ex[[i]] <- subset(ex[[i]], inds)
   }
 
+  ind_mat <- ind_mat[which(inds),,drop=F]
+  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
+  attr(ind_mat, "ws") <- x$wsp
+  attr(ind_mat, "FilePath") <- x$FilePath
+
   flowWorkspace::gs_cleanup_temp(gs)
-  return(list(expr = ex, ind_mat = ind_mat[which(inds),,drop=F]))
+  return(list(expr = ex, ind_mat = ind_mat))
 }
 
 
