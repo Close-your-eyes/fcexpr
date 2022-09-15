@@ -174,7 +174,8 @@
 #'
 #' som <- ggplot(out[["df"]], aes(SOM_1, SOM_2, color = as.factor(cutree_30))) +
 #' geom_point(size = 0.5) +
-#' geom_density2d(data = . %>% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black") +
+#' geom_density2d(data = . %>% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black",
+#' contour_var = "ndensity", breaks = c(0.1, 0.2, 0.4, 0.6, 0.8)) +
 #' guides(color = guide_legend(override.aes = list(size = 2)))
 #'
 #'}
@@ -1062,14 +1063,12 @@ dr_to_fcs <- function(ff.list,
   }
 
   channel.desc_augment <- channel.desc
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))], "_scaled$")
-  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))], paste0("_", transformation_name, "$"))
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl("scaled$", colnames(dim.red.data))))], "_scaled")
+  channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))] <- paste0(channel.desc_augment[intersect(which(channel.desc_augment != ""), which(grepl(paste0(transformation_name, "$"), colnames(dim.red.data))))], paste0("_", transformation_name))
 
   channel.desc_augment[which(channel.desc_augment == "")] <- colnames(dim.red.data)[which(channel.desc_augment == "")]
   channel.desc_augment <- make.names(channel.desc_augment)
   names(channel.desc_augment) <- colnames(dim.red.data)
-
-
 
 
   ## ---- write flowframe file -------
