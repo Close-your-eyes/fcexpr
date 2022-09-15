@@ -153,11 +153,14 @@
 #'  ### to bi- or multimodality in any channel ###
 #'  ##############################################
 #'  # make one data frame
-#'  marker_all <- dplyr::bind_rows(lapply(names(dr[["marker"]]), function(x) dplyr::mutate(dr[["marker"]][[x]][["marker_table"]], clustering = x)))
+#'  marker_all <- purrr::map_dfr(setNames(names(out[["marker"]]), names(out[["marker"]])),
+#'  function(x) out[["marker"]][[x]][["marker_table"]], .id = "clustering")
 #'
 #'  # sort by diptest p value; or low p indicates bi- or multimodality
 #'  marker_all <- dplyr::arrange(marker_all, diptest_p)
 #'  # see ?diptest::dip.test
+#'  # a low p-value indicates bi- or multimodality (multiple peaks)
+#'  # a high p-value (close to 1) indicates unimodality
 #'  # multimodality indicates heterogeneity within in the cluster
 #'  # and may justify to separate that cluster further into sub-clusters
 #'  # this depends on the interpretation of the scientist though
@@ -1143,8 +1146,8 @@ dr_to_fcs <- function(ff.list,
           channels <- paste0(channels, "_", transformation_name)
         }
         # do not use expr.select which may have become dimensions of LDA
-        dat <- as.matrix(dim.red.data[,which(colnames(dim.red.data) %in% channels)])
-        cluster <- dim.red.data[,which(colnames(dim.red.data) == clust_col)]
+        dat <- as.matrix(dim.red.data[,which(colnames(dim.red.data) %in% channels),drop=F])
+        cluster <- dim.red.data[,which(colnames(dim.red.data) == clust_col),drop=T]
 
         message("Cluster sizes: ")
         print(table(cluster))
@@ -1236,8 +1239,8 @@ dr_to_fcs <- function(ff.list,
     out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
     out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[y]]), 2)
     out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
-    out[,"diptest_pvalue_1"] <- suppressWarnings(round(apply(dat_split[[x]], 2, function(z) diptest::dip.test(ifelse(length(z) > 71999, sample(z,71999), z))[["p.value"]]), 2))
-    out[,"diptest_pvalue_2"] <- suppressWarnings(round(apply(dat_split[[y]], 2, function(z) diptest::dip.test(ifelse(length(z) > 71999, sample(z,71999), z))[["p.value"]]), 2))
+    out[,"diptest_pvalue_1"] <- suppressWarnings(round(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
+    out[,"diptest_pvalue_2"] <- suppressWarnings(round(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
     out[,"cluster_1"] <- as.character(x) #sapply(strsplit(out$cluster12, "_____"), "[", 1, simplify = T)
     out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
     out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
@@ -1291,12 +1294,11 @@ dr_to_fcs <- function(ff.list,
         dplyr::select(feature, pval) %>%
         dplyr::rename("pvalue" = pval, "channel" = feature)
     })
-
     out[,"mean_cluster"] <- round(matrixStats::colMeans2(dat[which(cluster == x),,drop = F]), 2)
     out[,"mean_not_cluster"] <- round(matrixStats::colMeans2(dat[which(cluster != x),,drop = F]), 2)
     out[,"mean_diff"] <- round(out[,"mean_cluster"] - out[,"mean_not_cluster"], 2)
-    out[,"diptest_pvalue_cluster"] <- suppressWarnings(round(apply(dat[which(cluster == x),,drop = F], 2, function(z) diptest::dip.test(ifelse(length(z) > 71999, sample(z,71999), z))[["p.value"]]), 2))
-    out[,"diptest_pvalue_notcluster"] <- suppressWarnings(round(apply(dat[which(cluster != x),,drop = F], 2, function(z) diptest::dip.test(ifelse(length(z) > 71999, sample(z,71999), z))[["p.value"]]), 2))
+    out[,"diptest_pvalue_cluster"] <- suppressWarnings(round(apply(dat[which(cluster == x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
+    out[,"diptest_pvalue_notcluster"] <- suppressWarnings(round(apply(dat[which(cluster != x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
     out[,"cluster"] <- as.character(x)
     out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
     out <-
