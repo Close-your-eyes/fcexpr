@@ -26,7 +26,7 @@
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #' @param return_untransformed logical; do return untransformed (inverse) data
-#' @param return_logicle_transformed logical; do return logicle-transformed data
+#' @param return_transformed logical; do return transformed data (transformation as in flowjo?!)
 #' @param seed set a seed to reproduce downsampling
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
@@ -47,7 +47,7 @@ wsp_get_ff <- function(wsp,
                        samples = NULL,
                        invert_samples = F,
                        return_untransformed = T,
-                       return_logicle_transformed = T,
+                       return_transformed = T,
                        downsample = 1,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
@@ -67,7 +67,7 @@ wsp_get_ff <- function(wsp,
 
   checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder,
                          return_untransformed = return_untransformed,
-                         return_logicle_transformed = return_logicle_transformed)
+                         return_transformed = return_transformed)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -128,7 +128,7 @@ wsp_get_ff <- function(wsp,
   ff.list <- lapply_fun(stats::setNames(split(smpl, 1:nrow(smpl)), smpl$FileName),
                         get_ff,
                         return_untransformed = return_untransformed,
-                        return_logicle_transformed = return_logicle_transformed,
+                        return_transformed = return_transformed,
                         downsample = ds,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,

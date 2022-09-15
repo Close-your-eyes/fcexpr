@@ -13,7 +13,7 @@ wsp_get_ff(
   samples = NULL,
   invert_samples = F,
   return_untransformed = T,
-  return_logicle_transformed = T,
+  return_transformed = T,
   downsample = 1,
   remove_redundant_channels = F,
   lapply_fun = lapply,
@@ -42,7 +42,7 @@ if NULL all samples (from selected groups) are read}
 
 \item{return_untransformed}{logical; do return untransformed (inverse) data}
 
-\item{return_logicle_transformed}{logical; do return logicle-transformed data}
+\item{return_transformed}{logical; do return transformed data (transformation as in flowjo?!)}
 
 \item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
 which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all

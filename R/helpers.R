@@ -185,7 +185,7 @@ check_in <- function(wsp,
                      groups,
                      FCS.file.folder,
                      return_untransformed = NULL,
-                     return_logicle_transformed = NULL) {
+                     return_transformed = NULL) {
 
   if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
@@ -202,8 +202,8 @@ check_in <- function(wsp,
     if (length(FCS.file.folder) != length(wsp)) {stop("FCS.file.folder has to have the same length as wsp or 1.")}
   }
 
-  if ((!is.null(return_untransformed) && !return_untransformed) && (!is.null(return_logicle_transformed) && !return_logicle_transformed)) {
-    stop("At least one of return_logicle_transformed or return_untransformed has to be TRUE.")
+  if ((!is.null(return_untransformed) && !return_untransformed) && (!is.null(return_transformed) && !return_transformed)) {
+    stop("At least one of return_transformed or return_untransformed has to be TRUE.")
   }
 
   #inverse_transform <- unique(inverse_transform)
@@ -214,7 +214,7 @@ check_in <- function(wsp,
 
 get_ff <- function(x,
                    return_untransformed = T,
-                   return_logicle_transformed = T,
+                   return_transformed = T,
                    downsample = 1,
                    remove_redundant_channels = F,
                    population,
@@ -264,14 +264,14 @@ get_ff <- function(x,
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
   }
 
-  if (return_untransformed && !return_logicle_transformed) {
+  if (return_untransformed && !return_transformed) {
     inverse_transform <- stats::setNames(T, "untransformed")
-  } else if (!return_untransformed && return_logicle_transformed) {
+  } else if (!return_untransformed && return_transformed) {
     inverse_transform <- stats::setNames(F, "transformed")
-  } else if (return_untransformed && return_logicle_transformed) {
+  } else if (return_untransformed && return_transformed) {
     inverse_transform <- stats::setNames(c(F,T), c("transformed", "untransformed"))
   } else {
-    stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
+    stop("At least one of return_untransformed or return_transformed has to be TRUE.")
   }
 
   ex <- lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
@@ -311,14 +311,12 @@ get_ff <- function(x,
 get_ff2 <- function(x,
                     downsample = 1,
                     population,
-                    return_untransformed = T,
-                    return_logicle_transformed = T,
                     alias_attr_name,
                     path_attr_name,
                     seed = 42) {
 
-  if (!return_untransformed && !return_logicle_transformed) {
-    stop("At least one of return_untransformed or return_logicle_transformed has to be TRUE.")
+  if (!return_untransformed && !return_transformed) {
+    stop("At least one of return_untransformed or return_transformed has to be TRUE.")
   }
 
   if (!path_attr_name %in% names(attributes(x))) {
@@ -361,7 +359,7 @@ get_ff2 <- function(x,
 
   ## ff is now a flow frame with untransformed values in expr
 
-  if (return_logicle_transformed) {
+'  if (return_transformed) {
     ff <- list(ff, lgcl_trsfrm_ff(ff))
     names(ff) <- c("untransformed", "transformed")
   } else {
@@ -370,7 +368,10 @@ get_ff2 <- function(x,
   }
   if (!return_untransformed) {
     ff <- ff[2]
-  }
+  }'
+
+  ff <- list(ff)
+  names(ff) <- c("untransformed")
   return(ff)
 }
 
