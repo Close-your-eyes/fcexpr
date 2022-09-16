@@ -1205,10 +1205,19 @@ dr_to_fcs <- function(ff.list,
 }
 
 .cluster_ordering <- function(ks) {
-  ks <- apply(ks, 2, function (x) {
-    new_order <- stats::setNames(names(table(x)), nm = names(sort(table(x), decreasing = T)))
-    return(as.numeric(new_order[as.character(x)]))
-  })
+  if (methods::is(ks, "matrix")) {
+    ks <- apply(ks, 2, function (x) {
+      new_order <- stats::setNames(names(table(x)), nm = names(sort(table(x), decreasing = T)))
+      return(as.numeric(new_order[as.character(x)]))
+    })
+  } else if (methods::is(ks, "integer")) {
+    new_order <- stats::setNames(names(table(ks)), nm = names(sort(table(ks), decreasing = T)))
+    ks <- as.numeric(new_order[as.character(ks)])
+  } else {
+    new_order <- stats::setNames(names(table(ks)), nm = names(sort(table(ks), decreasing = T)))
+    ks <- unname(new_order[as.character(ks)])
+  }
+
   return(ks)
 }
 
