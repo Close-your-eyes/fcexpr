@@ -1153,6 +1153,11 @@ dr_to_fcs <- function(ff.list,
         print(table(cluster))
         #cluster <- cluster[which(table(cluster) > cluster.marker.min.cells)]
 
+
+        ## alternatives to dip.test:
+        # silverman test: https://github.com/jenzopr/silvermantest
+        # multimode: https://cran.r-project.org/web/packages/multimode/multimode.pdf
+
         # global markers
         if (calc.global.markers) {
           message("Global markers. Start: ", Sys.time())
