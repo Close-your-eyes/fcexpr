@@ -299,6 +299,7 @@ get_ff <- function(x,
   }
 
   if (leverage_score_for_sampling) {
+    message("Calculating leverage scores.")
     channels <- .get.channels(ex[[1]], channels = channels)
     lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[,channels]), verbose = F, seed = seed)
   } else {
