@@ -440,36 +440,30 @@ dr_to_fcs <- function(ff.list,
     }
   }
 
+  # set scaling funs
+  scale.samples <- switch(match.arg(scale.samples, c("none", "z.score", "min.max")),
+                          z.score = scale,
+                          min.max = min.max.normalization,
+                          none = function(x) return(x))
+
+  scale.whole <- switch(match.arg(scale.whole, c("z.score", "min.max", "none")),
+                        z.score = scale,
+                        min.max = min.max.normalization,
+                        none = function(x) return(x))
+
+
   # check if channel names and desc are equal
   if (!is.null(fcs_check <- .check.ff.list(ff.list = ff.list, channels = channels, strict = T))) {
     return(fcs_check)
   }
-
-  # set scaling funs
-  scale.samples <-
-    switch(match.arg(scale.samples, c("none", "z.score", "min.max")),
-           z.score = scale,
-           min.max = min.max.normalization,
-           none = function(x) {
-             return(x)
-           }
-    )
-
-  scale.whole <-
-    switch(match.arg(scale.whole, c("z.score", "min.max", "none")),
-           z.score = scale,
-           min.max = min.max.normalization,
-           none = function(x) {
-             return(x)
-           }
-    )
 
   ## channel names from first ff
   channels <- .get.channels(ff = ff.list[[1]][[1]], timeChannel = timeChannel, channels = channels)
 
   # overwrite channel desc in ffs
   # correct order is important, as provided by .get.channels
-  if ("transformed" %in% names(ff.list)) {
+  #
+'  if ("transformed" %in% names(ff.list)) {
     for (i in seq_along(ff.list[["transformed"]])) {
       ff.list[["transformed"]][[i]]@parameters@data[["desc"]][which(ff.list[["transformed"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
     }
@@ -478,7 +472,7 @@ dr_to_fcs <- function(ff.list,
     for (i in seq_along(ff.list[["untransformed"]])) {
       ff.list[["untransformed"]][[i]]@parameters@data[["desc"]][which(ff.list[["untransformed"]][[i]]@parameters@data[["name"]] %in% channels)] <- names(channels)
     }
-  }
+  }'
 
   # first step to create matrix for fcs file; put here to allow early cluster calculation which then
   # allows for lda calculation before umap, som, etc.
@@ -518,7 +512,7 @@ dr_to_fcs <- function(ff.list,
   dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[[ff.list_index]]), sapply(ff.list[[ff.list_index]], nrow)))
 
   ## apply scaling which was selected above and select channels to use for dimension reduction.
-  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[[ff.list_index]], function(x) scale.samples(flowCore::exprs(x)[, channels]))))
+  expr.select <- scale.whole(do.call(rbind, lapply(ff.list[[ff.list_index]], function(x) scale.samples(flowCore::exprs(x)[, channels])))) # names to desc here?!
 
 
   ### allow to pass expr.select here.
@@ -1253,8 +1247,8 @@ dr_to_fcs <- function(ff.list,
     out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
     out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[y]]), 2)
     out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
-    out[,"diptest_pvalue_1"] <- suppressWarnings(round(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
-    out[,"diptest_pvalue_2"] <- suppressWarnings(round(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
+    out[,"diptest_pvalue_1"] <- suppressWarnings(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+    out[,"diptest_pvalue_2"] <- suppressWarnings(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
     out[,"cluster_1"] <- as.character(x) #sapply(strsplit(out$cluster12, "_____"), "[", 1, simplify = T)
     out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
     out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
@@ -1311,8 +1305,8 @@ dr_to_fcs <- function(ff.list,
     out[,"mean_cluster"] <- round(matrixStats::colMeans2(dat[which(cluster == x),,drop = F]), 2)
     out[,"mean_not_cluster"] <- round(matrixStats::colMeans2(dat[which(cluster != x),,drop = F]), 2)
     out[,"mean_diff"] <- round(out[,"mean_cluster"] - out[,"mean_not_cluster"], 2)
-    out[,"diptest_pvalue_cluster"] <- suppressWarnings(round(apply(dat[which(cluster == x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
-    out[,"diptest_pvalue_notcluster"] <- suppressWarnings(round(apply(dat[which(cluster != x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]), 2))
+    out[,"diptest_pvalue_cluster"] <- suppressWarnings(apply(dat[which(cluster == x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+    out[,"diptest_pvalue_notcluster"] <- suppressWarnings(apply(dat[which(cluster != x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
     out[,"cluster"] <- as.character(x)
     out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
     out <-

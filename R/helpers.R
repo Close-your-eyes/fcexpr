@@ -359,7 +359,7 @@ get_ff2 <- function(x,
 
   ## ff is now a flow frame with untransformed values in expr
 
-'  if (return_transformed) {
+  '  if (return_transformed) {
     ff <- list(ff, lgcl_trsfrm_ff(ff))
     names(ff) <- c("untransformed", "transformed")
   } else {
@@ -445,15 +445,32 @@ get_gs <- function(x,
 
 .check.ff.list <- function(ff.list, channels = NULL, strict = T) {
 
+  ## combine with .get.channels?
+
+  ## check if untransformed and transformed ffs are equal
+  if (length(ff.list) > 2) {
+    stop("ff.list can not be larger than 2.")
+  }
+
+  if (length(ff.list) == 2) {
+    if(any(unlist(purrr::map2(ff.list[[1]], ff.list[[2]], ~ length(unique(list(flowCore::pData(flowCore::parameters(.x))[,c("name", "desc")], flowCore::pData(flowCore::parameters(.y))[,c("name", "desc")]))) == 1)))) {
+      stop("One or more paired flowframes (transformed and untransformed) do share the same pData.")
+    }
+  }
+
   if (strict) {
-    out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))
+    #out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name)) ## change this somehow (transformed and untransformed are combined)
+    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
     out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
     if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
       warning("Channels of flowFrames do not have the same names. This cannot be handled. Will return data frame(s) of channel names.")
       return(purrr::map(.x = ff.list, .f = ~purrr::map(.x = .x, .f = ~flowCore::parameters(.x)$name)))
     }
 
-    out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$desc))
+
+    ## NA-columns are return without row names, hence set row names manually for binding to df
+    #out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"])))
+    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"]))
     out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
     if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
       warning("Channel description are not equal across flowFrames.")
@@ -461,36 +478,48 @@ get_gs <- function(x,
     return(NULL)
   }
 
+  if (!strict) {
+    ## names
+    #out <- purrr::map_dfr(.x = ff.list, .f = ~purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name))
+    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
+    out2 <- apply(out, 2, function(x) unique(x))
+    if (any(purrr::map_int(out2, length) > 1)) {
+      if (any(channels %in% unlist(out2[which(purrr::map_int(out2, length) > 1)]))) {
+        warning("Channels of flowframes do not have the same names including one of selected channels.
+        If this is intended try to select respective channels by equal channel descriptions.
+                Modify flowframes accordingly before.
+                Will now return data frame of channel names.")
+        return(out)
+      } else {
+        warning("Channels of flowFrames do not have the same names. But non of selected channels is affected/included.")
+      }
+    }
 
-  #### to do .... complicated
-  # check for equal channel names
-  out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name))[[1]]
-  if (any(!apply(out, 2, function(x) length(unique(x))) == 1)) {
-    out2 <- out[,which(apply(out, 2, function(x) length(unique(x))) != 1)]
-    if (any(channels %in% unique(unlist(out2)))) {
-      warning("Selected channels do not exist in every FCS file provided. Data frame with channels is returned.")
-      return(out)
-      ## if channels contain channel descriptions only do not print warning
-    } else if (any(channels %in% unique(unlist(out)))) {
-      warning("FCS files contain different channels but selected ones are not affected/included.")
+
+    #descs
+    out <- purrr::map(.x = ff.list[[1]], .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"]))
+    out <- purrr::map(out, function(x) x[which(!is.na(x))])
+    channels_descs <- channels[which(channels %in% unique(unlist(out)))]
+
+    if (length(unique(out)) != 1) {
+      # check for uniqueness
+      message("Channel descriptions are not equal across flowframes.")
+      if (all(channels_descs %in% purrr::reduce(out, intersect))) {
+        message("Selected channels are found in every flowframe though.")
+        out2 <- purrr::map(.x = .x, .f = ~flowCore::pData(flowCore::parameters(.x))[,c("name", "desc")])
+        out2 <- purrr::map(out2, tidyr::drop_na)
+        if (length(unique(out2)) != 1) {
+          message("Equal channel descriptions belong to different channels:")
+          print(unique(out2))
+        }
+      } else {
+        warning("At least one selected channel are affected. Please check and fix.
+                Will return list of unique channel names and descriptions now.")
+        return(unique(purrr::map(.x = .x, .f = ~flowCore::pData(flowCore::parameters(.x))[,c("name", "desc")])))
+      }
     }
   }
-
-  # check for equal channel descs
-  out <- purrr::map(.x = ff.list, .f = ~purrr::map(.x = .x, .f = function(x) {
-    flowCore::parameters(x)$desc
-  }))
-  if (any(!apply(out, 2, function(x) length(unique(x))) == 1)) {
-    out2 <- out[,which(apply(out, 2, function(x) length(unique(x))) != 1)]
-    if (any(channels %in% unique(unlist(out2)))) {
-      warning("Selected channels do not exist in every FCS file provided. Data frame with channels is returned.")
-      return(out)
-      ## if channels contain channel descriptions only do not print warning
-    } else if (any(channels %in% unique(unlist(out)))) {
-      warning("FCS files contain different channels but selected ones are not affected/included.")
-    }
-  }
-
+  return(NULL)
 }
 
 
