@@ -233,7 +233,7 @@ get_ff <- function(x,
     stop("At least one of return_untransformed or return_transformed has to be TRUE.")
   }
 
-  if (downsample != 1 && leverage_score_for_sampling) {
+  if (downsample == 1 && leverage_score_for_sampling) {
     message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
     leverage_score_for_sampling <- F
   }
@@ -268,10 +268,11 @@ get_ff <- function(x,
                                     additional.keys = c("$TOT", "$BEGINDATA"))
 
   ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
+  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
+  attr(ind_mat, "ws") <- x$wsp
+  attr(ind_mat, "FilePath") <- x$FilePath
+
   if (return_ind_mat_only) {
-    attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-    attr(ind_mat, "ws") <- x$wsp
-    attr(ind_mat, "FilePath") <- x$FilePath
     return(ind_mat)
   }
 
@@ -301,7 +302,7 @@ get_ff <- function(x,
   if (leverage_score_for_sampling) {
     message("Calculating leverage scores.")
     channels <- .get.channels(ex[[1]], channels = channels)
-    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[,channels]), verbose = F, seed = seed)
+    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[which(inds),channels]), verbose = F, seed = seed)
   } else {
     lev_scores <- rep(1, nrow(flowCore::exprs(ex[[1]])))
   }
@@ -352,7 +353,7 @@ get_ff2 <- function(x,
     stop("Only provide one population.")
   }
 
-  if (downsample != 1 && leverage_score_for_sampling) {
+  if (downsample == 1 && leverage_score_for_sampling) {
     message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
     leverage_score_for_sampling <- F
   }
@@ -386,7 +387,7 @@ get_ff2 <- function(x,
 
   if (leverage_score_for_sampling) {
     channels <- .get.channels(ff, channels = channels)
-    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ff)[,channels]), verbose = F, seed = seed)
+    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ff)[which(inds),channels]), verbose = F, seed = seed)
   } else {
     lev_scores <- rep(1, nrow(flowCore::exprs(ff)))
   }

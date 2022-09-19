@@ -15,6 +15,8 @@
 #' @param lapply_fun lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen as lapply_fun
 #' @param seed set a seed to reproduce downsampling
+#' @param channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
+#' @param leverage_score_for_sampling logical whether to use leverage scores for downsampling
 #'
 #' @return list of flow frames, one for each ind_mat
 #' @export
@@ -29,10 +31,10 @@ inds_get_ff <- function(ind_mat,
                         alias_attr_name = "short_names",
                         path_attr_name = "FilePath",
                         downsample = 1,
-                        #return_untransformed = T,
-                        #return_transformed = T,
                         lapply_fun = lapply,
                         seed = 42,
+                        channels = channels,
+                        leverage_score_for_sampling = F,
                         ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -76,11 +78,11 @@ inds_get_ff <- function(ind_mat,
                         get_ff2,
                         downsample = ds,
                         population = population,
-                        #return_untransformed = return_untransformed,
-                        #return_transformed = return_transformed,
                         alias_attr_name = alias_attr_name,
                         path_attr_name = path_attr_name,
                         seed = seed,
+                        channels = channels,
+                        leverage_score_for_sampling = leverage_score_for_sampling,
                         ...)
 
   if (all(downsample == "min")) {

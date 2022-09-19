@@ -28,6 +28,8 @@
 #' @param return_untransformed logical; do return untransformed (inverse) data
 #' @param return_transformed logical; do return transformed data (transformation as in flowjo?!)
 #' @param seed set a seed to reproduce downsampling
+#' @param channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
+#' @param leverage_score_for_sampling logical whether to use leverage scores for downsampling
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
@@ -52,6 +54,8 @@ wsp_get_ff <- function(wsp,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
                        seed = 42,
+                       channels = NULL,
+                       leverage_score_for_sampling = F,
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)) {
@@ -133,6 +137,8 @@ wsp_get_ff <- function(wsp,
                         remove_redundant_channels = remove_redundant_channels,
                         population = population,
                         seed = seed,
+                        channels = channels,
+                        leverage_score_for_sampling = leverage_score_for_sampling,
                         ...)
 
   if (all(downsample == "min")) {
