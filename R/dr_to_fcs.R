@@ -818,15 +818,17 @@ dr_to_fcs <- function(ff.list,
     })
   }
 
-
   if (run.mhclust) {
     tryCatch({
       #run.mhclust logical, whether to run Mahalanobis distance-based hierarchical cluster analysis \href{https://github.com/tsieger/mhca}{(mhca)} (similar to hclust)
-      # 2022 09 07: how to suplly apriori clusters?
+      # 2022 09 07: how to supply apriori clusters? # see shinysom
+      # slow
       message("Finding clusters with mhclust. Start: ", Sys.time())
       temp_dots <- dots[which(grepl("^mhclust__", names(dots), ignore.case = T))]
       names(temp_dots) <- gsub("^mhclust__", "", names(temp_dots), ignore.case = T)
-      temp_dots <- c(list(g = ks[,1]), temp_dots)
+
+      temp_dots <- c(list(g = ks[,1], quick = T, gintra = F), temp_dots) ## see shinysom for argument suggestion
+
       h <- do.call(mhca::mhclust, args = c(list(x = expr.select), temp_dots[which(names(temp_dots) %in% names(formals(mhca::mhclust))[-1])]))
 
       temp_dots <- dots[which(grepl("^cutree__", names(dots), ignore.case = T))]

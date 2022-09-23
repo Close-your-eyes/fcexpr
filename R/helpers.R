@@ -219,6 +219,8 @@ get_ff <- function(x,
                    remove_redundant_channels = F,
                    population,
                    seed = 42,
+                   channels = NULL,
+                   leverage_score_for_sampling = F,
                    return_ind_mat_only = F) {
 
   # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
@@ -226,6 +228,25 @@ get_ff <- function(x,
 
   if (nrow(x) > 1) {
     stop("Only one fcs file at a time.")
+  }
+  if (!return_untransformed && !return_transformed) {
+    stop("At least one of return_untransformed or return_transformed has to be TRUE.")
+  }
+
+  if (downsample == 1 && leverage_score_for_sampling) {
+    message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
+    leverage_score_for_sampling <- F
+  }
+
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+    if (!requireNamespace("remotes", quietly = T)) {
+      utils::install.packages("remotes")
+    }
+    remotes::install_github("satijalab/seurat", "feat/dictionary")
+  }
+
+  if (!is.null(channels) && !leverage_score_for_sampling) {
+    message("channels are only needed for leverage score aided sampling. leverage_score_for_sampling = F though, so channels are ignored.")
   }
 
   if (is.na(x$FCS.file.folder)) {
@@ -250,15 +271,10 @@ get_ff <- function(x,
   attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
   attr(ind_mat, "ws") <- x$wsp
   attr(ind_mat, "FilePath") <- x$FilePath
+
   if (return_ind_mat_only) {
     return(ind_mat)
   }
-
-
-  #browser()
-  #transes <<- flowWorkspace::gh_get_transformations(gs[[1]])
-  #attrs(transes[[1]])
-
 
   if (remove_redundant_channels) {
     gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
@@ -270,13 +286,10 @@ get_ff <- function(x,
     inverse_transform <- stats::setNames(F, "transformed")
   } else if (return_untransformed && return_transformed) {
     inverse_transform <- stats::setNames(c(F,T), c("transformed", "untransformed"))
-  } else {
-    stop("At least one of return_untransformed or return_transformed has to be TRUE.")
   }
 
   ex <- lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
 
-  #inds <- flowWorkspace::gh_pop_get_indices(gs[[1]], y = population)
   inds <- ind_mat[,ifelse(population %in% attr(ind_mat, "short_names"),
                           names(which(attr(ind_mat, "short_names") == population)),
                           population),drop=T]
@@ -286,9 +299,19 @@ get_ff <- function(x,
     downsample <- x$downsample
   }
 
+  if (leverage_score_for_sampling) {
+    message("Calculating leverage scores.")
+    channels <- .get.channels(ex[[1]], channels = channels)
+    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[which(inds),channels]), verbose = F, seed = seed)
+  } else {
+    lev_scores <- rep(1, nrow(flowCore::exprs(ex[[1]])))
+  }
+
   if (downsample != 1) {
     set.seed(seed)
-    s <- sort(sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)), downsample)))))
+    s <- sort(sample(x = which(inds),
+                     size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample), min(c(length(which(inds)), downsample))),
+                     prob = lev_scores))
   } else {
     s <- which(inds)
   }
@@ -313,11 +336,9 @@ get_ff2 <- function(x,
                     population,
                     alias_attr_name,
                     path_attr_name,
+                    leverage_score_for_sampling = F,
+                    channels = NULL,
                     seed = 42) {
-
-  if (!return_untransformed && !return_transformed) {
-    stop("At least one of return_untransformed or return_transformed has to be TRUE.")
-  }
 
   if (!path_attr_name %in% names(attributes(x))) {
     message(path_attr_name, " not found in attributes.")
@@ -330,6 +351,22 @@ get_ff2 <- function(x,
 
   if (length(population) > 1) {
     stop("Only provide one population.")
+  }
+
+  if (downsample == 1 && leverage_score_for_sampling) {
+    message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
+    leverage_score_for_sampling <- F
+  }
+
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+    if (!requireNamespace("remotes", quietly = T)) {
+      utils::install.packages("remotes")
+    }
+    remotes::install_github("satijalab/seurat", "feat/dictionary")
+  }
+
+  if (!is.null(channels) && !leverage_score_for_sampling) {
+    message("channels are only needed for leverage score aided sampling. leverage_score_for_sampling = F though, so channels are ignored.")
   }
 
   if (population %in% colnames(x)) {
@@ -346,33 +383,26 @@ get_ff2 <- function(x,
     downsample <- attr(x, "downsample")
   }
 
+  ff <- flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F)
+
+  if (leverage_score_for_sampling) {
+    channels <- .get.channels(ff, channels = channels)
+    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ff)[which(inds),channels]), verbose = F, seed = seed)
+  } else {
+    lev_scores <- rep(1, nrow(flowCore::exprs(ff)))
+  }
+
   if (downsample != 1) {
     set.seed(seed)
-    s <- sample(which(inds), size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample),  min(c(length(which(inds)),downsample))))
+    s <- sample(x = which(inds),
+                size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample), min(c(length(which(inds)),downsample))),
+                prob = lev_scores)
   } else {
     s <- which(inds)
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
 
-  # which.lines with which(inds) argument is much slower!
-  ff <- subset(flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F), inds)
-
-  ## ff is now a flow frame with untransformed values in expr
-
-  '  if (return_transformed) {
-    ff <- list(ff, lgcl_trsfrm_ff(ff))
-    names(ff) <- c("untransformed", "transformed")
-  } else {
-    ff <- list(ff)
-    names(ff) <- c("untransformed")
-  }
-  if (!return_untransformed) {
-    ff <- ff[2]
-  }'
-
-  ff <- list(ff)
-  names(ff) <- c("untransformed")
-  return(ff)
+  return(stats::setNames(list(subset(ff, inds)), "untransformed"))
 }
 
 get_gs <- function(x,
@@ -446,23 +476,22 @@ get_gs <- function(x,
 .check.ff.list <- function(ff.list, channels = NULL, strict = T) {
 
   ## combine with .get.channels?
-
   ## check if untransformed and transformed ffs are equal
   if (length(ff.list) > 2) {
     stop("ff.list can not be larger than 2.")
   }
 
   if (length(ff.list) == 2) {
-    if(any(unlist(purrr::map2(ff.list[[1]], ff.list[[2]], ~ length(unique(list(flowCore::pData(flowCore::parameters(.x))[,c("name", "desc")], flowCore::pData(flowCore::parameters(.y))[,c("name", "desc")]))) == 1)))) {
+    if(any(unlist(purrr::map2(ff.list[[1]], ff.list[[2]], ~ length(unique(list(flowCore::pData(flowCore::parameters(.x))[,c("name", "desc")], flowCore::pData(flowCore::parameters(.y))[,c("name", "desc")]))) != 1)))) {
       stop("One or more paired flowframes (transformed and untransformed) do share the same pData.")
     }
   }
 
   if (strict) {
     #out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~flowCore::parameters(.x)$name)) ## change this somehow (transformed and untransformed are combined)
-    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
-    out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
-    if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
+    out <- purrr::map(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
+    out <- purrr::pmap_lgl(out, ~length(unique(.x)) == 1)
+    if (!all(out)) {
       warning("Channels of flowFrames do not have the same names. This cannot be handled. Will return data frame(s) of channel names.")
       return(purrr::map(.x = ff.list, .f = ~purrr::map(.x = .x, .f = ~flowCore::parameters(.x)$name)))
     }
@@ -470,9 +499,9 @@ get_gs <- function(x,
 
     ## NA-columns are return without row names, hence set row names manually for binding to df
     #out <- purrr::map(.x = ff.list, .f = ~purrr::map_dfr(.x = .x, .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"])))
-    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"]))
-    out <- purrr::map(.x = out, .f = ~apply(.x, 1, function(x) length(unique(x))) == 1)
-    if (!all(purrr::map_lgl(.x = out, .f = ~all(.x)))) {
+    out <- purrr::map(.x = ff.list[[1]], .f = ~stats::setNames(flowCore::pData(flowCore::parameters(.x))[,"desc"], flowCore::pData(flowCore::parameters(.x))[,"name"]))
+    out <- purrr::pmap_lgl(out, ~length(unique(.x)) == 1)
+    if (!all(out)) {
       warning("Channel description are not equal across flowFrames.")
     }
     return(NULL)
@@ -481,8 +510,10 @@ get_gs <- function(x,
   if (!strict) {
     ## names
     #out <- purrr::map_dfr(.x = ff.list, .f = ~purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name))
-    out <- purrr::map_dfr(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
-    out2 <- apply(out, 2, function(x) unique(x))
+    #out2 <- apply(out, 2, function(x) unique(x))
+
+    out <- purrr::map(.x = ff.list[[1]], .f = ~flowCore::parameters(.x)$name)
+    out2 <- purrr::pmap(out, ~unique(.x))
     if (any(purrr::map_int(out2, length) > 1)) {
       if (any(channels %in% unlist(out2[which(purrr::map_int(out2, length) > 1)]))) {
         warning("Channels of flowframes do not have the same names including one of selected channels.
