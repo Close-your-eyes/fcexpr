@@ -161,6 +161,7 @@ ab_panel_to_fcs <- function(sampledescription,
                                                                                               "\\?" = "\\\\?")), recursive = T, full.names = T)
 
               ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
+              ff <- .check_comp_mat(ff)
               channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
               channels.inv <- stats::setNames(names(channels),channels)
 
@@ -289,3 +290,27 @@ conjugate_to_channel <- function(conjugates,
   }
   return(ccm)
 }
+
+.check_comp_mat <- function(ff) {
+
+  spill_ind <- which(flowCore:::.spillover_pattern %in% names(flowCore::keyword(ff)))
+  if (length(spill_ind) == 0) {
+    message("No compensation matrix found in flowFrame. Will try create one.")
+    spill_key <- flowCore:::.spillover_pattern[1]
+  } else if (length(spill_ind) > 1) {
+    message("More than one spillover keyword detected. Will use the first one: ", flowCore:::.spillover_pattern[spill_ind])
+    spill_key <- flowCore:::.spillover_pattern[min(which(flowCore:::.spillover_pattern %in% names(flowCore::keyword(ff))))]
+  } else {
+    spill_key <- flowCore:::.spillover_pattern[min(which(flowCore:::.spillover_pattern %in% names(flowCore::keyword(ff))))]
+  }
+
+  if (is.null(flowCore::keyword(ff)[[spill_key]]) || all(dim(flowCore::keyword(ff)[[spill_key]]) == 0)) {
+    comp_channels <- flowCore::pData(flowCore::parameters(ff))$name
+    comp_channels <- comp_channels[which(!grepl("time|hdr|fsc|ssc", comp_channels, ignore.case = T))]
+    comp_mat <- diag(x=length(comp_channels))
+    colnames(comp_mat) <- comp_channels
+    flowCore::keyword(ff)[[spill_key]] <- comp_mat
+  }
+  return(ff)
+}
+
