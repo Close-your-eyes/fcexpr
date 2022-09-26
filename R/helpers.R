@@ -411,7 +411,7 @@ get_gs <- function(x,
   gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
                                     name = unique(x$group),
                                     path = unique(x$FCS.file.folder),
-                                    subset = `$FIL` == x$FIL & `$BEGINDATA` == x$BEGINDATA & `$TOT` == x$TOT,
+                                    subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
                                     truncate_max_range = F,
                                     keywords = c("$FIL", "$BEGINDATA", "$TOT"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))
