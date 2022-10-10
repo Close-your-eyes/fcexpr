@@ -239,11 +239,14 @@ ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + 
  ### to bi- or multimodality in any channel ###
  ##############################################
  # make one data frame
- marker_all <- dplyr::bind_rows(lapply(names(dr[["marker"]]), function(x) dplyr::mutate(dr[["marker"]][[x]][["marker_table"]], clustering = x)))
+ marker_all <- purrr::map_dfr(setNames(names(out[["marker"]]), names(out[["marker"]])),
+ function(x) out[["marker"]][[x]][["marker_table"]], .id = "clustering")
 
  # sort by diptest p value; or low p indicates bi- or multimodality
  marker_all <- dplyr::arrange(marker_all, diptest_p)
  # see ?diptest::dip.test
+ # a low p-value indicates bi- or multimodality (multiple peaks)
+ # a high p-value (close to 1) indicates unimodality
  # multimodality indicates heterogeneity within in the cluster
  # and may justify to separate that cluster further into sub-clusters
  # this depends on the interpretation of the scientist though
@@ -260,7 +263,8 @@ ind_mat <- do.call(rbind, ff[["indices"]])
 
 som <- ggplot(out[["df"]], aes(SOM_1, SOM_2, color = as.factor(cutree_30))) +
 geom_point(size = 0.5) +
-geom_density2d(data = . \%>\% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black") +
+geom_density2d(data = . \%>\% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black",
+contour_var = "ndensity", breaks = c(0.1, 0.2, 0.4, 0.6, 0.8)) +
 guides(color = guide_legend(override.aes = list(size = 2)))
 
 }

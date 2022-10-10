@@ -48,7 +48,7 @@ wsp_get_indices <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder, return_untransformed = T, return_logicle_transformed = T)
+  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
@@ -70,7 +70,7 @@ wsp_get_indices <- function(wsp,
   }
 
   ind.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
-                         get_inds,
+                         get_ff,
                          return_ind_mat_only = T,
                          ...)
   names(ind.list) <- smpl$FileName
