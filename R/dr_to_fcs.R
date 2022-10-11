@@ -1197,7 +1197,7 @@ dr_to_fcs <- function(ff.list,
       flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))
     }
   }
-  return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker))
+  return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result))
 }
 
 .cluster_ordering <- function(ks) {
@@ -1304,6 +1304,10 @@ dr_to_fcs <- function(ff.list,
   if (is.null(levels)) {
     levels <- sort(unique(cluster))
   }
+
+  #levels_out <<- levels
+  #dat_out <<- dat
+  #cluster_out <<- cluster
 
   ## try matrixStats first and on error run presto which requires transposation though
   ## matrixStats caused an error once (Integer Overflow with large matrices (approx. 1e6 cells as initial input))
