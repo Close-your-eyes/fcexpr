@@ -10,7 +10,8 @@
                            'config','conjugate_case','diff_sign','diptest_not_p','diptest_p','diptest_p_1','diptest_p_2',
                            'feature','gate.level','gate.path.full','group','mean_1','mean_2','mean_diff','mean_not','pval','pvalue','row.num','x','y','ws', 'sp',
                            "GateLevel", "Parent", "transformation", "transformation_pars", "FCS.file.folder", "ind", "values",
-                           "n", "path", "to", "from", "sampleID"))
+                           "n", "path", "to", "from", "sampleID", ".x", "mean_cluster", "mean_not_cluster", "diptest_pvalue_cluster",
+                           "diptest_pvalue_notcluster", "diptest_pvalue_1", "diptest_pvalue_2"))
   }
 
 }

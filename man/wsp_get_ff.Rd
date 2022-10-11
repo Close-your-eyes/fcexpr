@@ -18,6 +18,8 @@ wsp_get_ff(
   remove_redundant_channels = F,
   lapply_fun = lapply,
   seed = 42,
+  channels = NULL,
+  leverage_score_for_sampling = F,
   ...
 )
 }
@@ -53,6 +55,10 @@ FCS files equally or can be a vector of same length as FCS files}
 \item{lapply_fun}{lapply function name, unquoted; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
 \item{seed}{set a seed to reproduce downsampling}
+
+\item{channels}{channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions}
+
+\item{leverage_score_for_sampling}{logical whether to use leverage scores for downsampling}
 
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }

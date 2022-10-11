@@ -70,8 +70,7 @@ inds_get_ff <- function(ind_mat,
     }
   }
 
-  check_in(wsp = "wsp", samples = NULL, groups = NULL, FCS.file.folder = NULL, return_untransformed = return_untransformed,
-           return_transformed = return_transformed)
+  check_in(wsp = "wsp", samples = NULL, groups = NULL, FCS.file.folder = NULL)
 
   ## loop over ind_mat_indices = loop over fcs files
   ff.list <- lapply_fun(ind_mat,

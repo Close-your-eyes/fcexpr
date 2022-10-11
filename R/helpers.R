@@ -238,7 +238,7 @@ get_ff <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
     }
@@ -358,7 +358,7 @@ get_ff2 <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
     }
