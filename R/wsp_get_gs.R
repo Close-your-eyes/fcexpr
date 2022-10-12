@@ -56,7 +56,8 @@ wsp_get_gs <- function(wsp,
   smpl_list <- lapply(smpl_list, function(x) {
     if (any(is.na(x$FCS.file.folder))) {
       path <- x$FilePath
-      n <- length(unique(path))
+      #n <- length(unique(path))
+      n <- 2 # set to 2 arbitrarily. if there is only one FCS file with 1 unique path, then this will cause to get its dirname at least
       while (n != 1) {
         path <- dirname(path)
         n <- length(unique(path))

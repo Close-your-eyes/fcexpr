@@ -1,28 +1,31 @@
-lgcl_trsfrm_ff <- function(ff, channels = NULL) {
-
+lgcl_trsfrm_ff <- function(ff, m_max = 500, channels = NULL, ...) {
+  # ... argument like .progress
+  #future::plan(future::multisession, workers = 3)
+  #future::plan(future::sequential)
   if (is.null(channels)) {
     channels <- colnames(flowCore::exprs(ff))
     channels <- channels[which(channels != flowCore:::findTimeChannel(ff))]
   }
 
-  trfms <- lapply(channels, function(z) {
+  trfms <- furrr::future_map(channels, function(z) {
     m <- 4.5
     lgcl <- NULL
-    while(is.null(lgcl)) {
-      lgcl <- tryCatch(flowCore::estimateLogicle(ff, z, m = m),
-                       error = function(e) {
-                         #message(m)
-                         return(NULL)
-                       }
-      )
+    while(is.null(lgcl) && m < m_max) {
+      lgcl <- tryCatch(flowCore::estimateLogicle(ff, z, m = m), error = function(e) NULL)
       m <- m + 0.1
     }
+    if (is.null(lgcl)) {
+      warning("m reached ", m_max, ". No logicle trans found for channel ", z, ".")
+    }
     return(lgcl)
-  })
+  }, ...)
+  trfms <- purrr::discard(trfms, is.null)
+  trfms_list <- flowCore::transformList(purrr::map_chr(trfms, function(x) names(x@transforms)),
+                                        purrr::map(trfms, function(x) x@transforms[[1]]@f))
 
-  for (i in seq_along(trfms)) {
-    ff <- flowCore::transform(ff, trfms[[i]])
-  }
+  ff <- flowCore::transform(ff, trfms_list)
+  #for (i in seq_along(trfms)) {ff <- flowCore::transform(ff, trfms[[i]])}
+
   return(ff)
 }
 
@@ -304,7 +307,7 @@ get_ff <- function(x,
     channels <- .get.channels(ex[[1]], channels = channels)
     lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[which(inds),channels]), verbose = F, seed = seed)
   } else {
-    lev_scores <- rep(1, nrow(flowCore::exprs(ex[[1]])))
+    lev_scores <- NULL
   }
 
   if (downsample != 1) {
@@ -389,7 +392,7 @@ get_ff2 <- function(x,
     channels <- .get.channels(ff, channels = channels)
     lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ff)[which(inds),channels]), verbose = F, seed = seed)
   } else {
-    lev_scores <- rep(1, nrow(flowCore::exprs(ff)))
+    lev_scores <- NULL
   }
 
   if (downsample != 1) {
