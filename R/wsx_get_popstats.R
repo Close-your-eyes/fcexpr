@@ -50,13 +50,15 @@ wsx_get_popstats <- function(ws,
   ids <- unique(group_df[,"sampleID",drop=T])
 
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
-  rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
+  rel_nodes <- rel_nodes[which(purrr::map(rel_nodes, function(x) xml2::xml_attrs(xml2::xml_child(x, "DataSet"))[["sampleID"]]) %in% ids)]
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
 
-  #gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
-  gates <- lapply_fun(seq_along(gg), function(n) {
 
-    prnts <- xml2::xml_parents(gg[n])
+  #gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
+  gates <- lapply_fun(gg, function(n) {
+
+    #prnts <- xml2::xml_parents(gg[n])
+    prnts <- xml2::xml_parents(n)
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
@@ -74,26 +76,33 @@ wsx_get_popstats <- function(ws,
     gate_level <- length(p_nodes)
 
     xDim <- tryCatch({
-      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
+      #xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
+      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 1)), "name")
     }, error = function(e) {
       NA
     })
 
     yDim <- tryCatch({
-      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
+      #xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
+      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 2)), "name")
     }, error = function(e) {
       NA
     })
 
-    if (xml2::xml_name(gg[n]) == "Dependents") {
+    #xml2::xml_name(gg[n])
+    if (xml2::xml_name(n) == "Dependents") {
       origin <- "Dependents"
     } else {
       origin <- "Gate"
     }
 
-    gate_id <- xml2::xml_attr(gg[n], "id")
-    parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
-    eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
+    #gate_id <- xml2::xml_attr(gg[n], "id")
+    #parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
+    #eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
+
+    gate_id <- xml2::xml_attr(n, "id")
+    parentgate_id <- xml2::xml_attr(n, "parent_id")
+    eventsInside <- xml2::xml_attr(xml2::xml_child(n), "eventsInside")
 
     return(data.frame(FileName = FileName,
                       PopulationFullPath = PopulationFullPath,
@@ -111,7 +120,7 @@ wsx_get_popstats <- function(ws,
                       FilePath = FilePath,
                       gate_level = gate_level,
                       origin = origin,
-                      n = n,
+                      #n = n,
                       stringsAsFactors = F)
     )
   }, ...)
@@ -133,7 +142,7 @@ wsx_get_popstats <- function(ws,
                FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                gate_level = 0,
                origin = "root",
-               n = 0,
+               #n = 0,
                stringsAsFactors = F)
   }, ...))
 

@@ -360,7 +360,7 @@ get_ff2 <- function(x,
     message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
     leverage_score_for_sampling <- F
   }
-
+  browser()
   if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
@@ -385,6 +385,7 @@ get_ff2 <- function(x,
   if ("downsample" %in% names(attributes(x))) {
     downsample <- attr(x, "downsample")
   }
+
 
   ff <- flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F)
 
