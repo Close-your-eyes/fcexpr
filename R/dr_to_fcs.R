@@ -207,7 +207,7 @@ dr_to_fcs <- function(ff.list,
                       run.MUDAN = F,
                       n.pca.dims = 0,
                       clustering.for.marker.calc = NULL,
-                      calc.global.markers = T,
+                      calc.global.markers = F,
                       calc.pairwise.markers = F,
                       #cluster.marker.min.cells = 50,
                       extra.cols = NULL,
@@ -241,6 +241,9 @@ dr_to_fcs <- function(ff.list,
   #names(df) <- paste0("x", 1:ncol(df))
   #df <- tidyr::pivot_longer(df, names_to = "name", values_to = "value", cols = c(x1,x2,x3))
   #ggplot(df, aes(x = value, y = name)) + ggridges::geom_density_ridges() + ggridges::theme_ridges()'
+
+  ## make warning when calc.global.markers = T or calc.pairwise.markers = T but is.null(clustering.for.marker.calc) or vice versa
+
 
   ## ---- checks --------
   if (!requireNamespace("diptest", quietly = T)) {
