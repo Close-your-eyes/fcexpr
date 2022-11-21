@@ -1,7 +1,7 @@
 .composition_barplot <- function(x,
                                  x_cat,
                                  fill_cat,
-                                 col_pal = scexpr::col_pal("custom"),
+                                 col_pal = fcexpr::col_pal("custom"),
                                  plot_labels = F) {
 
 

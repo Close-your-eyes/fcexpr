@@ -29,7 +29,7 @@ dr_to_fcs(
   run.MUDAN = F,
   n.pca.dims = 0,
   clustering.for.marker.calc = NULL,
-  calc.global.markers = T,
+  calc.global.markers = F,
   calc.pairwise.markers = F,
   extra.cols = NULL,
   mc.cores = 1,

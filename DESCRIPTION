@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
-Version: 0.0.0.9970
+Version: 0.0.0.9975
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
@@ -12,7 +12,7 @@ License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
 Imports: 
     openxlsx,
     stats,
@@ -65,5 +65,13 @@ Suggests:
     igraph,
     matrixTests,
     mhca,
-    remotes
+    remotes,
+    MetBrewer,
+    farver,
+    furrr,
+    ggforce,
+    viridis,
+    wesanderson,
+    colorRamps,
+    viridisLite
 VignetteBuilder: knitr
