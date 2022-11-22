@@ -13,6 +13,8 @@
     utils::install.packages("farver")
   }
 
+  ## add option to repel label or to increase their position to furhter outside gradually
+
   # https://stackoverflow.com/questions/16184188/ggplot-facet-piechart-placing-text-in-the-middle-of-pie-chart-slices (ggforce)
   tab <- table(x[,meta.col], exclude = c())
   tab <- data.frame(frac = as.numeric(tab/sum(tab)), cluster = factor(names(tab), levels = names(tab)))
@@ -23,6 +25,28 @@
   tab$end_angle <- c(cumsum(tab$frac))*pi*2
   tab$mid_angle <-  0.5*(tab$start_angle + tab$end_angle)
 
+  if (length(col_pal) != length(unique(tab[,"cluster"]))) {
+    if (is.null(names(col_pal))) {
+      if (length(col_pal) < length(unique(tab[,"cluster"]))) {
+        col_pal <- scales::hue_pal()(length(unique(tab[,"cluster"])))
+        warning("Number of colors provided not sufficient for number of factor levels. Falling back to scales::hue_pal().")
+      } else {
+        col_pal <- col_pal[1:length(unique(tab[,"cluster"]))]
+      }
+    } else {
+      if (length(col_pal) > length(unique(tab[,"cluster"])) && all(names(col_pal) %in% unique(tab[,"cluster"]))) {
+        col_pal <- col_pal[unique(tab[,"cluster"])]
+      } else {
+        warning("Number of colors provided not matching the number of factor levels in meta.col. Falling back to scales::hue_pal().")
+        col_pal <- scales::hue_pal()(length(unique(tab[,"cluster"])))
+      }
+    }
+  } else {
+    if (!is.null(names(col_pal)) && !all(names(col_pal) %in% unique(tab[,"cluster"]))) {
+      warning("Not all names of col_pal found in factor levels of meta.col. Falling back to scales::hue_pal().")
+      col_pal <- scales::hue_pal()(length(unique(tab[,"cluster"])))
+    }
+  }
 
   ggplot2::ggplot(tab, ggplot2::aes(x0 = 0, y0 = 0, r0 = 0.3, r = 1, start = start_angle, end = end_angle, fill = cluster)) +
     ggforce::geom_arc_bar(colour = "white") +
