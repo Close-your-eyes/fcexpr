@@ -37,7 +37,7 @@ compMat_to_fcs <- function(fcs_file_path, compMat_file_path, max_match_dist = 1,
   if (!file.exists(fcs_file_path)) {
     stop("fcs_file not found.")
   }
-  if (class(compMat_file_path) != "character" || rev(strsplit(basename(compMat_file_path), "\\.")[[1]])[1] != "csv") {
+  if (!methods::is(compMat_file_path, "character") || rev(strsplit(basename(compMat_file_path), "\\.")[[1]])[1] != "csv") {
     stop("compMat has to be character (path to a csv file).")
   }
 

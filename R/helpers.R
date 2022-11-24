@@ -190,14 +190,14 @@ check_in <- function(wsp,
                      return_untransformed = NULL,
                      return_transformed = NULL) {
 
-  if (missing(wsp) || class(wsp) != "character") {stop("Please provide a vector of paths to flowjo workspaces.")}
+  if (missing(wsp) || !methods::is(wsp, "character")) {stop("Please provide a vector of paths to flowjo workspaces.")}
   if (!is.null(groups)) {
-    if (class(groups) == "list" && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
-    if (class(groups) != "list") {groups <- rep(list(groups), length(wsp))}
+    if (methods::is(groups, "list") && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
+    if (!methods::is(groups, "list")) {groups <- rep(list(groups), length(wsp))}
   }
   if (!is.null(samples)) {
-    if (class(samples) == "list" && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
-    if (class(samples) != "list") {samples <- rep(list(samples), length(wsp))}
+    if (methods::is(samples, "list") && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
+    if (!methods::is(samples, "list")) {samples <- rep(list(samples), length(wsp))}
   }
   if (!is.null(FCS.file.folder)) {
     if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
