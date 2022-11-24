@@ -46,6 +46,11 @@ wsx_get_popstats <- function(ws,
   } else {
     group_df <- group_df[which(group_df$group %in% groups),]
   }
+
+  if (nrow(group_df) == 0) {
+    stop("Non of provided groups found.")
+  }
+
   # each sample which may be in multiple groups only considered once
   ids <- unique(group_df[,"sampleID",drop=T])
 
