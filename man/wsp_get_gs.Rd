@@ -11,7 +11,8 @@ wsp_get_gs(
   invert_groups = F,
   samples = NULL,
   invert_samples = F,
-  remove_redundant_channels = F
+  remove_redundant_channels = F,
+  ...
 )
 }
 \arguments{
@@ -31,6 +32,8 @@ if NULL all samples (from selected groups) are read}
 \item{invert_samples}{logical whether to invert sample selection}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
+
+\item{...}{arguments to wsx_get_keywords like lapply_fun and mc.cores}
 }
 \value{
 list of gatingsets

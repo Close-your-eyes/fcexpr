@@ -86,14 +86,15 @@ get_smpl_df <- function(wsp,
                         invert_groups,
                         samples,
                         invert_samples,
-                        FCS.file.folder) {
+                        FCS.file.folder,
+                        ...) {
 
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
     y$FileName <- basename(y$FilePath)
 
-    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"))
+    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), ...)
     key <- dplyr::bind_rows(key, .id = "FileName")
 
     y$FIL <- stats::setNames(key[which(key$name == "$FIL"),"value"], key[which(key$name == "$FIL"),"FileName"])[y$FileName]

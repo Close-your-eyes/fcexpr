@@ -10,6 +10,7 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
+#' @param ... arguments to wsx_get_keywords like lapply_fun and mc.cores
 #'
 #' @return list of gatingsets
 #' @export
@@ -24,7 +25,8 @@ wsp_get_gs <- function(wsp,
                        invert_groups = F,
                        samples = NULL,
                        invert_samples = F,
-                       remove_redundant_channels = F) {
+                       remove_redundant_channels = F,
+                       ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -42,7 +44,7 @@ wsp_get_gs <- function(wsp,
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
 
-  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder)
+  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder, ...)
   if (is.null(smpl)) {
     return(NULL)
   }

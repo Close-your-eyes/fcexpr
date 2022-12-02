@@ -8,9 +8,9 @@
 #'
 #' @param ws a path to a workspace or a the parsed xml document (xml2::read_xml(ws))
 #' @param return_type how to return keywords: data.frame with 2 column or named vector?
-#' @param lapply_fun
-#' @param keywords
-#' @param ...
+#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param keywords which keywords to return
+#' @param ... ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword
 #' @export
