@@ -87,6 +87,7 @@ get_smpl_df <- function(wsp,
                         samples,
                         invert_samples,
                         FCS.file.folder,
+                        lapply_fun = lapply,
                         ...) {
 
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
@@ -94,7 +95,7 @@ get_smpl_df <- function(wsp,
     y$wsp <- wsp[x]
     y$FileName <- basename(y$FilePath)
 
-    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), ...)
+    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), lapply_fun = lapply_fun, ...)
     key <- dplyr::bind_rows(key, .id = "FileName")
 
     y$FIL <- stats::setNames(key[which(key$name == "$FIL"),"value"], key[which(key$name == "$FIL"),"FileName"])[y$FileName]
@@ -408,24 +409,33 @@ get_ff2 <- function(x,
 }
 
 get_gs <- function(x,
-                   remove_redundant_channels) {
+                   remove_redundant_channels,
+                   lapply_fun = lapply,
+                   split_size = 2,
+                   ...) {
 
-  gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
-                                    name = unique(x$group),
-                                    path = unique(x$FCS.file.folder),
-                                    subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
-                                    truncate_max_range = F,
-                                    keywords = c("$FIL", "$BEGINDATA", "$TOT"),
-                                    additional.keys = c("$TOT", "$BEGINDATA"))
+  lapply_fun <- match.fun(lapply_fun)
+  x_split <- split(x, (seq(nrow(x))-1) %/% split_size)
 
-  rownames(x) <- paste(x$FIL, x$TOT, x$BEGINDATA, sep = "_")
-  flowWorkspace::sampleNames(gs) <- x[flowWorkspace::sampleNames(gs),"FileName"]
+  gs_list <- lapply_fun(x_split, function(x) {
+    gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
+                                      name = unique(x$group),
+                                      path = unique(x$FCS.file.folder),
+                                      subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
+                                      truncate_max_range = F,
+                                      keywords = c("$FIL", "$BEGINDATA", "$TOT"),
+                                      additional.keys = c("$TOT", "$BEGINDATA"))
 
-  if (remove_redundant_channels) {
-    gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
-  }
+    rownames(x) <- paste(x$FIL, x$TOT, x$BEGINDATA, sep = "_")
+    flowWorkspace::sampleNames(gs) <- x[flowWorkspace::sampleNames(gs),"FileName"]
 
-  return(gs)
+    if (remove_redundant_channels) {
+      gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
+    }
+    return(gs)
+  }, ...)
+
+  return(flowWorkspace::merge_list_to_gs(gs_list))
 }
 
 .get.channels <- function(ff,

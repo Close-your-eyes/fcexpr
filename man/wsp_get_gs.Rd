@@ -12,6 +12,8 @@ wsp_get_gs(
   samples = NULL,
   invert_samples = F,
   remove_redundant_channels = F,
+  lapply_fun = lapply,
+  split_size = 2,
   ...
 )
 }
@@ -33,7 +35,12 @@ if NULL all samples (from selected groups) are read}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
 
-\item{...}{arguments to wsx_get_keywords like lapply_fun and mc.cores}
+\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
+
+\item{split_size}{chunk size of splits of fcs files parsed to CytoML::flowjo_to_gatingset;
+splitting allows to have a progress bar from pblapply or to use multicore processing by parallel::mclapply}
+
+\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
 list of gatingsets

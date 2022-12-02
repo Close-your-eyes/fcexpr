@@ -1194,7 +1194,7 @@ dr_to_fcs <- function(ff.list,
     t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
     dir.create(save.path, showWarnings = F)
     if ("rds" %in% save.to.disk) {
-      saveRDS(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result), file.path(save.path, paste0(t, "_dr_ff_list.rds")))
+      saveRDS(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result), file = file.path(save.path, paste0(t, "_dr_ff_list.rds")), compress = F)
     }
     if ("fcs" %in% save.to.disk) {
       flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))
@@ -1202,6 +1202,9 @@ dr_to_fcs <- function(ff.list,
   }
   return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result))
 }
+
+
+
 
 .cluster_ordering <- function(ks) {
   if (methods::is(ks, "matrix")) {

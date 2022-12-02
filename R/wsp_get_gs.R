@@ -10,7 +10,10 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
-#' @param ... arguments to wsx_get_keywords like lapply_fun and mc.cores
+#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
+#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
+#' @param split_size chunk size of splits of fcs files parsed to CytoML::flowjo_to_gatingset;
+#' splitting allows to have a progress bar from pblapply or to use multicore processing by parallel::mclapply
 #'
 #' @return list of gatingsets
 #' @export
@@ -26,6 +29,8 @@ wsp_get_gs <- function(wsp,
                        samples = NULL,
                        invert_samples = F,
                        remove_redundant_channels = F,
+                       lapply_fun = lapply,
+                       split_size = 2,
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -39,12 +44,13 @@ wsp_get_gs <- function(wsp,
   }
 
   checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
+  lapply_fun <- match.fun(lapply_fun)
 
   groups <- checked_in[["groups"]]
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
 
-  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder, ...)
+  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder, lapply_fun = lapply_fun, ...)
   if (is.null(smpl)) {
     return(NULL)
   }
@@ -71,7 +77,10 @@ wsp_get_gs <- function(wsp,
 
   gs_list <- lapply(smpl_list,
                     get_gs,
-                    remove_redundant_channels = remove_redundant_channels)
+                    remove_redundant_channels = remove_redundant_channels,
+                    lapply_fun = lapply_fun,
+                    split_size = split_size,
+                    ...)
   names(gs_list) <- names(smpl_list)
 
   return(gs_list)
