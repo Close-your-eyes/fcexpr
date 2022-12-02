@@ -93,18 +93,12 @@ get_smpl_df <- function(wsp,
     y$wsp <- wsp[x]
     y$FileName <- basename(y$FilePath)
 
-    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
-      z[which(z$name == "$FIL"),"value"]
-    })
-    y$FIL <- key[y$FileName]
-    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
-      z[which(z$name == "$TOT"),"value"]
-    })
-    y$TOT <- trimws(key[y$FileName])
-    key <- sapply(wsx_get_keywords(wsp[x]), function(z) {
-      z[which(z$name == "$BEGINDATA"),"value"]
-    })
-    y$BEGINDATA <- key[y$FileName]
+    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"))
+    key <- dplyr::bind_rows(key, .id = "FileName")
+
+    y$FIL <- stats::setNames(key[which(key$name == "$FIL"),"value"], key[which(key$name == "$FIL"),"FileName"])[y$FileName]
+    y$TOT <- trimws(stats::setNames(key[which(key$name == "$TOT"),"value"], key[which(key$name == "$TOT"),"FileName"])[y$FileName])
+    y$BEGINDATA <- stats::setNames(key[which(key$name == "$BEGINDATA"),"value"], key[which(key$name == "$BEGINDATA"),"FileName"])[y$FileName]
 
     if (!is.null(groups)) {
       if (invert_groups) {
@@ -113,7 +107,7 @@ get_smpl_df <- function(wsp,
         y <- y[which(y$group %in% groups[[x]]),]
       }
     }
-    if(nrow(y) == 0) {
+    if (nrow(y) == 0) {
       return(NULL)
     }
 
@@ -129,13 +123,16 @@ get_smpl_df <- function(wsp,
     }
 
     # remove All Samples group
-    y <- do.call(rbind, lapply(unique(y$sampleID), function(zz) {
-      if (length(y[which(y$sampleID== zz),"group"]) > 1) {
-        y[intersect(which(y$sampleID == zz), which(y$group != "All Samples")), ]
-      } else {
-        y[which(y$sampleID == zz), ]
-      }
-    }))
+    if ("All Samples" %in% y$group) {
+      y <- do.call(rbind, lapply(unique(y$sampleID), function(zz) {
+        if (length(y[which(y$sampleID== zz),"group"]) > 1) {
+          y[intersect(which(y$sampleID == zz), which(y$group != "All Samples")), ]
+        } else {
+          y[which(y$sampleID == zz), ]
+        }
+      }))
+    }
+
     # remove other duplicates (multiple groups)
     y <- dplyr::arrange(y, group)
     y <- dplyr::distinct(y, FilePath, wsp, .keep_all = T)

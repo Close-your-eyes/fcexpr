@@ -36,7 +36,6 @@ wsp_get_gs <- function(wsp,
     BiocManager::install("flowWorkspace")
   }
 
-
   checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
 
   groups <- checked_in[["groups"]]

@@ -8,6 +8,9 @@
 #'
 #' @param ws a path to a workspace or a the parsed xml document (xml2::read_xml(ws))
 #' @param return_type how to return keywords: data.frame with 2 column or named vector?
+#' @param lapply_fun
+#' @param keywords
+#' @param ...
 #'
 #' @return a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword
 #' @export
@@ -32,25 +35,38 @@
 #' sd <- dplyr::left_join(sd, kk, by = "FileName")
 #' }
 wsx_get_keywords <- function(ws,
-                             return_type = c("data.frame", "vector")) {
+                             return_type = c("data.frame", "vector"),
+                             lapply_fun = lapply,
+                             keywords = NULL,
+                             ...) {
 
   ws <- check_ws(ws)
+  lapply_fun <- match.fun(lapply_fun)
   return_type <- match.arg(arg = return_type, choices = c("data.frame", "vector"))
 
-  keywords <- lapply(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
-    k <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
+  k_return <- lapply_fun(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
+    keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
+    keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
 
-    if (return_type == "vector") {
-      ret <- stats::setNames(sapply(k, "[", 2), sapply(k, "[", 1))
-    } else if (return_type == "data.frame") {
-      ret <- data.frame(name = sapply(k, "[", 1), value = sapply(k, "[", 2))
-      rownames(ret) <- NULL
+    if (!is.null(keywords)) {
+      keys <- keys[which(names(keys) %in% keywords)]
     }
-    return(ret)
-  })
 
-  names(keywords) <- wsp_xml_get_samples(ws)[,"FileName"]
-  return(keywords)
+    if (length(keys) == 0) {
+      keys <- NULL
+    }
+
+    if (return_type == "data.frame" && !is.null(keys)) {
+      keys <- stack(keys)
+      names(keys) <- c("value", "name")
+      keys <- keys[,c(2,1)]
+      keys$name <- as.character(keys$name)
+    }
+    return(keys)
+  }, ...)
+
+  names(k_return) <- wsp_xml_get_samples(ws)[,"FileName"]
+  return(k_return)
 }
 
 
