@@ -113,7 +113,7 @@ gs_get_gates <- function(gs,
     quants <- do.call(rbind, lapply(out_names, function(z) {
       # rel are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
       temp <- sapply(c(y$x, y$y), tempfun, z = z)
-      if (length(temp) > 0) {
+      if (all(lengths(temp) > 0)) {
         temp <- as.matrix(temp)
         if (ncol(temp) == 1) {
           temp <- t(temp)
