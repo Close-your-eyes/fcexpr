@@ -131,8 +131,9 @@ ab_panel_to_fcs <- function(sampledescription,
             message(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files.")
             other_keywords <- intersect(other_keywords, names(sh))
           }
-          # check for "channel" in other_keywords
-          sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
+
+          # do this after checking for LiveDeadMarker - this will allow to have no antibody entered w/o error
+          #sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
           if (is.na(sh[1,"LiveDeadMarker"])) {
             message("No LiveDeadMarker entered.")
           } else {
@@ -145,6 +146,10 @@ ab_panel_to_fcs <- function(sampledescription,
             }
             sh[1,"LiveDeadMarker"] <- NA
           }
+
+          # check for "channel" in other_keywords
+          sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
+
           sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
           other_keywords <- intersect(other_keywords, names(sh))
           # exclude LiveDead from duplicate check as it may be in 2 channels
