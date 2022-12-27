@@ -37,6 +37,7 @@ wsx_get_popstats <- function(ws,
   ws <- check_ws(ws)
 
   group_df <- wsx_get_groups(ws, collapse_groups = F)
+
   if (is.null(groups)) {
     groups <- unique(group_df[,"group", drop=T])
   }
@@ -58,16 +59,12 @@ wsx_get_popstats <- function(ws,
   rel_nodes <- rel_nodes[which(purrr::map(rel_nodes, function(x) xml2::xml_attrs(xml2::xml_child(x, "DataSet"))[["sampleID"]]) %in% ids)]
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
 
-
-  #gg <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), ".//Gate|.//Dependents")
   gates <- lapply_fun(gg, function(n) {
 
-    #prnts <- xml2::xml_parents(gg[n])
     prnts <- xml2::xml_parents(n)
 
     s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
-    #if (!sampleID %in% ids) return(NULL) # return NULL if sampleID is not in groups (see procedure in return_stats)
 
     FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri"))
     FileName <- basename(FilePath)
@@ -76,34 +73,38 @@ wsx_get_popstats <- function(ws,
     PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
     Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {"root"} else {dirname(PopulationFullPath)}
     Population <- basename(PopulationFullPath)
+
     Count <- xml2::xml_attr(p_nodes[1], "count")
+    if (Count == -1) {
+      stop("Count = -1 detected. One or more nodes a boolean gate (Or/And) depends may not have been found.
+            Cannot derive correct Count.
+            Did you rename the nodes an Or- or And-Gate depends on?
+                 If so, please re-define the respective boolean gate.")
+    }
     ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {xml2::xml_attr(xml2::xml_child(s_node, "SampleNode"), "count")}
     gate_level <- length(p_nodes)
 
     xDim <- tryCatch({
-      #xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 1)), "name")
       xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 1)), "name")
     }, error = function(e) {
       NA
     })
 
     yDim <- tryCatch({
-      #xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(gg[n]), 2)), "name")
       xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 2)), "name")
     }, error = function(e) {
       NA
     })
 
-    #xml2::xml_name(gg[n])
     if (xml2::xml_name(n) == "Dependents") {
       origin <- "Dependents"
     } else {
       origin <- "Gate"
     }
 
-    #gate_id <- xml2::xml_attr(gg[n], "id")
-    #parentgate_id <- xml2::xml_attr(gg[n], "parent_id")
-    #eventsInside <- xml2::xml_attr(xml2::xml_child(gg[n]), "eventsInside")
+    # deps for Or, And or NotNodes; correct counts afterwards
+    #deps <- xml2::xml_child(p_nodes[1], "Dependents")
+    #deps <- list(xml2::xml_attr(xml2::xml_children(deps), "name"))
 
     gate_id <- xml2::xml_attr(n, "id")
     parentgate_id <- xml2::xml_attr(n, "parent_id")
@@ -125,10 +126,11 @@ wsx_get_popstats <- function(ws,
                       FilePath = FilePath,
                       gate_level = gate_level,
                       origin = origin,
+                      #deps = I(deps),
                       #n = n,
                       stringsAsFactors = F)
     )
-  }, ...)
+  }) #, ...
 
   roots <- do.call(rbind, lapply_fun(rel_nodes, function(y) {
     data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
@@ -147,9 +149,10 @@ wsx_get_popstats <- function(ws,
                FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
                gate_level = 0,
                origin = "root",
+               #deps = I(list(character(0))),
                #n = 0,
                stringsAsFactors = F)
-  }, ...))
+  })) #, ...
 
   gates_df <- do.call(rbind, gates)
   gates_df <- rbind(roots,gates_df)
@@ -185,9 +188,8 @@ wsx_get_popstats <- function(ws,
   gates_out <- do.call(rbind, gates_list)
   gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID") # ...
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
-  gates_out <- gates_out[order(gates_out$FileName),]
+  gates_out <- gates_out[order(gates_out$FileName, gates_out$gate_level, factor(gates_out$origin, levels = c("root", "Gate", "Dependents"))),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
-
   gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
 
   if (return_stats) {
