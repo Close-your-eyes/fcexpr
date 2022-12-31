@@ -10,10 +10,12 @@
 #' @param AbCalcSheet_col column name in sampledescription indicating the respective sheet name in AbCalcFile
 #' @param conjugate_to_desc alter/update the channel description of fcs files with stained molecule and optionally the fluorochrome
 #' @param other_keywords column names in AbCalcSheet of which keywords to write to fcs files
-#' @param AbCalcFile.folder path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile
+#' @param AbCalcFile_folder path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile
 #' @param clear_previous clear all previous entries (channel descriptions and keywords) in fcs files?
 #' @param ignore_duplicate_ag whether or not to ignore duplicate antigen entries in antibody calculation sheet
 #' @param machine name of the Flow Cytometer the FCS were acquired on. Only necessary when channels cannot be matched unambiguously.
+#' @param manual_df manually provide a data frame with AbCalcFile_col, AbCalcSheet_col and FilePath columns for every FCS file
+#' to write channel information to; sampledescription, FileNames, FCS.file.folder are not required when !is.null(manual_df)
 #'
 #' @return no return, but updated fcs files on disk
 #' @export
@@ -33,12 +35,13 @@ ab_panel_to_fcs <- function(sampledescription,
                             channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx", package = "fcexpr"),
                             AbCalcFile_col = "AbCalcFile",
                             AbCalcSheet_col = "AbCalcSheet",
-                            AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
+                            AbCalcFile_folder = file.path(dirname(FCS.file.folder), "Protocols"),
                             conjugate_to_desc = T,
                             other_keywords = c(),
-                            clear_previous = T,
+                            clear_previous = F,
                             ignore_duplicate_ag = F,
-                            machine = NULL) {
+                            machine = NULL,
+                            manual_df = NULL) {
 
   # how to handle non-fluorochrome conjugates?
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -50,50 +53,61 @@ ab_panel_to_fcs <- function(sampledescription,
   if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
-  if (missing(FCS.file.folder)) {
-    stop("FCS.file.folder missing. Please provide.")
-  }
-  if (missing(FileNames)) {
-    stop("FileNames missing. Please provide.")
-  }
-
-  ## check sd for columns
-  sd <- as.data.frame(sampledescription, stringsAsFactors = F)
-  if (!"FileName" %in% names(sd)) {
-    stop("Column 'FileName' has to exist in sampledescription.")
-  }
-  if (!AbCalcFile_col %in% names(sd)) {
-    stop(AbCalcFile_col, " not found in sampledescription columns.")
-  }
-  if (!AbCalcSheet_col %in% names(sd)) {
-    stop(AbCalcSheet_col, " not found in sampledescription columns.")
-  }
 
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
 
-  # select cols
-  sd <- sd[which(sd[,"FileName"] %in% FileNames), c("FileName", AbCalcFile_col, AbCalcSheet_col)]
-  if (nrow(sd) == 0) {
-    stop("Non of FileNames found in sampledescription.")
+  if (is.null(manual_df)) {
+    if (is.null(FCS_file_paths)) {
+      if (missing(FCS.file.folder)) {
+        stop("FCS.file.folder missing. Please provide.")
+      }
+      if (missing(FileNames)) {
+        stop("FileNames missing. Please provide.")
+      }
+    }
+
+    ## check sd for columns
+    sd <- as.data.frame(sampledescription, stringsAsFactors = F)
+    if (!"FileName" %in% names(sd)) {
+      stop("Column 'FileName' has to exist in sampledescription.")
+    }
+    if (!AbCalcFile_col %in% names(sd)) {
+      stop(AbCalcFile_col, " not found in sampledescription columns.")
+    }
+    if (!AbCalcSheet_col %in% names(sd)) {
+      stop(AbCalcSheet_col, " not found in sampledescription columns.")
+    }
+
+    # select cols
+    sd <- sd[which(sd[,"FileName"] %in% FileNames), c("FileName", AbCalcFile_col, AbCalcSheet_col)]
+    if (nrow(sd) == 0) {
+      stop("Non of FileNames found in sampledescription.")
+    }
+
+    # check for empty cells
+    if (length(unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
+                      c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == "")))) > 0) {
+      message(paste0("AbCalcFile_col and/or AbCalcSheet_col empty or missing for: ", paste(sd[unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
+                                                                                                     c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == ""))), "FileName"], collapse = ", ")))
+
+      sd <- sd[unique(c(which(!is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) != "")),
+                      c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
+    }
+
+    sd[,"FilePath"] <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
+                                                                                                                               "\\|" = "\\\\|", "\\(" = "\\\\(",
+                                                                                                                               "\\)" = "\\\\)", "\\[" = "\\\\[",
+                                                                                                                               "\\{" = "\\\\{", "\\*" = "\\\\*",
+                                                                                                                               "\\?" = "\\\\?")), recursive = T, full.names = T))
+  } else {
+    if (!AbCalcFile_col %in% names(manual_df) || !AbCalcSheet_col %in% names(manual_df) || !"FilePath" %in% names(manual_df)) {
+      stop("AbCalcFile_col, AbCalcSheet_col, FilePaths have to be in names of manual_df")
+    }
+    sd <- manual_df
   }
 
-  # check for empty cells
-  if (length(unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
-                    c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == "")))) > 0) {
-    message(paste0("AbCalcFile_col and/or AbCalcSheet_col empty or missing for: ", paste(sd[unique(c(which(is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) == "")),
-                                                                                                   c(which(is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) == ""))), "FileName"], collapse = ", ")))
-
-    sd <- sd[unique(c(which(!is.na(sd[,AbCalcFile_col])), which(trimws(sd[,AbCalcFile_col]) != "")),
-                    c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
-  }
-
-  fcs.paths <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
-                                                                                                                       "\\|" = "\\\\|", "\\(" = "\\\\(",
-                                                                                                                       "\\)" = "\\\\)", "\\[" = "\\\\[",
-                                                                                                                       "\\{" = "\\\\{", "\\*" = "\\\\*",
-                                                                                                                       "\\?" = "\\\\?")), recursive = T, full.names = T))
-  sd[,"config"] <- dplyr::coalesce(sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "CYTOMETER CONFIG NAME"),
-                                   sapply(flowCore::read.FCSheader(fcs.paths, emptyValue = F), "[", "$CYT"))
+  sd[,"config"] <- dplyr::coalesce(sapply(flowCore::read.FCSheader(sd[,"FilePath"], emptyValue = F), "[", "CYTOMETER CONFIG NAME"),
+                                   sapply(flowCore::read.FCSheader(sd[,"FilePath"], emptyValue = F), "[", "$CYT"))
 
   if (any(is.na(sd[,"config"]))) {
     stop("Config keyword could not be retrieved from all FCS files. Another FCS keyword is needed - fix the function.")
@@ -104,13 +118,14 @@ ab_panel_to_fcs <- function(sampledescription,
   sd <-
     sd %>%
     dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col), config) %>%
-    dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
+    #dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
+    dplyr::summarise(FilePaths = list(FilePath), .groups = "drop") %>%
     as.data.frame()
 
   # loop though ab info files
   out <- lapply(split(sd, 1:nrow(sd)), function(x) {
-    if (!is.null(AbCalcFile.folder)) {
-      file <- file.path(AbCalcFile.folder, x[,AbCalcFile_col])
+    if (!is.null(AbCalcFile_folder)) {
+      file <- file.path(AbCalcFile_folder, x[,AbCalcFile_col])
     } else {
       file <- x[,AbCalcFile_col]
     }
@@ -158,20 +173,20 @@ ab_panel_to_fcs <- function(sampledescription,
           } else {
             ## read FCS here, then call the ccm function
             # for loop as sh is modified by the first FCS file
-            for (j in x[,"FileNames"][[1]]) {
-              fcs.path <- list.files(FCS.file.folder, pattern = stringr::str_replace_all(j, c("\\+" = "\\\\+", "\\." = "\\\\.",
+            for (j in x[,"FilePaths"][[1]]) {
+              'fcs.path <- list.files(FCS.file.folder, pattern = stringr::str_replace_all(j, c("\\+" = "\\\\+", "\\." = "\\\\.",
                                                                                               "\\|" = "\\\\|", "\\(" = "\\\\(",
                                                                                               "\\)" = "\\\\)", "\\[" = "\\\\[",
                                                                                               "\\{" = "\\\\{", "\\*" = "\\\\*",
-                                                                                              "\\?" = "\\\\?")), recursive = T, full.names = T)
+                                                                                              "\\?" = "\\\\?")), recursive = T, full.names = T)'
 
-              ff <- flowCore::read.FCS(fcs.path, truncate_max_range = F, emptyValue = F)
+              ff <- flowCore::read.FCS(j, truncate_max_range = F, emptyValue = F)
               ff <- .check_comp_mat(ff)
               channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
               channels.inv <- stats::setNames(names(channels),channels)
 
               # special treatment on first index
-              if (j == x[,"FileNames"][[1]][1]) {
+              if (j == x[,"FilePaths"][[1]][1]) {
                 matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm, machine = machine)
                 if (any(duplicated(matches))) {
                   message("At least on channel used by more than one marker.")
@@ -217,8 +232,8 @@ ab_panel_to_fcs <- function(sampledescription,
               }
 
               # save fcs file (overwrite original)
-              flowCore::write.FCS(ff, fcs.path)
-              message(fcs.path)
+              flowCore::write.FCS(ff, j)
+              message(j)
             }
           }
         }
