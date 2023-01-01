@@ -57,13 +57,11 @@ ab_panel_to_fcs <- function(sampledescription,
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
 
   if (is.null(manual_df)) {
-    if (is.null(FCS_file_paths)) {
-      if (missing(FCS.file.folder)) {
-        stop("FCS.file.folder missing. Please provide.")
-      }
-      if (missing(FileNames)) {
-        stop("FileNames missing. Please provide.")
-      }
+    if (missing(FCS.file.folder)) {
+      stop("FCS.file.folder missing. Please provide.")
+    }
+    if (missing(FileNames)) {
+      stop("FileNames missing. Please provide.")
     }
 
     ## check sd for columns
