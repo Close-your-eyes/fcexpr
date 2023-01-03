@@ -95,7 +95,7 @@ ab_info_to_panel <- function(panel_file,
     dplyr::left_join(ab.list %>% dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))), by = c("antigen_case", "conjugate_case")) %>%
     dplyr::select(-c(antigen_case, conjugate_case)) %>%
     #fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>% # this would match CD45RO and CD4 - not useful
-    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>% # take over names from Ab list
+    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>% # take names from Ab list
     dplyr::select(-c(Antigen.x, Conjugate.x)) %>%
     dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) %>%
     dplyr::filter(is.na(Box.x) | Box.x == Box.y) %>%
@@ -121,14 +121,29 @@ ab_info_to_panel <- function(panel_file,
       dplyr::bind_rows(data.frame(row.num = setdiff(min(panel_add$row.num):max(panel_add$row.num), panel_add$row.num))) %>%
       dplyr::arrange(row.num)
   }
-  panel_add <- dplyr::select(panel_add, -row.num)
+
+  #panel_add <- dplyr::select(panel_add, -row.num)
+  panel_add <- tidyr::drop_na(panel_add, Antigen)
 
   # avoid ablating formulas in cells - hence load wb and append
   wb <- openxlsx::loadWorkbook(panel_file)
   orig.sheet <- openxlsx::read.xlsx(panel_file, skipEmptyCols = F, skipEmptyRows = F, sheet = panel_sheet)
-  openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Box"), 1), x = as.data.frame(panel_add[,"Box", drop = F]))
-  openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Lot"), 1), x = as.data.frame(panel_add[,"Lot", drop = F]))
-  openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+1,1), x = as.data.frame(panel_add[,antibody_list_cols]))
+
+  for (y in seq_along(panel_add$row.num)) {
+    openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Box"), panel_add$row.num[y]+1), x = panel_add[y,"Box", drop = T])
+    openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Lot"), panel_add$row.num[y]+1), x = panel_add[y,"Lot", drop = T])
+    for (z in seq_along(antibody_list_cols)) {
+      openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+2+z,panel_add$row.num[y]+1), x = panel_add[y,antibody_list_cols[z]])
+    }
+  }
+  for (z in seq_along(antibody_list_cols)) {
+    openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+2+z,1), x = antibody_list_cols[z])
+  }
+
+
+  #openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Box"), 1), x = as.data.frame(panel_add[,"Box", drop = F]))
+  #openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(names(orig.sheet) == "Lot"), 1), x = as.data.frame(panel_add[,"Lot", drop = F]))
+  #openxlsx::writeData(wb, sheet = panel_sheet, xy = c(which(colnames(orig.sheet) == "LiveDeadMarker")+1,1), x = as.data.frame(panel_add[,antibody_list_cols]))
   openxlsx::saveWorkbook(wb, panel_file, overwrite = T)
 
   print(as.data.frame(panel_add))
