@@ -16,8 +16,13 @@
     x %>%
     dplyr::count(!!rlang::sym(x_cat), !!rlang::sym(fill_cat)) %>%
     dplyr::left_join(dplyr::count(x, !!rlang::sym(x_cat), name = "total"), by = x_cat) %>%
-    dplyr::mutate(rel = n/total) %>%
-    tibble::as_tibble()
+    dplyr::mutate(rel = n/total)
+
+  if (is.numeric(table[,fill_cat])) {
+    table <- table %>% dplyr::mutate({{ fill_cat }} := as.character(!!rlang::sym(fill_cat)))
+  }
+
+  table <- tibble::as_tibble(table)
 
   plot <- ggplot2::ggplot(table, ggplot2::aes(x = !!rlang::sym(x_cat), y = rel, fill = !!rlang::sym(fill_cat))) +
     ggplot2::geom_col() +
