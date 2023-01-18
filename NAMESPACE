@@ -3,6 +3,7 @@
 export(ab_info_to_panel)
 export(ab_panel_to_fcs)
 export(col_pal)
+export(compMat_neutral_to_fcs)
 export(compMat_to_fcs)
 export(dr_to_fcs)
 export(fcs_get_keywords)

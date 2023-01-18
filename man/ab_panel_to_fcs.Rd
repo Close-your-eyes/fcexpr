@@ -8,16 +8,17 @@ ab_panel_to_fcs(
   sampledescription,
   FileNames,
   FCS.file.folder,
-  channel_conjugate_match_file = system.file("extdata",
-    "channel_conjugate_matches.xlsx", package = "fcexpr"),
+  channel_conjugate_match_file = system.file("extdata", "channel_conjugate_matches.xlsx",
+    package = "fcexpr"),
   AbCalcFile_col = "AbCalcFile",
   AbCalcSheet_col = "AbCalcSheet",
-  AbCalcFile.folder = file.path(dirname(FCS.file.folder), "Protocols"),
+  AbCalcFile_folder = file.path(dirname(FCS.file.folder), "Protocols"),
   conjugate_to_desc = T,
   other_keywords = c(),
-  clear_previous = T,
+  clear_previous = F,
   ignore_duplicate_ag = F,
-  machine = NULL
+  machine = NULL,
+  manual_df = NULL
 )
 }
 \arguments{
@@ -33,7 +34,7 @@ ab_panel_to_fcs(
 
 \item{AbCalcSheet_col}{column name in sampledescription indicating the respective sheet name in AbCalcFile}
 
-\item{AbCalcFile.folder}{path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile}
+\item{AbCalcFile_folder}{path to the folder containing the AbCalcFile; if NULL then AbCalcFile_col must contain the full, absolute path of AbCalcFile}
 
 \item{conjugate_to_desc}{alter/update the channel description of fcs files with stained molecule and optionally the fluorochrome}
 
@@ -44,6 +45,9 @@ ab_panel_to_fcs(
 \item{ignore_duplicate_ag}{whether or not to ignore duplicate antigen entries in antibody calculation sheet}
 
 \item{machine}{name of the Flow Cytometer the FCS were acquired on. Only necessary when channels cannot be matched unambiguously.}
+
+\item{manual_df}{manually provide a data frame with AbCalcFile_col, AbCalcSheet_col and FilePath columns for every FCS file
+to write channel information to; sampledescription, FileNames, FCS.file.folder are not required when !is.null(manual_df)}
 }
 \value{
 no return, but updated fcs files on disk
