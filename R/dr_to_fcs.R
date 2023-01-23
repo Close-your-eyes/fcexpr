@@ -1231,11 +1231,45 @@ dr_to_fcs <- function(ff.list,
   if (is.null(levels)) {
     levels <- sort(unique(cluster))
   }
-  all_pairs <- utils::combn(levels, 2, simplify = T)
 
-  # x = stats::setNames(as.character(all_pairs[1,]), nm = paste0(all_pairs[1,], "_____", all_pairs[2,]))
-  dplyr::bind_rows(parallel::mcmapply(x = as.character(all_pairs[1,]), y = as.character(all_pairs[2,]), function(x,y) {
-    'tryCatch({
+  #all_pairs <- utils::combn(levels, 2, simplify = T)
+  ## redundant calculation is easier for subsequent marker analysis; or one has to think about the logic doing it the non-redundant way
+  all_pairs <- expand.grid(levels, levels)
+  all_pairs <- all_pairs[which(all_pairs$Var1 != all_pairs$Var2),]
+  all_pairs <- t(all_pairs)
+
+  out <- dplyr::bind_rows(parallel::mcmapply(x = as.character(all_pairs[1,]),
+                                             y = as.character(all_pairs[2,]),
+                                             function(x,y) {
+
+                                               out <-
+                                                 presto::wilcoxauc(X = cbind(t(dat_split[[x]]),t(dat_split[[y]])), y = c(rep("y", length(which(as.character(cluster) == x))),
+                                                                                                                         rep("z", length(which(as.character(cluster) == y))))) %>%
+                                                 dplyr::filter(group == "y") %>%
+                                                 dplyr::select(feature, pval) %>%
+                                                 dplyr::rename("pvalue" = pval, "channel" = feature)
+
+                                               out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
+                                               out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[y]]), 2)
+                                               out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
+                                               out[,"diptest_pvalue_1"] <- suppressWarnings(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+                                               out[,"diptest_pvalue_2"] <- suppressWarnings(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+                                               out[,"cluster_1"] <- as.character(x) #sapply(strsplit(out$cluster12, "_____"), "[", 1, simplify = T)
+                                               out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
+                                               out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+
+                                               #cluster_sizes <- utils::stack(table(cluster)) %>% dplyr::mutate(ind = as.character(ind))
+                                               out <-
+                                                 out %>%
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_1" = "ind")) %>%
+                                                 #dplyr::rename("cluster_1_events" = "values") %>%
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_2" = "ind")) %>%
+                                                 #dplyr::rename("cluster_2_events" = "values") %>%
+                                                 #, cluster_1_events, cluster_2_events
+                                                 dplyr::select(channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_pvalue_1, diptest_pvalue_2) %>%
+                                                 dplyr::arrange(pvalue)
+
+                                               'tryCatch({
       out <- suppressWarnings(matrixTests::col_wilcoxon_twosample(dat_split[[x]],
                                                                   dat_split[[y]])) %>%
         dplyr::select(pvalue) %>%
@@ -1262,34 +1296,9 @@ dr_to_fcs <- function(ff.list,
         dplyr::rename("pvalue" = pval, "channel" = feature)
     })'
 
-    out <-
-      presto::wilcoxauc(X = cbind(t(dat_split[[x]]),t(dat_split[[y]])), y = c(rep("y", length(which(as.character(cluster) == x))),
-                                                                              rep("z", length(which(as.character(cluster) == y))))) %>%
-      dplyr::filter(group == "y") %>%
-      dplyr::select(feature, pval) %>%
-      dplyr::rename("pvalue" = pval, "channel" = feature)
 
-    out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
-    out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[y]]), 2)
-    out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
-    out[,"diptest_pvalue_1"] <- suppressWarnings(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
-    out[,"diptest_pvalue_2"] <- suppressWarnings(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
-    out[,"cluster_1"] <- as.character(x) #sapply(strsplit(out$cluster12, "_____"), "[", 1, simplify = T)
-    out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
-    out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
-
-    #cluster_sizes <- utils::stack(table(cluster)) %>% dplyr::mutate(ind = as.character(ind))
-    out <-
-      out %>%
-      #dplyr::left_join(cluster_sizes, by = c("cluster_1" = "ind")) %>%
-      #dplyr::rename("cluster_1_events" = "values") %>%
-      #dplyr::left_join(cluster_sizes, by = c("cluster_2" = "ind")) %>%
-      #dplyr::rename("cluster_2_events" = "values") %>%
-      #, cluster_1_events, cluster_2_events
-      dplyr::select(channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_pvalue_1, diptest_pvalue_2) %>%
-      dplyr::arrange(pvalue)
-    return(out)
-  }, mc.cores = mc.cores, SIMPLIFY = F))
+                                               return(out)
+                                             }, mc.cores = mc.cores, SIMPLIFY = F))
 
   out$cluster_1 <- factor(out$cluster_1, levels = levels)
   out$cluster_2 <- factor(out$cluster_2, levels = levels)
