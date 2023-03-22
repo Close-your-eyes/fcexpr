@@ -265,7 +265,9 @@ conjugate_to_channel <- function(conjugates,
   matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
 
   matches_grouped <- dplyr::group_by(matches, Conjugate) %>% dplyr::summarise(n_ch = nlevels(as.factor(channel)))
+
   if (any(matches_grouped$n_ch > 1)) {
+    print(matches)
     stop("Conjugate could not be matched to channel unambiguously. Try to provide the correct name of the machine: ", paste(unique(matches$machine), collapse = ", "), ".")
   }
 
