@@ -131,107 +131,111 @@ ab_panel_to_fcs <- function(sampledescription,
     if (!file.exists(file)) {
       warning("File '", file, "' not found.")
     } else {
-      if (!x[,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
-        warning("Sheet '", x[,AbCalcSheet_col], "' not found in ", file, ".")
+      if (!grepl("\\.xlsx", file)) {
+        warning("File '", file, "' is not an xlsx file as it is supposed to be.")
       } else {
-        sh <- openxlsx::read.xlsx(file, sheet = x[,AbCalcSheet_col])
-        # check columns
-        if (any(!c("Conjugate", "Antigen") %in% names(sh))) {
-          warning("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'.")
+        if (!x[,AbCalcSheet_col] %in% openxlsx::getSheetNames(file)) {
+          warning("Sheet '", x[,AbCalcSheet_col], "' not found in ", file, ".")
         } else {
-          # check other_keywords
-          if (any(!other_keywords %in% names(sh))) {
-            message(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files.")
-            other_keywords <- intersect(other_keywords, names(sh))
-          }
-
-          # do this after checking for LiveDeadMarker - this will allow to have no antibody entered w/o error
-          #sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
-          if (is.na(sh[1,"LiveDeadMarker"])) {
-            message("No LiveDeadMarker entered.")
+          sh <- openxlsx::read.xlsx(file, sheet = x[,AbCalcSheet_col])
+          # check columns
+          if (any(!c("Conjugate", "Antigen") %in% names(sh))) {
+            warning("Conjugate and/or Antigen columns not found in Sheet '", x[,AbCalcSheet_col], "' in '", x[,AbCalcFile_col], "'.")
           } else {
-            ## allow more than one LiveDeadMarker, separated by comma
-            rrr <- nrow(sh)+1
-            for (z in trimws(strsplit(sh[1,"LiveDeadMarker"], ",")[[1]])) {
-              sh[rrr,"Conjugate"] <- z
-              sh[rrr,"Antigen"] <- "LiveDead"
-              rrr <- rrr + 1
+            # check other_keywords
+            if (any(!other_keywords %in% names(sh))) {
+              message(paste(other_keywords[which(!other_keywords %in% names(sh))], collapse = ", "), " columns not found in AbCalcSheet. Those will not be written to FCS files.")
+              other_keywords <- intersect(other_keywords, names(sh))
             }
-            sh[1,"LiveDeadMarker"] <- NA
-          }
 
-          # check for "channel" in other_keywords
-          sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
+            # do this after checking for LiveDeadMarker - this will allow to have no antibody entered w/o error
+            #sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
+            if (is.na(sh[1,"LiveDeadMarker"])) {
+              message("No LiveDeadMarker entered.")
+            } else {
+              ## allow more than one LiveDeadMarker, separated by comma
+              rrr <- nrow(sh)+1
+              for (z in trimws(strsplit(sh[1,"LiveDeadMarker"], ",")[[1]])) {
+                sh[rrr,"Conjugate"] <- z
+                sh[rrr,"Antigen"] <- "LiveDead"
+                rrr <- rrr + 1
+              }
+              sh[1,"LiveDeadMarker"] <- NA
+            }
 
-          sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
-          other_keywords <- intersect(other_keywords, names(sh))
-          # exclude LiveDead from duplicate check as it may be in 2 channels
-          if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"]) && !ignore_duplicate_ag) {
-            warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check. To ignore this warning and write information in FCS files anyway, pass 'ignore_duplicate_ag = TRUE'.")
-          } else {
-            ## read FCS here, then call the ccm function
-            # for loop as sh is modified by the first FCS file
-            for (j in x[,"FilePaths"][[1]]) {
-              'fcs.path <- list.files(FCS.file.folder, pattern = stringr::str_replace_all(j, c("\\+" = "\\\\+", "\\." = "\\\\.",
+            # check for "channel" in other_keywords
+            sh <- sh[which(!is.na(sh[,"Antigen"])),unique(c("Antigen", "Conjugate", other_keywords, "LiveDeadMarker"))]
+
+            sh <- sh[,colSums(is.na(sh))<nrow(sh)] # also removes LiveDeadMarker column
+            other_keywords <- intersect(other_keywords, names(sh))
+            # exclude LiveDead from duplicate check as it may be in 2 channels
+            if (length(unique(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"])) != length(sh[which(sh[,"Antigen"] != "LiveDead"),"Antigen"]) && !ignore_duplicate_ag) {
+              warning("Duplicate Antigen found in Ab.calc.sheet (",  x[,AbCalcSheet_col], "). ",  "Please check. To ignore this warning and write information in FCS files anyway, pass 'ignore_duplicate_ag = TRUE'.")
+            } else {
+              ## read FCS here, then call the ccm function
+              # for loop as sh is modified by the first FCS file
+              for (j in x[,"FilePaths"][[1]]) {
+                'fcs.path <- list.files(FCS.file.folder, pattern = stringr::str_replace_all(j, c("\\+" = "\\\\+", "\\." = "\\\\.",
                                                                                               "\\|" = "\\\\|", "\\(" = "\\\\(",
                                                                                               "\\)" = "\\\\)", "\\[" = "\\\\[",
                                                                                               "\\{" = "\\\\{", "\\*" = "\\\\*",
                                                                                               "\\?" = "\\\\?")), recursive = T, full.names = T)'
 
-              ff <- flowCore::read.FCS(j, truncate_max_range = F, emptyValue = F)
-              ff <- .check_comp_mat(ff)
-              channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
-              channels.inv <- stats::setNames(names(channels),channels)
+                ff <- flowCore::read.FCS(j, truncate_max_range = F, emptyValue = F)
+                ff <- .check_comp_mat(ff)
+                channels <- flowCore::pData(flowCore::parameters(ff))[,"name"]
+                channels.inv <- stats::setNames(names(channels),channels)
 
-              # special treatment on first index
-              if (j == x[,"FilePaths"][[1]][1]) {
-                matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm, machine = machine)
-                if (any(duplicated(matches))) {
-                  message("At least on channel used by more than one marker.")
+                # special treatment on first index
+                if (j == x[,"FilePaths"][[1]][1]) {
+                  matches <- conjugate_to_channel(conjugates = sh[,"Conjugate"], channels = channels, channel_conjugate_match_file = ccm, machine = machine)
+                  if (any(duplicated(matches))) {
+                    message("At least on channel used by more than one marker.")
+                  }
+                  sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
+                  if (any(is.na(matches))) {
+                    warning("Conjugates not found in ccm: ", paste(sh[which(is.na(sh[,"channel"])),"Conjugate"], collapse = ","))
+                    sh <- sh[which(!is.na(sh[,"channel"])),]
+                  }
+                  sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")
+                  # collapse multiple information for same channel
+                  collapse.fun <- function(x) paste0(x, collapse = ", ")
+                  sh <-
+                    sh %>%
+                    dplyr::group_by(channel) %>%
+                    dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, dplyr::all_of(other_keywords)), collapse.fun), .groups = "drop")
+                  sh <- as.data.frame(sh)
+
+                  # same order
+                  sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
+                  sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
+                  print(sh)
                 }
-                sh[,"channel"] <- matches[match(sh[,"Conjugate"], names(matches))]
-                if (any(is.na(matches))) {
-                  warning("Conjugates not found in ccm: ", paste(sh[which(is.na(sh[,"channel"])),"Conjugate"], collapse = ","))
-                  sh <- sh[which(!is.na(sh[,"channel"])),]
+
+                if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
+                  flowCore::pData(flowCore::parameters(ff))[,"desc"] <- NA
                 }
-                sh[,"Antigen.Conjugate"] <- paste(sh[,"Antigen"], sh[,"Conjugate"], sep = "-")
-                # collapse multiple information for same channel
-                collapse.fun <- function(x) paste0(x, collapse = ", ")
-                sh <-
-                  sh %>%
-                  dplyr::group_by(channel) %>%
-                  dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, dplyr::all_of(other_keywords)), collapse.fun), .groups = "drop")
-                sh <- as.data.frame(sh)
+                if (conjugate_to_desc) {
+                  flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen.Conjugate"]
+                } else {
+                  flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen"]
+                }
 
-                # same order
-                sh <- sh[order(match(sh[,"channel"], flowCore::pData(flowCore::parameters(ff))[,"name"])),]
-                sh[,"channel.name"] <- stringr::str_extract(channels.inv[sh[,"channel"]], "P[:digit:]{1,}")
-                print(sh)
-              }
+                ## to do: clear previous keywords
 
-              if (clear_previous && any(!is.na(flowCore::pData(flowCore::parameters(ff))[,"desc"]))) {
-                flowCore::pData(flowCore::parameters(ff))[,"desc"] <- NA
-              }
-              if (conjugate_to_desc) {
-                flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen.Conjugate"]
-              } else {
-                flowCore::pData(flowCore::parameters(ff))[,"desc"][which(flowCore::pData(flowCore::parameters(ff))[,"name"] %in% sh[,"channel"])] <- sh[,"Antigen"]
-              }
-
-              ## to do: clear previous keywords
-
-              # other meta data about the antibody used
-              for (m in other_keywords) {
-                for (k in 1:nrow(sh)) {
-                  if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && !trimws(sh[k,m]) %in% c("NA", "", "-")) {
-                    flowCore::keyword(ff)[paste0(sh[k,"channel.name"],"_",m)] <- sh[k,m]
+                # other meta data about the antibody used
+                for (m in other_keywords) {
+                  for (k in 1:nrow(sh)) {
+                    if (!is.null(sh[k,m]) && !is.na(sh[k,m]) && !trimws(sh[k,m]) %in% c("NA", "", "-")) {
+                      flowCore::keyword(ff)[paste0(sh[k,"channel.name"],"_",m)] <- sh[k,m]
+                    }
                   }
                 }
-              }
 
-              # save fcs file (overwrite original)
-              flowCore::write.FCS(ff, j)
-              message(j)
+                # save fcs file (overwrite original)
+                flowCore::write.FCS(ff, j)
+                message(j)
+              }
             }
           }
         }
