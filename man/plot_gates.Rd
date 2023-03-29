@@ -15,6 +15,7 @@ plot_gates(
   geom = c("hex", "pointdensity", "scattermore"),
   gate_color = "black",
   gate_stats_color = "black",
+  pct_digits = 1,
   plot_contours = F,
   ...
 )
@@ -42,6 +43,8 @@ scattermore = scattermore::geom_scattermore which is a high performance dot plot
 \item{gate_color}{line color of gates}
 
 \item{gate_stats_color}{font color of gate statistics}
+
+\item{pct_digits}{how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats}
 
 \item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
 

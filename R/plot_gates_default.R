@@ -25,6 +25,7 @@
 #' arguments to ggpointdensity::geom_pointdensity like adjust or size: pointdensity__adjust (defaults to 5), pointdensity__size (defaults to 0.3),
 #' arguments to scattermore::geom_scattermore like scattermore__pointsize = 0.1, arguments to contours like contour__alpha (defaults to 0.5)
 #' or contour__color (defaults to grey65 if geom != scattermore or to tomato2 if geom == scattermore)
+#' @param pct_digits how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats
 #'
 #' @return a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
 #' @export
@@ -71,6 +72,7 @@ plot_gates <- function(gs,
                        geom = c("hex", "pointdensity", "scattermore"),
                        gate_color = "black",
                        gate_stats_color = "black",
+                       pct_digits = 1,
                        plot_contours = F,
                        ...) {
 
@@ -201,7 +203,7 @@ plot_gates <- function(gs,
       }
       if (plot_gate_pct) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "percent", size = gg[i,"statsize_pct"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]), fill = scales::alpha(c("white"),0.5))
+          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], digits = stats_digits, type = "percent", size = gg[i,"statsize_pct"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]), fill = scales::alpha(c("white"),0.5))
         }
       }
       return(p)
