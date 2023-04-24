@@ -442,17 +442,17 @@ get_gs <- function(x,
                           timeChannel = NULL,
                           channels = NULL) {
   if (!is.null(timeChannel)) {
-    if (!timeChannel %in% colnames(flowCore::exprs(ff))) {
-      stop("timeChannel not found in exprs of flowFrame.")
+    timeChannel <- unlist(lapply(timeChannel, function(x) grep(paste0("^",x,"$"),
+                                                               colnames(flowCore::exprs(ff)),
+                                                               value = TRUE, ignore.case = TRUE)))
+    if (all(is.na(timeChannel))) {
+      stop("None of timeChannels not found in exprs of flowFrame.")
     }
-  } else {
-    timeChannel <- flowCore:::findTimeChannel(ff)
-    message("time channel detected: ", timeChannel)
   }
 
   if (is.null(channels)) {
     channels <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name, flowCore::pData(flowCore::parameters(ff))$desc)
-    channels <- channels[which(channels != timeChannel)]
+    channels <- channels[which(!channels %in% timeChannel)]
   } else {
     channels <- trimws(channels)
     inds <- unique(c(which(flowCore::pData(flowCore::parameters(ff))$name %in% channels),

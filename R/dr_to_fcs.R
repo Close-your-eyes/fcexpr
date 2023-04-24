@@ -557,7 +557,6 @@ dr_to_fcs <- function(ff.list,
   }
 
   ## ---- metaclustering -------
-
   if (!is.null(metaclustering.on) && metaclustering.on == "SOM") {
     if (run.lda) {
       warning("LDA not applied to SOM calculation.")
