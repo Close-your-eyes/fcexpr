@@ -334,7 +334,7 @@ dr_to_fcs2 <- function(ff.list,
     if ("n_neighbors" %in% names(UMAP_args) && length(UMAP_args[["n_neighbors"]]) > 1) {
       umap.dims <- do.call(cbind, parallel::mclapply(UMAP_args[["n_neighbors"]], function(z) {
         set.seed(seed)
-        out <- Gmisc::fastDoCall(uwot::umap, args = c(list(X = expr.select, verbose = F, n_neighbors = z), UMAP_args[which(!names(UMAP_args) %in% c("X" "verbose", "n_neighbors"))]))
+        out <- Gmisc::fastDoCall(uwot::umap, args = c(list(X = expr.select, verbose = F, n_neighbors = z), UMAP_args[which(!names(UMAP_args) %in% c("X", "verbose", "n_neighbors"))]))
         colnames(out) <- c(paste0("UMAP_1_", z), paste0("UMAP_2_", z))
         return(out)
       }, mc.cores = mc.cores))
