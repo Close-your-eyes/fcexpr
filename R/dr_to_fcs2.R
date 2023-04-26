@@ -183,9 +183,6 @@ dr_to_fcs2 <- function(ff.list,
   if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
   }
-  if ((run.leiden || run.louvain) && !requireNamespace("Seurat", quietly = T)) {
-    utils::install.packages("Seurat")
-  }
   if (!requireNamespace("devtools", quietly = T)) {
     utils::install.packages("devtools")
   }
@@ -214,6 +211,9 @@ dr_to_fcs2 <- function(ff.list,
   }
 
   mc.cores <- min(mc.cores, parallel::detectCores() - 1)
+
+  metacluster_map_source <- match.arg(metacluster_map_source, c("UMAP", "expr"))
+  metacluster_map <- match.arg(metacluster_map, c("SOM", "GQTSOM"))
 
   if (!is.null(extra.cols)) {
     if (!is.matrix(extra.cols)) {
@@ -354,8 +354,8 @@ dr_to_fcs2 <- function(ff.list,
   if (run.som) {
     message("Calculating SOM.\nStart: ", Sys.time())
     set.seed(seed)
-    som.map <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = expr.select), SOM_args[which(!names(SOM_args) %in% c("data"))]))
-    som.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = som.map), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
+    som.map.dr <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = expr.select), SOM_args[which(!names(SOM_args) %in% c("data"))]))
+    som.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = som.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
     colnames(som.dims) <- c("SOM_1", "SOM_2")
     message("End: ", Sys.time())
   }
@@ -364,9 +364,9 @@ dr_to_fcs2 <- function(ff.list,
   if (run.gqtsom) {
     message("Calculating GQTSOM.\nStart: ", Sys.time())
     set.seed(seed)
-    gqtsom.map <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = expr.select), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
-    gqtsom.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = gqtsom.map), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
-    colnames(gqtsom.dims) <- c("GQTSOM_1", "GQTSOM_2")
+    gqtsom.map.dr <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = expr.select), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
+    gqtsom.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = gqtsom.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
+    colnames(som.dims) <- c("GQTSOM_1", "GQTSOM_2")
     message("End: ", Sys.time())
   }
 
@@ -377,20 +377,20 @@ dr_to_fcs2 <- function(ff.list,
   # metacluster_map_source = expression or UMAP
 
   ## always run metaclustering as other procedures are too slow
-
   if (metacluster_map_source == "expr") {
     if (metacluster_map == "SOM") {
-      map.codes <- som.map$codes
+      som.map.clust <- som.map.dr
     }
     if (metacluster_map == "GQTSOM") {
-      map.codes <- gqtsom.map$codes
+      som.map.clust <- gqtsom.map.dr
     }
+
   } else if (metacluster_map_source == "UMAP") {
     if (metacluster_map == "SOM") {
-      map.codes <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = umap.dims), SOM_args[which(!names(SOM_args) %in% c("data"))]))$codes
+      som.map.clust <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = umap.dims), SOM_args[which(!names(SOM_args) %in% c("data"))]))
     }
     if (metacluster_map == "GQTSOM") {
-      map.codes <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = umap.dims), SOM_args[which(!names(SOM_args) %in% c("data"))]))$codes
+      som.map.clust <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = umap.dims), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
     }
   }
 
@@ -398,11 +398,11 @@ dr_to_fcs2 <- function(ff.list,
     tryCatch({
       message("Finding clusters with hclust.\nStart: ", Sys.time())
 
-      d <- Gmisc::fastDoCall(stats::dist, args = c(list(x = map.codes), dist_args[which(names(dist_args) != "x")]))
+      d <- Gmisc::fastDoCall(stats::dist, args = c(list(x = som.map.clust$codes), dist_args[which(names(dist_args) != "x")]))
       h <- Gmisc::fastDoCall(stats::hclust, args = c(list(d = d), hclust_args[which(names(hclust_args) != "d")]))
       ks <- Gmisc::fastDoCall(cbind, lapply(cutree_args[which(names(cutree_args) == "k")], function(x) stats::cutree(tree = h, k = x)))
 
-      ks <- apply(ks, 2, function (x) x[map[["mapping"]][,1]])
+      ks <- apply(ks, 2, function (x) x[som.map.clust[["mapping"]][,1]])
 
       # make sure that cluster 1 is the largest and so on
       ks <- .cluster_ordering(ks = ks)
