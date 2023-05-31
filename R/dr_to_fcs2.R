@@ -46,6 +46,7 @@
 #' @param dist_args arguments to stats::dist
 #' @param hclust_args arguments to stats::hclust
 #' @param cutree_args arguments to stats::cutree; only k is relevant
+#' @param save.name name to use for save rds and or fcs file
 #'
 #' @return
 #' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
@@ -603,9 +604,9 @@ dr_to_fcs2 <- function(ff.list,
       save.name <- save.name[1]
     }
     if (is.null(save.name)) {
-      sv_pth <- file.path(save.path, paste0(t, "_dr_ff_list.rds")
+      sv_pth <- file.path(save.path, paste0(t, "_dr_ff_list.rds"))
     } else {
-      sv_pth <- file.path(save.path, paste0(save.name, ".rds")
+      sv_pth <- file.path(save.path, paste0(save.name, ".rds"))
     }
     if ("rds" %in% save.to.disk) {
       saveRDS(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result), file = sv_pth, compress = F)
@@ -613,7 +614,7 @@ dr_to_fcs2 <- function(ff.list,
     if (is.null(save.name)) {
       sv_pth <- file.path(save.path, paste0(t, "_dr.fcs"))
     } else {
-      sv_pth <- file.path(save.path, paste0(save.name, ".fcs")
+      sv_pth <- file.path(save.path, paste0(save.name, ".fcs"))
     }
     if ("fcs" %in% save.to.disk) {
       flowCore::write.FCS(ff, sv_pth)

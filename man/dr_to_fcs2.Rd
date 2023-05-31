@@ -32,6 +32,7 @@ dr_to_fcs2(
   save.to.disk = c("fcs", "rds"),
   save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
+  save.name = NULL,
   exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) ==
     "transformed", "cluster.id", "FSC|SSC|Time|cluster.id"),
   write.transformed.channels.to.FCS = T,
@@ -103,6 +104,8 @@ mc.cores is passed to parallel::mclapply or parallel::mcmapply; limited to paral
 \item{save.to.disk}{what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list}
 
 \item{save.path}{where to save elements specified in save.to.disk; set to NULL to have nothing written to disk}
+
+\item{save.name}{name to use for save rds and or fcs file}
 
 \item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be redundant
 and will only occupy disk space, those are specified here; matched with grepl}
