@@ -129,7 +129,7 @@ wsp_get_ff <- function(wsp,
   }
   smpl <- smpl[which(smpl$FileName %in% pp_is),]
 
-  ff.list <- lapply_fun(stats::setNames(split(smpl, 1:nrow(smpl)), smpl$FileName)[6],
+  ff.list <- lapply_fun(stats::setNames(split(smpl, 1:nrow(smpl)), smpl$FileName),
                         get_ff,
                         return_untransformed = return_untransformed,
                         return_transformed = return_transformed,
