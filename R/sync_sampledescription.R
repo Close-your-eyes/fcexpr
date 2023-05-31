@@ -339,62 +339,7 @@ sync_sampledescription <- function(FCS.file.folder,
 
 }
 
-'.write.sd <- function(named.sheet.list, wd, file.name, file.sep) {
-  ## make repetitive elements more compact
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
-    tryCatch({
-      openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
-    }, error = function(e) {
-      new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
-      print(paste0("Is ", file.name, " still open in Excel? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-      openxlsx::write.xlsx(named.sheet.list, file = new, firstRow = T, colWidths = "auto")
-    })
 
-    ## read the putative updated file and check if FileNames are updated
-    if (!identical(named.sheet.list[[1]][,"FileName",drop=T],openxlsx::read.xlsx(xlsxFile = file.path(wd, file.name))[,"FileName",drop=T])) {
-      choice <- utils::menu(c("Yes", "No"), title = paste0("FileNames in sampledescription seem to not have changed. Is the file still opened? If so, close it and give saving an updated version another try (1) or not (2)?"))
-    }
-    if (choice == 1) {
-      tryCatch({
-        openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
-      }, error = function(e) {
-        new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
-        print(paste0("Is ", file.name, " still open in Excel? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-        openxlsx::write.xlsx(named.sheet.list, file = new, firstRow = T, colWidths = "auto")
-      })
-    }
-
-  }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("txt", "tsv", "csv")) {
-    tryCatch({
-      utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
-    }, error = function(e) {
-      new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
-      print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-      utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, row.names = F, na = "")
-    })
-
-    ## read the putative updated file and check if FileNames are updated
-    if (!identical(named.sheet.list[[1]][,"FileName",drop=T],utils::read.table(file = file.path(wd, file.name), header = T, sep = file.sep, check.names = F)[,"FileName",drop=T])) {
-      choice <- utils::menu(c("Yes", "No"), title = paste0("FileNames in sampledescription seem to not have changed. Is the file still opened? If so, close it and give saving an updated version another try (1) or not (2)?"))
-    }
-    if (choice == 1) {
-      tryCatch({
-        utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = file.sep, row.names = F, na = "")
-      }, error = function(e) {
-        new <- file.path(wd, paste0(format(Sys.time(), "%Y.%m.%d-%H.%M.%S_"), file.name))
-        print(paste0("Is ", file.name, " still opened? Saving as updated file as ", new, ". Please delete the former one manually and remove the date-prefix of the new file."))
-        utils::write.table(x = named.sheet.list[[1]], file = new, sep = file.sep, row.names = F, na = "")
-      })
-    }
-
-
-  }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
-    #to do
-  }
-
-}'
 
 .check.FCS.files <- function(FCS.file.folder,
                              exclude.folders = NULL,
@@ -410,32 +355,6 @@ sync_sampledescription <- function(FCS.file.folder,
   }
 
   return(.get_fcs_identities(kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)))
-
-'  out <- flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
-  dd <- sapply(out, "[", "$DATE")
-  tt <- sapply(out, "[", "$BTIM")
-  et <- sapply(out, "[", "$ETIM")
-  if (any(nchar(tt) - nchar(gsub(":", "", tt)) > 2)) {
-    tt_fix_ind <- which(nchar(tt) - nchar(gsub(":", "", tt)) > 2)
-    tt[tt_fix_ind] <- paste(rev(rev(strsplit(tt[tt_fix_ind], ":")[[1]])[-1]), collapse = ":")
-  }
-  datetime <- paste0(dd, "-", tt)
-  # if analysis starts at 23:5x and ends at 00:xx then date of the next day is assigned - this is problematic though for ordering of samples and has
-  # to be corrected; subtract the number of seconds of one day (86400) to get the correct date for ordering samples
-
-  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
-  datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
-                                                                     "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
-
-  if (any(is.na(datetime))) {
-    warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
-  }
-  fcs.files <- stats::setNames(paste0(sapply(out, "[", "$FIL"), "_-_", trimws(sapply(out, "[", "$TOT")), "_-_", datetime), nm = fcs.file.paths)
-
-  if (length(unique(fcs.files)) != length(fcs.files)) {
-    stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs.files[duplicated(fcs.files) |
-                                                                                                                                     duplicated(fcs.files, fromLast = T)]), collapse = "\n")))
-  }'
 }
 
 

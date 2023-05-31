@@ -263,9 +263,10 @@ get_ff <- function(x,
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
                                     name = x$group,
                                     path = path,
-                                    subset = `$FIL` == x$FIL & `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
+                                    subset = `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
                                     truncate_max_range = F,
                                     transform = T,
+                                    #emptyValue = T,
                                     keywords = c("$FIL", "$TOT", "$BEGINDATA"),
                                     additional.keys = c("$TOT", "$BEGINDATA"))
 
