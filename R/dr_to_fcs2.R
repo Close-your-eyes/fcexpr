@@ -162,6 +162,7 @@ dr_to_fcs2 <- function(ff.list,
                        mc.cores = 1,
                        save.to.disk = c("fcs", "rds"),
                        save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
+                       save.name = NULL,
                        exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) == "transformed", "cluster.id", "FSC|SSC|Time|cluster.id"),
                        write.transformed.channels.to.FCS = T,
                        write.untransformed.channels.to.FCS = T,
@@ -597,11 +598,25 @@ dr_to_fcs2 <- function(ff.list,
     message("Writing files to disk.")
     t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
     dir.create(save.path, showWarnings = F)
+    if (!is.null(save.name)) {
+      save.name <- gsub("\\.fcs$", "", save.name, ignore.case = T)
+      save.name <- save.name[1]
+    }
+    if (is.null(save.name)) {
+      sv_pth <- file.path(save.path, paste0(t, "_dr_ff_list.rds")
+    } else {
+      sv_pth <- file.path(save.path, paste0(save.name, ".rds")
+    }
     if ("rds" %in% save.to.disk) {
-      saveRDS(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result), file = file.path(save.path, paste0(t, "_dr_ff_list.rds")), compress = F)
+      saveRDS(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result), file = sv_pth, compress = F)
+    }
+    if (is.null(save.name)) {
+      sv_pth <- file.path(save.path, paste0(t, "_dr.fcs"))
+    } else {
+      sv_pth <- file.path(save.path, paste0(save.name, ".fcs")
     }
     if ("fcs" %in% save.to.disk) {
-      flowCore::write.FCS(ff, file.path(save.path, paste0(t, "_dr.fcs")))
+      flowCore::write.FCS(ff, sv_pth)
     }
   }
   return(list(df = dim.red.data, col_names = channel.desc_augment, marker = marker, flowframe = ff, pca = pca.result))
