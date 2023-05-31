@@ -541,6 +541,7 @@ dr_to_fcs2 <- function(ff.list,
 
   ## ---- calc cluster markers -------
   ## always use transformed data if provided
+  marker <- NULL
   if (!is.null(clustering.for.marker.calc)) {
     message("Calculating markers.")
     tryCatch({
@@ -588,10 +589,7 @@ dr_to_fcs2 <- function(ff.list,
       names(marker) <- clustering.for.marker.calc
     }, error = function(err) {
       message("cluster marker calculation caused an error: ", err)
-      marker <- NULL
     })
-  } else {
-    marker <- NULL
   }
 
   ## ---- write to disk -------
