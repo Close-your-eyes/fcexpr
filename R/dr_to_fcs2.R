@@ -181,7 +181,6 @@ dr_to_fcs2 <- function(ff.list,
   if (!requireNamespace("matrixStats", quietly = T)) {
     utils::install.packages("matrixStats")
   }
-
   if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
   }
@@ -284,6 +283,10 @@ dr_to_fcs2 <- function(ff.list,
     dim.red.data <- do.call(rbind, lapply(ff.list[["untransformed"]], flowCore::exprs))
   }
 
+  #sce <- SingleCellExperiment::SingleCellExperiment(assays = list(untransformed = do.call(rbind, lapply(ff.list[["untransformed"]], flowCore::exprs))))
+  # different number of cols not possible
+  #SummarizedExperiment::assay(sce, "transformed") <- do.call(rbind, lapply(ff.list[["transformed"]], flowCore::exprs))
+
   if (write.transformed.channels.to.FCS && "transformed" %in% names(ff.list)) {
     expr_trans <- do.call(rbind, lapply(ff.list[["transformed"]], flowCore::exprs))
     expr_trans <- expr_trans[, which(!grepl(exclude.extra.channels, colnames(expr_trans)))]
@@ -302,7 +305,6 @@ dr_to_fcs2 <- function(ff.list,
   dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[[ff.list_index]]), sapply(ff.list[[ff.list_index]], nrow)))
 
 
-
   ## if data is scaled and pca applied this affects all algorithms (also SOM and GQTSOM which do not like it I think)
   ## if only for umap: pass parameters to umap
 
@@ -314,6 +316,7 @@ dr_to_fcs2 <- function(ff.list,
   ## requires a lot of checking though
 
   pca.result <- NULL
+  pca.dims <- NULL
   if (run.pca > 0) {
     run.pca <- min(ncol(expr.select) - 1, run.pca)
     message("Calculating PCA.\nStart: ", Sys.time())
@@ -330,6 +333,7 @@ dr_to_fcs2 <- function(ff.list,
 
   ## ---- dim reds -------
   # umap
+  umap.dims <- NULL
   if (run.umap) {
     message("Calculating UMAP.\nStart: ", Sys.time())
 
@@ -353,23 +357,33 @@ dr_to_fcs2 <- function(ff.list,
   ## whereas UMAP and tSNE do like it
 
   # SOM
+  som.dims <- NULL
   if (run.som) {
-    message("Calculating SOM.\nStart: ", Sys.time())
-    set.seed(seed)
-    som.map.dr <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = expr.select), SOM_args[which(!names(SOM_args) %in% c("data"))]))
-    som.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = som.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
-    colnames(som.dims) <- c("SOM_1", "SOM_2")
-    message("End: ", Sys.time())
+    tryCatch({
+      message("Calculating SOM.\nStart: ", Sys.time())
+      set.seed(seed)
+      som.map.dr <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = expr.select), SOM_args[which(!names(SOM_args) %in% c("data"))]))
+      som.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = som.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
+      colnames(som.dims) <- c("SOM_1", "SOM_2")
+      message("End: ", Sys.time())
+    }, error = function(err) {
+      message("SOM with error: ", err)
+    })
   }
 
   # GQTSOM
+  gqtsom.dims <- NULL
   if (run.gqtsom) {
-    message("Calculating GQTSOM.\nStart: ", Sys.time())
-    set.seed(seed)
-    gqtsom.map.dr <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = expr.select), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
-    gqtsom.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = gqtsom.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
-    colnames(som.dims) <- c("GQTSOM_1", "GQTSOM_2")
-    message("End: ", Sys.time())
+    tryCatch({
+      message("Calculating GQTSOM.\nStart: ", Sys.time())
+      set.seed(seed)
+      gqtsom.map.dr <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = expr.select), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
+      gqtsom.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = expr.select, map = gqtsom.map.dr), EmbedSOM_args[which(!names(EmbedSOM_args) %in% c("data", "map"))]))
+      colnames(gqtsom.dims) <- c("GQTSOM_1", "GQTSOM_2")
+      message("End: ", Sys.time())
+    }, error = function(err) {
+      message("GQTSOM with error: ", err)
+    })
   }
 
   ## ---- metaclustering -------
@@ -426,18 +440,16 @@ dr_to_fcs2 <- function(ff.list,
     dim.red.data <- do.call(cbind, list(dim.red.data, scaled.expr))
   }
 
-  if (run.pca) {
-    dim.red.data <- do.call(cbind, list(dim.red.data, pca.dims[,1:n.pca.dims]))
+  if (!is.null(pca.dims)) {
+    dim.red.data <- do.call(cbind, list(dim.red.data, pca.dims[, 1:run.pca]))
   }
-  if (run.umap) {
+  if (!is.null(umap.dims)) {
     dim.red.data <- do.call(cbind, list(dim.red.data, umap.dims))
   }
-  #if (run.tsne) {dim.red.data <- do.call(cbind, list(dim.red.data, tsne.dims))}
-
-  if (run.som) {
+  if (!is.null(som.dims)) {
     dim.red.data <- do.call(cbind, list(dim.red.data, som.dims))
   }
-  if (run.gqtsom) {
+  if (!is.null(gqtsom.dims)) {
     dim.red.data <- do.call(cbind, list(dim.red.data, gqtsom.dims))
   }
 
@@ -538,6 +550,7 @@ dr_to_fcs2 <- function(ff.list,
     new_kw[[paste0("flowCore_$P", as.character(z), "Rmax")]] <- as.integer(round(max(dim.red.data[, z])))
   }
   ff <- methods::new("flowFrame", exprs = as.matrix(dim.red.data), parameters = new_pars, description = new_kw)
+
   # https://github.com/RGLab/flowCore/issues/201
   #flowCore::keyword(ff) <- flowCore:::updateTransformKeywords(ff)
 
