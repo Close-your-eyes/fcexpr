@@ -368,6 +368,10 @@ dr_to_fcs2 <- function(ff.list,
       message("End: ", Sys.time())
     }, error = function(err) {
       message("SOM with error: ", err)
+      if (metacluster_map_source == "expr" && metacluster_map == "SOM") {
+        find.clusters <- F
+        message("find.clusters set to FALSE.")
+      }
     })
   }
 
@@ -383,6 +387,10 @@ dr_to_fcs2 <- function(ff.list,
       message("End: ", Sys.time())
     }, error = function(err) {
       message("GQTSOM with error: ", err)
+      if (metacluster_map_source == "expr" && metacluster_map == "GQTSOM") {
+        find.clusters <- F
+        message("find.clusters set to FALSE.")
+      }
     })
   }
 
@@ -392,25 +400,25 @@ dr_to_fcs2 <- function(ff.list,
   # metacluster_map = SOM or GQTSOM
   # metacluster_map_source = expression or UMAP
 
-  ## always run metaclustering as other procedures are too slow
-  if (metacluster_map_source == "expr") {
-    if (metacluster_map == "SOM") {
-      som.map.clust <- som.map.dr
-    }
-    if (metacluster_map == "GQTSOM") {
-      som.map.clust <- gqtsom.map.dr
-    }
-
-  } else if (metacluster_map_source == "UMAP") {
-    if (metacluster_map == "SOM") {
-      som.map.clust <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = umap.dims), SOM_args[which(!names(SOM_args) %in% c("data"))]))
-    }
-    if (metacluster_map == "GQTSOM") {
-      som.map.clust <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = umap.dims), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
-    }
-  }
 
   if (find.clusters) {
+    ## always run metaclustering as other procedures are too slow
+    if (metacluster_map_source == "expr") {
+      if (metacluster_map == "SOM") {
+        som.map.clust <- som.map.dr
+      }
+      if (metacluster_map == "GQTSOM") {
+        som.map.clust <- gqtsom.map.dr
+      }
+
+    } else if (metacluster_map_source == "UMAP") {
+      if (metacluster_map == "SOM") {
+        som.map.clust <- Gmisc::fastDoCall(EmbedSOM::SOM, args = c(list(data = umap.dims), SOM_args[which(!names(SOM_args) %in% c("data"))]))
+      }
+      if (metacluster_map == "GQTSOM") {
+        som.map.clust <- Gmisc::fastDoCall(EmbedSOM::GQTSOM, args = c(list(data = umap.dims), GQTSOM_args[which(!names(GQTSOM_args) %in% c("data"))]))
+      }
+    }
     tryCatch({
       message("Finding clusters with hclust.\nStart: ", Sys.time())
 
