@@ -31,6 +31,7 @@ wsp_get_gs <- function(wsp,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
                        split_size = 2,
+                       additional.sampleID = F,
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -80,6 +81,7 @@ wsp_get_gs <- function(wsp,
                     remove_redundant_channels = remove_redundant_channels,
                     lapply_fun = lapply_fun,
                     split_size = split_size,
+                    additional.sampleID = additional.sampleID,
                     ...)
   names(gs_list) <- names(smpl_list)
 

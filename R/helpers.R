@@ -413,6 +413,7 @@ get_gs <- function(x,
                    remove_redundant_channels,
                    lapply_fun = lapply,
                    split_size = 2,
+                   additional.sampleID = F,
                    ...) {
 
   lapply_fun <- match.fun(lapply_fun)
@@ -425,7 +426,8 @@ get_gs <- function(x,
                                       subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
                                       truncate_max_range = F,
                                       keywords = c("$FIL", "$BEGINDATA", "$TOT"),
-                                      additional.keys = c("$TOT", "$BEGINDATA"))
+                                      additional.keys = c("$TOT", "$BEGINDATA"),
+                                      additional.sampleID	= additional.sampleID)
 
     rownames(x) <- paste(x$FIL, x$TOT, x$BEGINDATA, sep = "_")
     flowWorkspace::sampleNames(gs) <- x[flowWorkspace::sampleNames(gs),"FileName"]
