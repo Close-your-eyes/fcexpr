@@ -434,8 +434,8 @@ sync_sampledescription <- function(FCS.file.folder,
     print(sd[which(!sd[, "identity"] %in% fcs.files), which(names(sd) %in% c("FileName", "identity"))])
     stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save it, close it and run sync_sampledescription again.")
   }
-  if (any(sapply(c("/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\""), function(x) grepl(x, sd[, "FileName"])))) {
-    stop("There is at least one FileName with one or more illegal character(s) which may cause problems in file-naming ( / : | ? ! * < > ' \")")
+  if (any(sapply(c("/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\"", "ä", "ö", "ü"), function(x) grepl(x, sd[, "FileName"])))) {
+    stop("There is at least one FileName with one or more illegal character(s) which may cause problems in file-naming ( / : | ? ! * < > ' \ ä ü ö )")
   }
   return(sd)
 }

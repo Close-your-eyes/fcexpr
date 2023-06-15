@@ -92,11 +92,20 @@ ab_panel_to_fcs <- function(sampledescription,
                       c(which(!is.na(sd[,AbCalcSheet_col])), which(trimws(sd[,AbCalcSheet_col]) != ""))),]
     }
 
-    sd[,"FilePath"] <- sapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
-                                                                                                                               "\\|" = "\\\\|", "\\(" = "\\\\(",
-                                                                                                                               "\\)" = "\\\\)", "\\[" = "\\\\[",
-                                                                                                                               "\\{" = "\\\\{", "\\*" = "\\\\*",
-                                                                                                                               "\\?" = "\\\\?")), recursive = T, full.names = T))
+    temp <- unlist(lapply(sd[,"FileName"], function(x) list.files(FCS.file.folder, pattern = stringr::str_replace_all(x, c("\\+" = "\\\\+", "\\." = "\\\\.",
+                                                                                                                           "\\|" = "\\\\|", "\\(" = "\\\\(",
+                                                                                                                           "\\)" = "\\\\)", "\\[" = "\\\\[",
+                                                                                                                           "\\{" = "\\\\{", "\\*" = "\\\\*",
+                                                                                                                           "\\?" = "\\\\?")), recursive = T, full.names = T)))
+    temp <- temp[which(!is.na(temp))]
+    if (length(temp) != nrow(sd)) {
+      message(length(temp), "FCS files found of ", nrow(sd), " expected files.")
+      print(temp)
+      stop("Not all FCS files could be found. Are there any special characters in FileNames that could cause problems findind a file?")
+    }
+
+    sd[,"FilePath"] <- temp
+
   } else {
     if (!AbCalcFile_col %in% names(manual_df) || !AbCalcSheet_col %in% names(manual_df) || !"FilePath" %in% names(manual_df)) {
       stop("AbCalcFile_col, AbCalcSheet_col, FilePaths have to be in names of manual_df")
