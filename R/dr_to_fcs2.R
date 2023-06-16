@@ -401,6 +401,8 @@ dr_to_fcs2 <- function(ff.list,
   # metacluster_map_source = expression or UMAP
 
 
+  ## with a larger number of cells (> 1e5) it fails to use SOM on UMAP dims
+  ## with a smaller number (2e4) it works well
   if (find.clusters) {
     ## always run metaclustering as other procedures are too slow
     if (metacluster_map_source == "expr") {
