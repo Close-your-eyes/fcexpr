@@ -293,9 +293,12 @@ get_ff <- function(x,
 
   ex <- lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
 
+  # alter population here by an optional leading forward slash in order to not make changes to ind_mat construction which could
+  # have effects elsewhere. Maybe find a better solution some when
+  # wsx_get_poppaths(x) return population paths without leading fwd slash
   inds <- ind_mat[,ifelse(population %in% attr(ind_mat, "short_names"),
                           names(which(attr(ind_mat, "short_names") == population)),
-                          population),drop=T]
+                          ifelse(grepl("^/", population), population, paste0("/", population))),drop=T]
 
   ## overwrite downsample argument if provided as attr in x
   if ("downsample" %in% names(x)) {
