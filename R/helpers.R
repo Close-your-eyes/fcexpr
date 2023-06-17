@@ -195,6 +195,9 @@ check_in <- function(wsp,
     if (!methods::is(groups, "list")) {groups <- rep(list(groups), length(wsp))}
   }
   if (!is.null(samples)) {
+    if (length(samples) == 0) {
+      stop("No samples provided.")
+    }
     if (methods::is(samples, "list") && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
     if (!methods::is(samples, "list")) {samples <- rep(list(samples), length(wsp))}
   }
