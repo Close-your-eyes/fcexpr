@@ -21,11 +21,9 @@
 #' @param gate_stats_color font color of gate statistics
 #' @param gate_color line color of gates
 #' @param plot_contours logical whether to plot contour lines on top with ggplot2::geom_density_2d
-#' @param ... arguments passed to ggplot2::theme; set a global default theme with ggplot2:theme_set() and ggplot2::theme_update();
-#' arguments to ggpointdensity::geom_pointdensity like adjust or size: pointdensity__adjust (defaults to 5), pointdensity__size (defaults to 0.3),
-#' arguments to scattermore::geom_scattermore like scattermore__pointsize = 0.1, arguments to contours like contour__alpha (defaults to 0.5)
-#' or contour__color (defaults to grey65 if geom != scattermore or to tomato2 if geom == scattermore)
 #' @param pct_digits how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats
+#' @param col_pal color pallette to use for color gradient generation
+#' @param col_pal_trans argument passed as 'trans' in scale_fill_gradientn
 #'
 #' @return a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
 #' @export
@@ -74,6 +72,8 @@ plot_gates <- function(gs,
                        gate_stats_color = "black",
                        pct_digits = 1,
                        plot_contours = F,
+                       col_pal = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       col_pal_trans = "pseudo_log",
                        ...) {
 
   if (!requireNamespace("grDevices", quietly = T)) {
@@ -119,7 +119,7 @@ plot_gates <- function(gs,
         p <-
           p +
           ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
-          ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"), interpolate = "linear")(100)), trans = "pseudo_log")
+          ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)), trans = col_pal_trans)
 
       }
 
@@ -138,7 +138,7 @@ plot_gates <- function(gs,
         p <-
           p +
           do.call(ggpointdensity::geom_pointdensity, args = temp_dots) +
-          ggplot2::scale_color_gradientn(colours = rev(grDevices::colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"), interpolate = "linear")(100)), trans = "pseudo_log")
+          ggplot2::scale_color_gradientn(colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)), trans = col_pal_trans)
       }
 
       if (geom == "scattermore") {
