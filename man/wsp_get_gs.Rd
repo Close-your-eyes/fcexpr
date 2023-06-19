@@ -14,6 +14,7 @@ wsp_get_gs(
   remove_redundant_channels = F,
   lapply_fun = lapply,
   split_size = 2,
+  additional.sampleID = F,
   ...
 )
 }

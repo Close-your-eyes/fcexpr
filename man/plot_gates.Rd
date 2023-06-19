@@ -17,6 +17,8 @@ plot_gates(
   gate_stats_color = "black",
   pct_digits = 1,
   plot_contours = F,
+  col_pal = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+  col_pal_trans = "pseudo_log",
   ...
 )
 }
@@ -48,10 +50,9 @@ scattermore = scattermore::geom_scattermore which is a high performance dot plot
 
 \item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
 
-\item{...}{arguments passed to ggplot2::theme; set a global default theme with ggplot2:theme_set() and ggplot2::theme_update();
-arguments to ggpointdensity::geom_pointdensity like adjust or size: pointdensity__adjust (defaults to 5), pointdensity__size (defaults to 0.3),
-arguments to scattermore::geom_scattermore like scattermore__pointsize = 0.1, arguments to contours like contour__alpha (defaults to 0.5)
-or contour__color (defaults to grey65 if geom != scattermore or to tomato2 if geom == scattermore)}
+\item{col_pal}{color pallette to use for color gradient generation}
+
+\item{col_pal_trans}{argument passed as 'trans' in scale_fill_gradientn}
 }
 \value{
 a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
