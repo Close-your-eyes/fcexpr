@@ -74,6 +74,7 @@ plot_gates <- function(gs,
                        plot_contours = F,
                        col_pal = rev(RColorBrewer::brewer.pal(11, "Spectral")),
                        col_pal_trans = "pseudo_log",
+                       theme = ggplot2::theme_bw(),
                        ...) {
 
   if (!requireNamespace("grDevices", quietly = T)) {
@@ -178,6 +179,8 @@ plot_gates <- function(gs,
           ggcyto::axis_x_inverse_trans() +
           ggcyto::axis_y_inverse_trans()
       }
+
+      p <- p + theme
 
       if (length(dots) > 0) {
         p <- p + do.call(ggplot2::theme, args = dots[which(names(dots) %in% names(formals(ggplot2::theme)))])
