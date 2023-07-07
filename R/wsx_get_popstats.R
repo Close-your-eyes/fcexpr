@@ -29,6 +29,7 @@ wsx_get_popstats <- function(ws,
                              invert_groups = F,
                              return_stats = T,
                              lapply_fun = lapply,
+                             strip_data = T,
                              ...) {
 
   ## allow to pass mclapply
@@ -39,13 +40,13 @@ wsx_get_popstats <- function(ws,
   group_df <- wsx_get_groups(ws, collapse_groups = F)
 
   if (is.null(groups)) {
-    groups <- unique(group_df[,"group", drop=T])
+    groups <- unique(group_df[,"FlowJoGroup", drop=T])
   }
 
   if (invert_groups) {
-    group_df <- group_df[which(!group_df$group %in% groups),]
+    group_df <- group_df[which(!group_df[,"FlowJoGroup", drop=T] %in% groups),]
   } else {
-    group_df <- group_df[which(group_df$group %in% groups),]
+    group_df <- group_df[which(group_df[,"FlowJoGroup", drop=T] %in% groups),]
   }
 
   if (nrow(group_df) == 0) {
@@ -183,14 +184,18 @@ wsx_get_popstats <- function(ws,
 
   # if any sample is in at least two groups, the group column becomes a list
   if (any(table(group_df$sampleID) > 1)) {
-    group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), group = list(group))
+    group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), FlowJoGroup = list(FlowJoGroup))
   }
   gates_out <- do.call(rbind, gates_list)
   gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID") # ...
   gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
   gates_out <- gates_out[order(gates_out$FileName, gates_out$gate_level, factor(gates_out$origin, levels = c("root", "Gate", "Dependents"))),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
-  gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
+
+  if (strip_data) {
+    gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
+  }
+
 
   if (return_stats) {
     stats_out <- do.call(rbind, lapply_fun(seq_along(rel_nodes), function(n) {

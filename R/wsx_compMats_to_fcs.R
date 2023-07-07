@@ -33,9 +33,9 @@ wsx_compMats_to_fcs <- function(ws,
 
   ids <- wsx_get_groups(ws)
   if (is.null(groups)) {
-    groups <- unique(ids[,"group", drop=T])
+    groups <- unique(ids[,"FlowJoGroup", drop=T])
   }
-  ids <- ids[which(ids$group %in% groups),"sampleID"]
+  ids <- ids[which(ids$FlowJoGroup %in% groups),"sampleID"]
   ss <- xml2::xml_find_all(xml2::xml_child(ws, "SampleList"), "Sample")
   ss <- ss[which(sapply(seq_along(ss), function(x) xml2::xml_attrs(xml2::xml_child(ss[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
 

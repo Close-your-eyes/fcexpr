@@ -12,7 +12,10 @@
 #' \dontrun{
 #' wsx_get_groups(ws)
 #' }
-wsx_get_groups <- function(ws, filter_AllSamples = T, collapse_groups = T, collapse_to = "list") {
+wsx_get_groups <- function(ws,
+                           filter_AllSamples = T,
+                           collapse_groups = T,
+                           collapse_to = "list") {
 
   ws <- check_ws(ws)
 
@@ -22,16 +25,17 @@ wsx_get_groups <- function(ws, filter_AllSamples = T, collapse_groups = T, colla
   gs <- lapply(xml2::xml_children(xml2::xml_child(ws, "Groups")), function(y) {
     unlist(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(xml2::xml_child(y, "Group"), "SampleRefs"))))
   })
-  gr <- data.frame(group = rep(g, lengths(gs)),  sampleID = unlist(gs))
+  gr <- data.frame(FlowJoGroup = rep(g, lengths(gs)),
+                   sampleID = unlist(gs))
 
   if (filter_AllSamples) {
     gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-      if (length(gr[which(gr$sampleID == y),"group"]) > 1) {
-        gr[base::intersect(which(gr$sampleID == y), which(gr$group != "All Samples")), ]
-      } else if (gr[which(gr$sampleID == y),"group"] == "All Samples") {
+      if (length(gr[which(gr$sampleID == y),"FlowJoGroup"]) > 1) {
+        gr[base::intersect(which(gr$sampleID == y), which(gr$FlowJoGroup != "All Samples")), ]
+      } else if (gr[which(gr$sampleID == y),"FlowJoGroup"] == "All Samples") {
         gr[which(gr$sampleID == y), ]
       } else {
-        stop("group error occured.")
+        stop("FlowJoGroup error occured.")
       }
     }))
   }
@@ -39,12 +43,12 @@ wsx_get_groups <- function(ws, filter_AllSamples = T, collapse_groups = T, colla
   if (collapse_groups && any(duplicated(gr$sampleID))) {
     if (collapse_to == "list") {
       gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-        data.frame(group = I(list(gr[which(gr$sampleID == y),"group"])), sampleID = y)
+        data.frame(FlowJoGroup = I(list(gr[which(gr$sampleID == y),"FlowJoGroup"])), sampleID = y)
       }))
     }
     if (collapse_to != "list") {
       gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-        data.frame(group = paste(gr[which(gr$sampleID == y),"group"], collapse = collapse_to), sampleID = y)
+        data.frame(FlowJoGroup = paste(gr[which(gr$sampleID == y),"FlowJoGroup"], collapse = collapse_to), sampleID = y)
       }))
     }
   }

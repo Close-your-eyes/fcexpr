@@ -2,7 +2,7 @@
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param collapse logical whether to collapse FileNames to a list column
-#' @param groups which groups in the workspace to consider
+#' @param groups which groups in from flowjo workspace to consider
 #'
 #' @return data frame
 #' @export
@@ -24,9 +24,9 @@ wsx_get_poppaths <- function(ws,
 
   ids <- wsx_get_groups(ws)
   if (is.null(groups)) {
-    groups <- unique(ids[,"group", drop=T])
+    groups <- unique(ids[,"FlowJoGroup", drop=T])
   }
-  ids <- ids[which(ids$group %in% groups),"sampleID"]
+  ids <- ids[which(ids$FlowJoGroup %in% groups),"sampleID"]
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
