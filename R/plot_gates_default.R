@@ -72,7 +72,7 @@ plot_gates <- function(gs,
                        gate_stats_color = "black",
                        pct_digits = 1,
                        plot_contours = F,
-                       col_pal = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+                       col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
                        col_pal_trans = "pseudo_log",
                        theme = ggplot2::theme_bw(),
                        ...) {
@@ -159,10 +159,10 @@ plot_gates <- function(gs,
         temp_dots <- dots[which(grepl("^contour__", names(dots), ignore.case = T))]
         names(temp_dots) <- gsub("^contour__", "", names(temp_dots), ignore.case = T)
         if (!"alpha" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(color = ifelse(geom == "scattermore", 1, 0.5)))
+          temp_dots <- c(temp_dots, list(alpha = ifelse(geom == "scattermore", 1, 0.5)))
         }
         if (!"color" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(color = ifelse(geom == "scattermore", "tomato2", "grey65")))
+          temp_dots <- c(temp_dots, list(color = ifelse(geom == "scattermore", "tomato2", "black")))
         }
         p <- p + do.call(ggplot2::geom_density_2d, args = temp_dots)
       }
