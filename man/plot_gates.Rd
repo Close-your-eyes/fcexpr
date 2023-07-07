@@ -17,8 +17,9 @@ plot_gates(
   gate_stats_color = "black",
   pct_digits = 1,
   plot_contours = F,
-  col_pal = rev(RColorBrewer::brewer.pal(11, "Spectral")),
+  col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
   col_pal_trans = "pseudo_log",
+  theme = ggplot2::theme_bw(),
   ...
 )
 }

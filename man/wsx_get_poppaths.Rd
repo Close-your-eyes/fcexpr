@@ -9,7 +9,7 @@ wsx_get_poppaths(ws, groups = NULL, collapse = T)
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
 
-\item{groups}{which groups in the workspace to consider}
+\item{groups}{which groups in from flowjo workspace to consider}
 
 \item{collapse}{logical whether to collapse FileNames to a list column}
 }

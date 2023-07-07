@@ -10,6 +10,7 @@ wsx_get_popstats(
   invert_groups = F,
   return_stats = T,
   lapply_fun = lapply,
+  strip_data = T,
   ...
 )
 }
