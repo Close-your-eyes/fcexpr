@@ -89,7 +89,7 @@ get_smpl_df <- function(wsp,
                         FCS.file.folder,
                         lapply_fun = lapply,
                         ...) {
-
+# FlowJoGroup
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
@@ -104,9 +104,9 @@ get_smpl_df <- function(wsp,
 
     if (!is.null(groups)) {
       if (invert_groups) {
-        y <- y[which(!y$group %in% groups[[x]]),]
+        y <- y[which(!y$FlowJoGroup %in% groups[[x]]),]
       } else {
-        y <- y[which(y$group %in% groups[[x]]),]
+        y <- y[which(y$FlowJoGroup %in% groups[[x]]),]
       }
     }
     if (nrow(y) == 0) {
@@ -125,10 +125,10 @@ get_smpl_df <- function(wsp,
     }
 
     # remove All Samples group
-    if ("All Samples" %in% y$group) {
+    if ("All Samples" %in% y$FlowJoGroup) {
       y <- do.call(rbind, lapply(unique(y$sampleID), function(zz) {
-        if (length(y[which(y$sampleID== zz),"group"]) > 1) {
-          y[intersect(which(y$sampleID == zz), which(y$group != "All Samples")), ]
+        if (length(y[which(y$sampleID== zz),"FlowJoGroup"]) > 1) {
+          y[intersect(which(y$sampleID == zz), which(y$FlowJoGroup != "All Samples")), ]
         } else {
           y[which(y$sampleID == zz), ]
         }
@@ -136,7 +136,7 @@ get_smpl_df <- function(wsp,
     }
 
     # remove other duplicates (multiple groups)
-    y <- dplyr::arrange(y, group)
+    y <- dplyr::arrange(y, FlowJoGroup)
     y <- dplyr::distinct(y, FilePath, wsp, .keep_all = T)
 
     if (any(duplicated(y[,which(names(y) %in% c("FIL", "TOT", "BEGINDATA"))]))) {
@@ -264,7 +264,7 @@ get_ff <- function(x,
   }
 
   gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
-                                    name = x$group,
+                                    name = x$FlowJoGroup,
                                     path = path,
                                     subset = `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
                                     truncate_max_range = F,
@@ -366,7 +366,7 @@ get_ff2 <- function(x,
     message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
     leverage_score_for_sampling <- F
   }
-  browser()
+
   if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
@@ -427,7 +427,7 @@ get_gs <- function(x,
 
   gs_list <- lapply_fun(x_split, function(x) {
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
-                                      name = unique(x$group),
+                                      name = unique(x$FlowJoGroup),
                                       path = unique(x$FCS.file.folder),
                                       subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
                                       truncate_max_range = F,
