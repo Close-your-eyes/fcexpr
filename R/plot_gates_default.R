@@ -22,7 +22,7 @@
 #' @param gate_color line color of gates
 #' @param plot_contours logical whether to plot contour lines on top with ggplot2::geom_density_2d
 #' @param pct_digits how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats
-#' @param col_pal color pallette to use for color gradient generation
+#' @param col_pal color palette to use for color gradient generation
 #' @param col_pal_trans argument passed as 'trans' in scale_fill_gradientn
 #'
 #' @return a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
@@ -33,7 +33,7 @@
 #' ## read gatingset
 #' gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
 #'
-#' ## write meta data to pData of gs; sd is sampledescripion
+#' ## write meta data to pData of gs; sd is sampledescription
 #' p.df <-
 #' flowCore::pData(gs) %>%
 #' tibble::rownames_to_column("FileName") %>%
@@ -72,9 +72,21 @@ plot_gates <- function(gs,
                        gate_stats_color = "black",
                        pct_digits = 1,
                        plot_contours = F,
+                       contour_args = list(fill = "white",
+                                           geom = "polygon",
+                                           color = "black",
+                                           contour_var = "ndensity",
+                                           breaks = seq(0.05,0.95,0.1),
+                                           alpha = 0.8,
+                                           linewidth = 0.2),
                        col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
                        col_pal_trans = "pseudo_log",
                        theme = ggplot2::theme_bw(),
+                       theme_args = list(panel.grid = element_blank(),
+                                         strip.background = element_rect(fill = "grey95", color = "white"),
+                                         axis.text = element_blank(),
+                                         axis.ticks = element_blank(),
+                                         legend.position = "none"),
                        ...) {
 
   if (!requireNamespace("grDevices", quietly = T)) {
@@ -96,6 +108,10 @@ plot_gates <- function(gs,
   dots <- list(...)
 
   geom <- match.arg(geom, c("hex", "pointdensity", "scattermore"))
+
+  if (plot_contours) {
+    message("Caution: Contour lines are affected across multiple facets.")
+  }
 
   out <- purrr::flatten(lapply(unique(gates_df$GateLevel), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
@@ -121,7 +137,6 @@ plot_gates <- function(gs,
           p +
           ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
           ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)), trans = col_pal_trans)
-
       }
 
       if (geom == "pointdensity") {
@@ -155,16 +170,9 @@ plot_gates <- function(gs,
         p <- p + do.call(scattermore::geom_scattermore, args = temp_dots)
       }
 
+
       if (plot_contours) {
-        temp_dots <- dots[which(grepl("^contour__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^contour__", "", names(temp_dots), ignore.case = T)
-        if (!"alpha" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(alpha = ifelse(geom == "scattermore", 1, 0.5)))
-        }
-        if (!"color" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(color = ifelse(geom == "scattermore", "tomato2", "black")))
-        }
-        p <- p + do.call(ggplot2::geom_density_2d, args = temp_dots)
+        p <- p + do.call(ggplot2::stat_density_2d, args = contour_args)
       }
 
       p <-
@@ -181,10 +189,7 @@ plot_gates <- function(gs,
       }
 
       p <- p + theme
-
-      if (length(dots) > 0) {
-        p <- p + do.call(ggplot2::theme, args = dots[which(names(dots) %in% names(formals(ggplot2::theme)))])
-      }
+      p <- p + do.call(ggplot2::theme, args = theme_args)
 
       if (!is.null(facetting)) {
         p <- p + facetting
