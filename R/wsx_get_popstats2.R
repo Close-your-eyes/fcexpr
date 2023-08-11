@@ -24,25 +24,21 @@
 #' # import the population counts:
 #' wsx_get_popstats(ws = ws[[1]])
 #' }
-wsx_get_popstats <- function(ws,
-                             groups = NULL,
-                             invert_groups = F,
-                             return_stats = T,
-                             lapply_fun = lapply,
-                             strip_data = T,
-                             ...) {
+wsx_get_popstats2 <- function(ws,
+                              groups = NULL,
+                              invert_groups = F,
+                              return_stats = T,
+                              lapply_fun = lapply,
+                              strip_data = T,
+                              ...) {
 
   ## allow to pass mclapply
   lapply_fun <- match.fun(lapply_fun)
-
   ws <- check_ws(ws)
-
   group_df <- wsx_get_groups(ws, collapse_groups = F)
-
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])
   }
-
   if (invert_groups) {
     group_df <- group_df[which(!group_df[,"FlowJoGroup", drop=T] %in% groups),]
   } else {
@@ -58,7 +54,43 @@ wsx_get_popstats <- function(ws,
 
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(purrr::map(rel_nodes, function(x) xml2::xml_attrs(xml2::xml_child(x, "DataSet"))[["sampleID"]]) %in% ids)]
-  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
+  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents", flatten = FALSE)
+
+  gate_ids <- xml2::xml_attrs(gg)
+  prnts <- xml2::xml_parents(gg)
+
+  prnt_attr <- xml2::xml_attrs(prnts)
+  prnts <- prnts[lengths(prnt_attr) %in% c(6,7)]
+  prnt_attr <- xml2::xml_attrs(prnts)
+  prnt_attr_df <- as.data.frame(do.call(rbind, prnt_attr))
+
+  prnt_gate <- xml2::xml_child(prnts, "Gate")
+  prnt_gate_attr <- xml2::xml_attrs(prnt_gate)
+  prnt_gate_attr_df <- as.data.frame(do.call(rbind, prnt_gate_attr))
+
+
+  gate_df <- cbind(prnt_attr_df, prnt_gate_attr_df)
+
+
+  # go samplewise?!
+  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents", flatten = FALSE)
+  gg_meta <- purrr::flatten(xml2::xml_find_all(rel_nodes, "SampleNode", flatten = FALSE))
+  gg_meta_names <- do.call(rbind, purrr::map(gg_meta, xml2::xml_attrs))
+  names(gg) <- gg_meta_names[,"name"]
+
+  gate_ids <- purrr::map(gg, xml2::xml_attrs)
+  gate_ids_df <- purrr::map_dfr(gate_ids, function(x) as.data.frame(do.call(rbind, x)), .id = "FileName")
+  gate_ids_df$parent_id <- ifelse(gate_ids_df$parent_id == gate_ids_df$id, "", gate_ids_df$parent_id)
+
+  prnts <- purrr::map(gg, xml2::xml_parents)
+  prnt_attr <- purrr::map(prnts, xml2::xml_attrs)
+  prnt_attr <- purrr::map(prnt_attr, function(x) x[lengths(x) == 6])
+  prnt_attr_df <- purrr::map_dfr(prnt_attr, function(x) as.data.frame(do.call(rbind, x)), .id = "FileName")
+
+
+  joined_df <- cbind(gate_ids_df, prnt_attr_df)
+
+
 
   gates <- lapply_fun(gg, function(n) {
 
