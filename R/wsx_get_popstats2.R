@@ -32,6 +32,8 @@ wsx_get_popstats2 <- function(ws,
                               strip_data = T,
                               ...) {
 
+  # ws <- "/Volumes/CMS_SSD_2TB/Experiment_data/20230605_Blood_cohort2/FJ_workspaces/ExpPart_6_for_pub.wsp"
+
   ## allow to pass mclapply
   lapply_fun <- match.fun(lapply_fun)
   ws <- check_ws(ws)
@@ -51,44 +53,42 @@ wsx_get_popstats2 <- function(ws,
 
   # each sample which may be in multiple groups only considered once
   ids <- unique(group_df[,"sampleID",drop=T])
-
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(purrr::map(rel_nodes, function(x) xml2::xml_attrs(xml2::xml_child(x, "DataSet"))[["sampleID"]]) %in% ids)]
-  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents", flatten = FALSE)
 
-  gate_ids <- xml2::xml_attrs(gg)
-  prnts <- xml2::xml_parents(gg)
-
-  prnt_attr <- xml2::xml_attrs(prnts)
-  prnts <- prnts[lengths(prnt_attr) %in% c(6,7)]
-  prnt_attr <- xml2::xml_attrs(prnts)
-  prnt_attr_df <- as.data.frame(do.call(rbind, prnt_attr))
-
-  prnt_gate <- xml2::xml_child(prnts, "Gate")
-  prnt_gate_attr <- xml2::xml_attrs(prnt_gate)
-  prnt_gate_attr_df <- as.data.frame(do.call(rbind, prnt_gate_attr))
-
-
-  gate_df <- cbind(prnt_attr_df, prnt_gate_attr_df)
-
-
-  # go samplewise?!
+  # in gg each sample is an own nodeset with gates that only belong to that sample
+  # go sample wise
+  library(xml2)
+  library(ggraph)
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents", flatten = FALSE)
   gg_meta <- purrr::flatten(xml2::xml_find_all(rel_nodes, "SampleNode", flatten = FALSE))
   gg_meta_names <- do.call(rbind, purrr::map(gg_meta, xml2::xml_attrs))
   names(gg) <- gg_meta_names[,"name"]
 
+  # create data with gate ids
   gate_ids <- purrr::map(gg, xml2::xml_attrs)
   gate_ids_df <- purrr::map_dfr(gate_ids, function(x) as.data.frame(do.call(rbind, x)), .id = "FileName")
-  gate_ids_df$parent_id <- ifelse(gate_ids_df$parent_id == gate_ids_df$id, "", gate_ids_df$parent_id)
+  gate_ids_df$parent_id <- ifelse(gate_ids_df$parent_id == gate_ids_df$id, paste0("root_", gate_ids_df$FileName), gate_ids_df$parent_id)
 
-  prnts <- purrr::map(gg, xml2::xml_parents)
-  prnt_attr <- purrr::map(prnts, xml2::xml_attrs)
-  prnt_attr <- purrr::map(prnt_attr, function(x) x[lengths(x) == 6])
-  prnt_attr_df <- purrr::map_dfr(prnt_attr, function(x) as.data.frame(do.call(rbind, x)), .id = "FileName")
+  # pull all counts with and associated ids
+  gate_details <- purrr::map(gg, xml2::xml_parents)
+  counts <- purrr::map_dfr(gate_details, get_count_and_ids)
+  gate_ids_df <- dplyr::left_join(gate_ids_df, counts)
+
+  ## missing yet: root counts
+  ## next: follow graph to derive population full paths
+
+  # make graph
+  gate_graph <- igraph::graph_from_data_frame(data.frame(from = gate_ids_df$parent_id,
+                                                         to = gate_ids_df$id),
+                                              directed = F)
+
+  ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) +
+    geom_node_point() +
+    geom_edge_link()
 
 
-  joined_df <- cbind(gate_ids_df, prnt_attr_df)
+
 
 
 
@@ -260,3 +260,18 @@ wsx_get_popstats2 <- function(ws,
   }
   return(gates_out)
 }
+
+get_count_and_ids <- function(nodeset) {
+  ## how to do this more elegantly?
+  attr_list <- purrr::map(nodeset, xml2::xml_attrs)
+  inds <- which(sapply(purrr::map(attr_list, names), "[", 1) == "name")
+  attr_list <- attr_list[inds]
+  nodeset <- nodeset[inds]
+  attr_list[[which(lengths(attr_list) == 7)]] <- attr_list[[which(lengths(attr_list) == 7)]][-7]
+  df <- as.data.frame(do.call(rbind, attr_list))
+  df$id <- purrr::map_chr(purrr::map(nodeset, xml2::xml_child, search = "Gate"), xml2::xml_attr, attr = "id")
+  df$id <- ifelse(is.na(df$id), paste0("root_", df$name), df$id)
+
+  return(df)
+}
+
