@@ -17,9 +17,14 @@ plot_gates(
   gate_stats_color = "black",
   pct_digits = 1,
   plot_contours = F,
+  contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
+    "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0.8, linewidth = 0.2),
   col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
   col_pal_trans = "pseudo_log",
   theme = ggplot2::theme_bw(),
+  theme_args = list(panel.grid = element_blank(), strip.background = element_rect(fill =
+    "grey95", color = "white"), axis.text = element_blank(), axis.ticks =
+    element_blank(), legend.position = "none"),
   ...
 )
 }
@@ -51,7 +56,7 @@ scattermore = scattermore::geom_scattermore which is a high performance dot plot
 
 \item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
 
-\item{col_pal}{color pallette to use for color gradient generation}
+\item{col_pal}{color palette to use for color gradient generation}
 
 \item{col_pal_trans}{argument passed as 'trans' in scale_fill_gradientn}
 }
@@ -71,7 +76,7 @@ a template.
 ## read gatingset
 gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
 
-## write meta data to pData of gs; sd is sampledescripion
+## write meta data to pData of gs; sd is sampledescription
 p.df <-
 flowCore::pData(gs) \%>\%
 tibble::rownames_to_column("FileName") \%>\%
