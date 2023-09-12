@@ -36,10 +36,10 @@
   while(lubridate::hour(lubridate::as_datetime(Sys.time())) != target_time_hour) {
     # do nothing
   }
+
   # wait until sec 1? # no, not needed
-  'while(round(lubridate::second(lubridate::as_datetime(Sys.time()))) != 1) {
-    # do nothing
-}'
+  #while(round(lubridate::second(lubridate::as_datetime(Sys.time()))) != 1) {# donothing}
+
 
   remDr$navigate(link_slot)
   remDr$refresh()
