@@ -31,6 +31,41 @@ col_pal <- function(name = "custom",
                     nbrew = NULL,
                     reverse = F) {
 
+
+  #library(paletteer)
+  #paletteer::paletteer_d("MetBrewer::VanGogh2")
+
+  #scales::show_col(palette.colors(n = 9, palette = "Okabe-Ito", recycle = FALSE))
+  #scales::show_col(paletteer::paletteer_d("colorblindr::OkabeIto"))
+
+  '
+  knitr::kable(dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
+                                paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
+                 dplyr::mutate(command = paste0(package, "::", palette)) %>%
+                 dplyr::select(-c(novelty)),
+               format = "jira")'
+
+  #getOption("max.print") # change temporarily
+  #options(max.print=3000)
+  # order and color by discrete or continuous; sequential or divergent (color with crayon)
+  dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
+                   paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
+    dplyr::mutate(command = paste0(package, "::", palette)) %>%
+    dplyr::pull(command)
+
+
+  # automate that choice (c vs. d) and in case of d, automatically make continuous if n > max_n
+  colpal <- paletteer::paletteer_c("scico::berlin", n = 100)
+  colpal <- paletteer::paletteer_d("nord::frost", n = 100, type = "continuous")
+
+
+  scales::show_col(colpal)
+
+  test2 <- paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")
+  test <- paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous")
+  unique(test$type)
+  ?grDevices::palette.colors()
+
   scl <- NULL
 
   if (any(grepl(name, names(MetBrewer::MetPalettes)))) {
