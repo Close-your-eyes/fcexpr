@@ -67,6 +67,7 @@ sync_sampledescription <- function(FCS.file.folder,
   if (!dir.exists(FCS.file.folder)) {
     stop(paste0(FCS.file.folder, " not found."))
   }
+
   wd <- dirname(FCS.file.folder)
   fcs.files <- .check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
 
