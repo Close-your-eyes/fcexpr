@@ -24,10 +24,9 @@ Imports:
     stringr,
     tibble,
     rlang,
-    magrittr,
+    magrittr
 Suggests: 
     rmarkdown,
-    RColorBrewer,
     rstudioapi,
     EmbedSOM,
     MASS,
@@ -66,12 +65,9 @@ Suggests:
     matrixTests,
     mhca,
     remotes,
-    MetBrewer,
     farver,
     furrr,
     ggforce,
-    viridis,
-    wesanderson,
     colorRamps,
-    viridisLite
+    paletteer
 VignetteBuilder: knitr

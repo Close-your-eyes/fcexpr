@@ -18,7 +18,7 @@
 #' @param name name of the palette
 #' @param n number of colors to return; may not work for every palette
 #' @param nbrew number of color from brewer palettes
-#' @param reverse reverse the palette
+#' @param direction reverse palette with -1
 #'
 #' @return a color palette as character vector
 #' @export
@@ -26,109 +26,69 @@
 #' @examples
 #' \dontrun{
 #' }
-col_pal <- function(name = "custom",
-                    n = 100,
-                    nbrew = NULL,
-                    reverse = F) {
+col_pal <- function(name = NULL,
+                    n = NULL,
+                    direction = c(1,-1)) {
 
-
-  #library(paletteer)
-  #paletteer::paletteer_d("MetBrewer::VanGogh2")
-
-  #scales::show_col(palette.colors(n = 9, palette = "Okabe-Ito", recycle = FALSE))
-  #scales::show_col(paletteer::paletteer_d("colorblindr::OkabeIto"))
-
-  '
-  knitr::kable(dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
-                                paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
-                 dplyr::mutate(command = paste0(package, "::", palette)) %>%
-                 dplyr::select(-c(novelty)),
-               format = "jira")'
-
-  #getOption("max.print") # change temporarily
-  #options(max.print=3000)
-  # order and color by discrete or continuous; sequential or divergent (color with crayon)
-'  dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
-                   paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
-    dplyr::mutate(command = paste0(package, "::", palette)) %>%
-    dplyr::pull(command)'
-
-
-  # automate that choice (c vs. d) and in case of d, automatically make continuous if n > max_n
-  #colpal <- paletteer::paletteer_c("scico::berlin", n = 100)
-  #colpal <- paletteer::paletteer_d("nord::frost", n = 100, type = "continuous")
-
-  #test2 <- paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")
-  #test <- paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous")
-
-
-  scl <- NULL
-
-  if (any(grepl(name, names(MetBrewer::MetPalettes)))) {
-    scl <- grDevices::colorRampPalette(MetBrewer::MetPalettes[[name]][[1]], interpolate = "linear")(n)
+  if (!requireNamespace("paletteer", quietly = T)) {
+    utils::install.packages("paletteer")
   }
 
-  if (any(grepl(name, c(ls(loadNamespace("viridisLite")))))) {
-    scl <- viridis::viridis_pal(option = name)(n)
+  paletteers <- dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
+                                 paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
+    dplyr::mutate(command = paste0(package, "::", palette))
+
+  if (is.null(name)) {
+    message("Select one palette by palette or command. Additional ones are 'custom' and 'ggplot' or 'hue'.")
+    return(paletteers)
   }
 
-  if (any(grepl(name, ls(loadNamespace("colorRamps")), ignore.case = T))) {
-    if (!isNamespaceLoaded("colorRamps")) {
-      attachNamespace("colorRamps")
+  direction <- match.arg(direction, choices = c(1,-1))
+
+  if (name %in% c("ggplot", "ggplot2", "hue", "hue_pal", "huepal")) {
+    pal_select <- prismatic::color(scales::hue_pal()(n))
+    if (direction == -1) {
+      pal_select <- rev(pal_select)
     }
-    colfun <- match.fun(grep(name, ls(loadNamespace("colorRamps")), ignore.case = T, value = T)[1])
-    scl <- colfun(n)
-  }
-
-  if (any(grepl(name, names(wesanderson::wes_palettes), ignore.case = T))) {
-    scl <- as.character(wesanderson::wes_palette(grep(name, names(wesanderson::wes_palettes), ignore.case = T, value = T), n, type = "continuous"))
-  }
-
-  if (any(grepl(name, rownames(RColorBrewer::brewer.pal.info), ignore.case = T))) {
-    name <- grep(name, rownames(RColorBrewer::brewer.pal.info), ignore.case = T, value = T)
-    if (grepl("^spectral$", name, ignore.case = T)) {
-      # needed so often, counter-intuitive by default
-      reverse <- !reverse
+  } else if (name == "custom") {
+    pal_select <- c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
+                    "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
+                    "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
+                    "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")[1:n]
+    if (direction == -1) {
+      pal_select <- rev(pal_select)
     }
-    if (is.null(nbrew) || nbrew > RColorBrewer::brewer.pal.info[name, "maxcolors"]) {
-      nbrew <- RColorBrewer::brewer.pal.info[name, "maxcolors"]
+  } else {
+    if (grepl("::", name)) {
+      pal_select <- paletteers %>% dplyr::filter(tolower(command) == tolower(name))
+    } else {
+      pal_select <- paletteers %>% dplyr::filter(tolower(palette) == tolower(name))
     }
-    scl <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(nbrew, name), interpolate = "linear")(n)
-  }
 
-  if (name %in% c("custom", "dutch", "spanish")) {
-    scl <- switch(name,
-                  custom = c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
-                             "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
-                             "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
-                             "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")[1:n],
-                  dutch = c(
-                    "#FFC312","#C4E538","#12CBC4","#FDA7DF","#ED4C67",
-                    "#F79F1F","#A3CB38","#1289A7","#D980FA","#B53471",
-                    "#EE5A24","#009432","#0652DD","#9980FA","#833471",
-                    "#EA2027","#006266","#1B1464","#5758BB","#6F1E51")[1:n],
-                  spanish = c(
-                    "#40407a","#706fd3","#f7f1e3","#34ace0","#33d9b2",
-                    "#2c2c54","#474787","#aaa69d","#227093","#218c74",
-                    "#ff5252","#ff793f","#d1ccc0","#ffb142","#ffda79",
-                    "#b33939","#cd6133","#84817a","#cc8e35","#ccae62")[1:n])
-    scl <- scl[which(!is.na(scl))]
-  }
+    if (nrow(pal_select) == 0) {
+      stop("Palette not found.")
+    } else if (nrow(pal_select) > 1) {
+      stop("Name is ambiguous. Please specify by command.")
+    }
 
-  if (!missing(n) && length(scl) < n) {
-    scl <- scales::hue_pal()(n)
+    if (pal_select$type2 == "discrete") {
+      type <- "discrete"
+      if (is.null(n)) {
+        n <- pal_select$length
+      }
+      if (n > pal_select$length) {
+        message("n = ", n, " larger than number of discrete color in palette (", pal_select$length, "). Going to interpolate to provide ", n, " colors.")
+        type <- "continuous"
+      }
+      pal_return <- paletteer::paletteer_d(pal_select$command, n = n, type = type, direction = direction)
+    } else if (pal_select$type2 == "continuous") {
+      if (is.null(n)) {
+        n <- 100
+      }
+      pal_return <- paletteer::paletteer_c(pal_select$command, n = n, direction = direction)
+    }
   }
-
-  if (is.null(scl)) {
-    print("Palette name not found. Switching to spectral.")
-    scl <- grDevices::colorRampPalette(RColorBrewer::brewer.pal(11, "Spectral"), interpolate = "linear")(n)
-  }
-
-  if (reverse) {
-    scl <- rev(scl)
-  }
-
-  return(scl)
+  return(pal_return)
 }
 
 '
