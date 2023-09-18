@@ -48,23 +48,19 @@ col_pal <- function(name = "custom",
   #getOption("max.print") # change temporarily
   #options(max.print=3000)
   # order and color by discrete or continuous; sequential or divergent (color with crayon)
-  dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
+'  dplyr::bind_rows(paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous"),
                    paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")) %>%
     dplyr::mutate(command = paste0(package, "::", palette)) %>%
-    dplyr::pull(command)
+    dplyr::pull(command)'
 
 
   # automate that choice (c vs. d) and in case of d, automatically make continuous if n > max_n
-  colpal <- paletteer::paletteer_c("scico::berlin", n = 100)
-  colpal <- paletteer::paletteer_d("nord::frost", n = 100, type = "continuous")
+  #colpal <- paletteer::paletteer_c("scico::berlin", n = 100)
+  #colpal <- paletteer::paletteer_d("nord::frost", n = 100, type = "continuous")
 
+  #test2 <- paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")
+  #test <- paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous")
 
-  scales::show_col(colpal)
-
-  test2 <- paletteer::palettes_d_names %>% dplyr::mutate(type2 = "discrete")
-  test <- paletteer::palettes_c_names %>% dplyr::mutate(type2 = "continuous")
-  unique(test$type)
-  ?grDevices::palette.colors()
 
   scl <- NULL
 
