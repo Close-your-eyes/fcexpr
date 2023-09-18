@@ -1,19 +1,6 @@
 #' Color palettes
 #'
-#' Common interface to get color palettes from different packages:
-#' viridisLite, colorRamps,
-#' \href{"https://github.com/BlakeRMills/MetBrewer"}{MetBrewer},
-#' href{"https://github.com/karthik/wesanderson"}{wesanderson}
-#' and RColorBrewer.
-#' Moreover three custom palettes: "custom", "dutch" and "spanish".
-#'
-#' See available palettes:
-#' c(rev(ls("package:viridisLite"))[-c(1,2)],
-#' rev(ls("package:colorRamps"))[-c(2,3)],
-#' rownames(RColorBrewer::brewer.pal.info),
-#' names(wesanderson::wes_palettes), "custom", "dutch", "spanish",
-#' MetBrewer::MetPalettes)
-#' Use scales::show_col() to plot color grid
+#' Wrapper function around paletteer and two additional color palettes. See paletteer::palettes_c_names and paletteer::palettes_d_names.
 #'
 #' @param name name of the palette
 #' @param n number of colors to return; may not work for every palette
@@ -23,8 +10,12 @@
 #' @return a color palette as character vector
 #' @export
 #'
+#'
+#' @importFrom magrittr "%>%"
+#'
 #' @examples
 #' \dontrun{
+#' col_pal(name = "custom", n = 10)
 #' }
 col_pal <- function(name = NULL,
                     n = NULL,
@@ -46,6 +37,9 @@ col_pal <- function(name = NULL,
   direction <- match.arg(direction, choices = c(1,-1))
 
   if (name %in% c("ggplot", "ggplot2", "hue", "hue_pal", "huepal")) {
+    if (is.null(n)) {
+      n <- 100
+    }
     pal_select <- prismatic::color(scales::hue_pal()(n))
     if (direction == -1) {
       pal_select <- rev(pal_select)
@@ -54,7 +48,10 @@ col_pal <- function(name = NULL,
     pal_select <- c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
                     "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
                     "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
-                    "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")[1:n]
+                    "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")
+    if (!is.null(n)) {
+      pal_select <- pal_select[1:n]
+    }
     if (direction == -1) {
       pal_select <- rev(pal_select)
     }
