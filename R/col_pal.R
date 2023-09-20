@@ -34,7 +34,7 @@ col_pal <- function(name = NULL,
     return(paletteers)
   }
 
-  direction <- match.arg(direction, choices = c(1,-1))
+  direction <- as.numeric(match.arg(as.character(direction), choices = c("1","-1")))
 
   if (name %in% c("ggplot", "ggplot2", "hue", "hue_pal", "huepal")) {
     if (is.null(n)) {
