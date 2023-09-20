@@ -40,20 +40,20 @@ col_pal <- function(name = NULL,
     if (is.null(n)) {
       n <- 100
     }
-    pal_select <- prismatic::color(scales::hue_pal()(n))
+    pal_return <- prismatic::color(scales::hue_pal()(n))
     if (direction == -1) {
-      pal_select <- rev(pal_select)
+      pal_return <- rev(pal_return)
     }
   } else if (name == "custom") {
-    pal_select <- c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
+    pal_return <- c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
                     "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
                     "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
                     "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")
     if (!is.null(n)) {
-      pal_select <- pal_select[1:n]
+      pal_return <- pal_return[1:n]
     }
     if (direction == -1) {
-      pal_select <- rev(pal_select)
+      pal_return <- rev(pal_return)
     }
   } else {
     if (grepl("::", name)) {
@@ -65,6 +65,7 @@ col_pal <- function(name = NULL,
     if (nrow(pal_select) == 0) {
       stop("Palette not found.")
     } else if (nrow(pal_select) > 1) {
+      print(pal_select)
       stop("Name is ambiguous. Please specify by command.")
     }
 
@@ -78,6 +79,7 @@ col_pal <- function(name = NULL,
         type <- "continuous"
       }
       pal_return <- paletteer::paletteer_d(pal_select$command, n = n, type = type, direction = direction)
+
     } else if (pal_select$type2 == "continuous") {
       if (is.null(n)) {
         n <- 100
@@ -87,6 +89,7 @@ col_pal <- function(name = NULL,
   }
   return(pal_return)
 }
+
 
 '
 # https://www.datanovia.com/en/blog/awesome-list-of-657-r-color-names/
