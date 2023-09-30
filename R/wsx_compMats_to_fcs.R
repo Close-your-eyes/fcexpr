@@ -63,9 +63,9 @@ wsx_compMats_to_fcs <- function(ws,
     # replace path in compMats list with path to alt_FCS_file
     # match files via identities (the custom, own one)
     # get identity from keyword entries in wsp file below
-    # make this a seperate functions somewhen
+    # make this a separate functions some when
 
-    fcs_identities <- .get_fcs_identities(kwl = wsx_get_keywords(ws = ws, return_type = "vector"))
+    fcs_identities <- .get_fcs_identities(kwl = wsx_get_keywords(ws = ws, return = "vector"))
 
     'k <- wsx_get_keywords(ws = ws, return_type = "vector")
     kk <- do.call(rbind, k)

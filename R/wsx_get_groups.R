@@ -2,8 +2,8 @@
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
 #' @param filter_AllSamples logical whether to filter the All Samples Group in case the fcs file is also part of another group
-#' @param collapse_groups logical whether to collapse multiple group-belongings of samples into a list-column in the data frame
-#' @param collapse_to string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '_-_'
+#' @param collapse string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '_-_'
+#' @param force_collapse collapse in any case, even though there is only one group per sample
 #'
 #' @return a data frame
 #' @export
@@ -14,44 +14,45 @@
 #' }
 wsx_get_groups <- function(ws,
                            filter_AllSamples = T,
-                           collapse_groups = T,
-                           collapse_to = "list") {
+                           collapse = "nest",
+                           force_collapse = F) {
+
+  if (!is.null(collapse) && collapse %in% c("nest", "list") && !is.character(collapse)) {
+    stop("collapse has to be NULL, 'nest', 'list' or a character.")
+  }
+
+  if (!is.logical(filter_AllSamples)) {
+    stop("filter_AllSamples has be TRUE or FALSE.")
+  }
 
   ws <- check_ws(ws)
-
-  g <- sapply(xml2::xml_children(xml2::xml_child(ws, "Groups")), function(y) {
-    xml2::xml_attrs(y)[["name"]]
-  })
-  gs <- lapply(xml2::xml_children(xml2::xml_child(ws, "Groups")), function(y) {
-    unlist(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(xml2::xml_child(y, "Group"), "SampleRefs"))))
-  })
+  g <- sapply(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(ws, "Groups"))), "[[", "name")
+  gs <- sapply(xml2::xml_child(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "Groups")), "Group"), "SampleRefs"), function(x) unlist(xml2::xml_attrs(xml2::xml_children(x))))
   gr <- data.frame(FlowJoGroup = rep(g, lengths(gs)),
                    sampleID = unlist(gs))
 
   if (filter_AllSamples) {
-    gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-      if (length(gr[which(gr$sampleID == y),"FlowJoGroup"]) > 1) {
-        gr[base::intersect(which(gr$sampleID == y), which(gr$FlowJoGroup != "All Samples")), ]
-      } else if (gr[which(gr$sampleID == y),"FlowJoGroup"] == "All Samples") {
-        gr[which(gr$sampleID == y), ]
+    gr <- do.call(rbind, lapply(split(gr, gr$sampleID), function(x) {
+      if (nrow(x) > 1) {
+        return(x[which(x$FlowJoGroup != "All Samples"),])
       } else {
-        stop("FlowJoGroup error occured.")
+        return(x)
       }
     }))
   }
 
-  if (collapse_groups && any(duplicated(gr$sampleID))) {
-    if (collapse_to == "list") {
-      gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-        data.frame(FlowJoGroup = I(list(gr[which(gr$sampleID == y),"FlowJoGroup"])), sampleID = y)
+  if (!is.null(collapse) && (anyDuplicated(gr$sampleID) != 0 || force_collapse)) {
+    if (collapse == "nest") {
+      gr <- tidyr::nest(gr, FlowJoGroup = FlowJoGroup)
+    } else if (collapse == "list") {
+      gr <- do.call(rbind, lapply(split(gr, gr$sampleID), function(x) {
+        data.frame(FlowJoGroup = I(list(x$FlowJoGroup)), sampleID = x$sampleID[1])
       }))
-    }
-    if (collapse_to != "list") {
-      gr <- do.call(rbind, lapply(unique(gr$sampleID), function(y) {
-        data.frame(FlowJoGroup = paste(gr[which(gr$sampleID == y),"FlowJoGroup"], collapse = collapse_to), sampleID = y)
+    } else {
+      gr <- do.call(rbind, lapply(split(gr, gr$sampleID), function(x) {
+        data.frame(FlowJoGroup = paste(x$FlowJoGroup, collapse = collapse), sampleID = x$sampleID[1])
       }))
     }
   }
-
   return(gr)
 }

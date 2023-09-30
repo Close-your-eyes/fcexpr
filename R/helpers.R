@@ -75,7 +75,7 @@ check_ws <- function(ws) {
     ws <- xml2::read_xml(ws)
   }
   if (!any(class(ws) == "xml_document")) {
-    stop("x must be a xml-document or a character path to its location on disk")
+    stop("ws must be a xml-document or a character path to its location on disk")
   }
   return(ws)
 }
@@ -95,7 +95,7 @@ get_smpl_df <- function(wsp,
     y$wsp <- wsp[x]
     y$FileName <- basename(y$FilePath)
 
-    key <- wsx_get_keywords(wsp[x], return_type = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), lapply_fun = lapply_fun, ...)
+    key <- wsx_get_keywords(wsp[x], return = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), lapply_fun = lapply_fun, ...)
     key <- dplyr::bind_rows(key, .id = "FileName")
 
     y$FIL <- stats::setNames(key[which(key$name == "$FIL"),"value"], key[which(key$name == "$FIL"),"FileName"])[y$FileName]

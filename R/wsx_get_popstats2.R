@@ -37,7 +37,7 @@ wsx_get_popstats2 <- function(ws,
   ## allow to pass mclapply
   lapply_fun <- match.fun(lapply_fun)
   ws <- check_ws(ws)
-  group_df <- wsx_get_groups(ws, collapse_groups = F)
+  group_df <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])
   }
@@ -79,26 +79,24 @@ wsx_get_popstats2 <- function(ws,
   # pull all counts with and associated ids
   gate_details <- purrr::map(gg, xml2::xml_parents)
   counts <- purrr::map_dfr(gate_details, get_count_and_ids)
-  gate_ids_df <- dplyr::left_join(gate_ids_df, counts)
-  rownames(gate_ids_df) <- gate_ids_df$id
+  gate_ids_df <- dplyr::left_join(gate_ids_df, counts, by = "id")
 
   ## next: follow graph to derive population full paths
 
 
 
   # find end nodes (vertices) by checking degree (number of outgoing edges); graph has to be directed
-  # not sufficient to unambigously match full paths to populations
+  # not sufficient to unambiguously match full paths to populations
   # e.g. if there are end edges with equal population names
   # iterating through all edges is computationally not expensive though
   #edge_degrees <- igraph::degree(gate_graph, mode = "out")
   #end_edges <- edge_degrees[which(edge_degrees == 0)]
 
 
-
-
-  #iterate over all edges
-  gate_ids_df2 <- get_full_paths(gate_ids_df) # fix finding grandparent nodes
-  gate_ids_df2 <- add_parent_count(gate_ids_df2) # add grandparent count here
+  # so instead: iterate over all edges
+  gate_ids_df <- get_full_paths(gate_ids_df) # fix finding grandparent nodes - done
+  gate_ids_df <- add_parent_count(gate_ids_df) # add grandparent count here
+  gate_ids_df <- add_grandparent_count(gate_ids_df) # add grandparent count here
 
 
 
@@ -289,8 +287,8 @@ get_count_and_ids <- function(nodeset) {
   attr_list[[which(lengths(attr_list) == 7)]] <- attr_list[[which(lengths(attr_list) == 7)]][-7]
   df <- as.data.frame(do.call(rbind, attr_list))
   df$id <- purrr::map_chr(purrr::map(nodeset, xml2::xml_child, search = "Gate"), xml2::xml_attr, attr = "id")
+  df$name_root <- ifelse(is.na(df$id), "root", df$name)
   df$id <- ifelse(is.na(df$id), paste0("root_", df$name), df$id)
-
   return(df)
 }
 
@@ -300,8 +298,16 @@ get_full_paths <- function(gate_ids_df) {
   # make graph
   gate_graph <- igraph::graph_from_data_frame(data.frame(from = gate_ids_df[which(!is.na(gate_ids_df$parent_id)), "parent_id"],
                                                          to = gate_ids_df[which(!is.na(gate_ids_df$parent_id)), "id"]), directed = T)
-  #igraph::V(gate_graph)$label <- gate_ids_df[names(igraph::V(gate_graph)),"name"]
-  #ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) + geom_node_point() + geom_edge_link()
+
+
+'  igraph::V(gate_graph)$label <- gate_ids_df[match(names(igraph::V(gate_graph)), unique(gate_ids_df$id)),"name_root"]
+  ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) +
+    geom_edge_link() +
+    geom_node_point(aes(color = label), size = 2) +
+    ggraph::geom_node_text(aes(label = name)) +
+    theme_void() +
+    scale_color_manual(values = fcexpr::col_pal("custom"))'
+
   full_paths_df <- purrr::map_dfr(gate_ids_df$id, function(x) {
     path_to_root <- igraph::all_shortest_paths(gate_graph,
                                                mode = "all",
@@ -310,7 +316,7 @@ get_full_paths <- function(gate_ids_df) {
 
 
     ## derive full paths
-    pops_to_root <- rev(gate_ids_df[names(path_to_root[["res"]][[1]]),"name"])
+    pops_to_root <- rev(gate_ids_df[match(names(path_to_root[["res"]][[1]]), gate_ids_df$id),"name"])
     full_paths <- rev(sapply(1:length(pops_to_root), function(x) paste(pops_to_root[1:x], collapse = "/")))
     full_paths <- data.frame(name = basename(full_paths),
                              id = x,
@@ -319,22 +325,18 @@ get_full_paths <- function(gate_ids_df) {
     return(full_paths)
   })
 
-  browser()
   full_paths_df$GateDepth <- nchar(full_paths_df$PopulationFullPath) - nchar(gsub("/", "", full_paths_df$PopulationFullPath))
   gate_ids_df <- dplyr::left_join(gate_ids_df, full_paths_df, by = c("FileName" = "FileName", "id" = "id", "name" = "name"))
 
-  ## needs fixing
+  ## fixed
   grandparents <- purrr::map(igraph::incident_edges(gate_graph, gate_ids_df$parent_id[which(!is.na(gate_ids_df$parent_id))]), igraph::ends, graph = gate_graph)
   grandparents <- purrr::map(grandparents, as.data.frame)
-  grandparents <- purrr::map(grandparents, function(x) x[1,])
-  grandparents <- dplyr::bind_rows(grandparents, .id = "parent_id")
-
-  #grandparents <- purrr::map_dfr(grandparents, as.data.frame, .id = "parent_id")
+  grandparents <- dplyr::bind_rows(grandparents)
+  grandparents <- dplyr::right_join(grandparents, grandparents, by = c("V2" = "V1"), relationship = "many-to-many")
   grandparents <- grandparents[,-2]
-  names(grandparents)[2] <- "grandparent_id"
-  gate_ids_df2 <- dplyr::left_join(gate_ids_df, grandparents)
-
-
+  names(grandparents) <- c("grandparent_id", "id")
+  grandparents <- unique(grandparents)
+  gate_ids_df <- dplyr::left_join(gate_ids_df, grandparents, by = "id")
   return(gate_ids_df)
 }
 
@@ -342,14 +344,18 @@ add_parent_count <- function(gate_ids_df) {
 
   gate_ids_df_parent <- gate_ids_df[,which(names(gate_ids_df) %in% c("id", "count"))]
   names(gate_ids_df_parent) <- c("parent_id", "ParentCount")
-  gate_ids_df <- dplyr::left_join(gate_ids_df, gate_ids_df_parent)
+  gate_ids_df <- dplyr::left_join(gate_ids_df, gate_ids_df_parent, by = "parent_id")
 
   return(gate_ids_df)
 }
 
 add_grandparent_count <- function(gate_ids_df) {
 
+  gate_ids_df_grandparent <- gate_ids_df[,which(names(gate_ids_df) %in% c("id", "count"))]
+  names(gate_ids_df_grandparent) <- c("grandparent_id", "GrandparentCount")
+  gate_ids_df <- dplyr::left_join(gate_ids_df, gate_ids_df_grandparent, by = "grandparent_id")
 
+  return(gate_ids_df)
 
 }
 

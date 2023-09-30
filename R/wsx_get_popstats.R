@@ -37,7 +37,7 @@ wsx_get_popstats <- function(ws,
 
   ws <- check_ws(ws)
 
-  group_df <- wsx_get_groups(ws, collapse_groups = F)
+  group_df <- wsx_get_groups(ws, collapse = NULL)
 
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])

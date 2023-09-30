@@ -370,7 +370,7 @@ sync_sampledescription <- function(FCS.file.folder,
 
   # kwl = keyword_list; needs names
   # kwl can be provided from FCS files: kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
-  # or kwl can be provided from wsp: kwl = wsx_get_keywords(ws = ws, return_type = "vector")
+  # or kwl can be provided from wsp: kwl = wsx_get_keywords(ws = ws, return = "vector")
 
   if (!methods::is(kwl, "list")) {
     stop("keyword list not a list. Could be made a list but then names are missing. Try to fix.")

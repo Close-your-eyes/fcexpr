@@ -7,7 +7,7 @@
 #'
 #'
 #' @param ws a path to a workspace or a the parsed xml document (xml2::read_xml(ws))
-#' @param return_type how to return keywords: data.frame with 2 column or named vector?
+#' @param return how to return keywords: data.frame with 2 column or named vector?
 #' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param keywords which keywords to return
 #' @param ... ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
@@ -35,14 +35,14 @@
 #' sd <- dplyr::left_join(sd, kk, by = "FileName")
 #' }
 wsx_get_keywords <- function(ws,
-                             return_type = c("data.frame", "vector"),
-                             lapply_fun = lapply,
                              keywords = NULL,
+                             return = c("data.frame", "vector"),
+                             lapply_fun = lapply,
                              ...) {
 
   ws <- check_ws(ws)
   lapply_fun <- match.fun(lapply_fun)
-  return_type <- match.arg(arg = return_type, choices = c("data.frame", "vector"))
+  return <- match.arg(arg = return, choices = c("data.frame", "vector"))
 
   k_return <- lapply_fun(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
     keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
@@ -56,7 +56,7 @@ wsx_get_keywords <- function(ws,
       keys <- NULL
     }
 
-    if (return_type == "data.frame" && !is.null(keys)) {
+    if (return == "data.frame" && !is.null(keys)) {
       keys <- stack(keys)
       names(keys) <- c("value", "name")
       keys <- keys[,c(2,1)]
@@ -65,7 +65,7 @@ wsx_get_keywords <- function(ws,
     return(keys)
   }, ...)
 
-  names(k_return) <- wsp_xml_get_samples(ws)[,"FileName"]
+  names(k_return) <- basename(xml2::xml_attr(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "SampleList")), "DataSet"), "uri"))
   return(k_return)
 }
 
