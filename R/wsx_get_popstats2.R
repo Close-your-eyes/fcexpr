@@ -99,6 +99,9 @@ wsx_get_popstats2 <- function(ws,
   gate_ids_df <- add_grandparent_count(gate_ids_df) # add grandparent count here
 
 
+  # harmonize with previous? compare?
+  # notify of number of different gating trees - how to do with igraph?
+  # make graph outside of get_full_paths and allow to return?
 
 
   full_path_df <- unique(purrr::map_dfr(gate_ids_df$id, get_full_paths, gate_ids_df = gate_ids_df))
