@@ -8,7 +8,6 @@
 #' @param return_stats logical (T,F) whether to return statistics next to cells counts
 #' @param groups vector of flowjo group names to consider
 #' @param invert_groups logical whether to exclude the selected groups
-#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return data frame with cells counts or a list with counts and statistics if return_stats = T
@@ -28,14 +27,22 @@ wsx_get_popstats2 <- function(ws,
                               groups = NULL,
                               invert_groups = F,
                               return_stats = T,
-                              lapply_fun = lapply,
                               strip_data = T,
+                              more_gate_data = F,
+                              show_progress = F,
                               ...) {
 
-  # ws <- "/Volumes/CMS_SSD_2TB/Experiment_data/20230605_Blood_cohort2/FJ_workspaces/ExpPart_6_for_pub.wsp"
+  # ws <- "/Users/vonskopnik/Desktop/Exp_part_20_21.wsp"
+  # ws <- "/Users/vonskopnik/Desktop/ExpPart_6_for_pub.wsp"
+  # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
 
-  ## allow to pass mclapply
-  lapply_fun <- match.fun(lapply_fun)
+  # groups = NULL
+  # invert_groups = F
+
+  # ws with multiple OrNodes and AndNoes
+  # with with 1d gate
+
+
   ws <- check_ws(ws)
   group_df <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
@@ -53,209 +60,194 @@ wsx_get_popstats2 <- function(ws,
 
   # each sample which may be in multiple groups only considered once
   ids <- unique(group_df[,"sampleID",drop=T])
-  rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
-  rel_nodes <- rel_nodes[which(purrr::map(rel_nodes, function(x) xml2::xml_attrs(xml2::xml_child(x, "DataSet"))[["sampleID"]]) %in% ids)]
+  samples <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
+  samples <- samples[which(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "sampleID") %in% ids)]
 
-  # in gg each sample is an own nodeset with gates that only belong to that sample
+  # in samples each sample is an own nodeset with gates that only belong to that sample
   # go sample wise
-  library(xml2)
-  library(ggraph)
-  gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents", flatten = FALSE)
-  gg_meta <- purrr::flatten(xml2::xml_find_all(rel_nodes, "SampleNode", flatten = FALSE))
-  gg_meta_names <- do.call(rbind, purrr::map(gg_meta, xml2::xml_attrs))
-  names(gg) <- gg_meta_names[,"name"]
+  #gates <- xml2::xml_find_all(samples, ".//Gate|.//Dependents", flatten = F)
+  gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F)
+  names(gates) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name",drop=T]
 
+  #depends <- xml2::xml_find_all(samples, ".//Dependents", flatten = F)
+  #names(depends) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name"]
+
+  # !!!!!
+  # do.call(rbind, x) fills missing values (e.g. missing parent_id) with value id, this is unexpected and a mistake!
+  # use do.call(dplyr::bind_rows, x) which does it corectly and insert NA for missing values
+  # !!!!!
+  # children of OrNodes or AndNodes gates have no parent_id as the OrNodes or AndNodes has no id; this feature is (no parent_id) is shared with the root
   # create data with gate ids
-  gate_ids <- purrr::map(gg, xml2::xml_attrs)
-  gate_ids_df <- purrr::map_dfr(gate_ids, function(x) as.data.frame(do.call(rbind, x)), .id = "FileName")
-  gate_ids_df$parent_id <- ifelse(gate_ids_df$parent_id == gate_ids_df$id, paste0("root_", gate_ids_df$FileName), gate_ids_df$parent_id)
+  pop_df <- purrr::map_dfr(purrr::map(gates, xml2::xml_attrs), function(x) as.data.frame(do.call(dplyr::bind_rows, x)), .id = "FileName")
 
   # make sure root counts are joined below
-  gate_ids_df_roots <- gate_ids_df[which(grepl("root", gate_ids_df$parent_id)),]
-  gate_ids_df_roots$id <- gate_ids_df_roots$parent_id
-  gate_ids_df_roots$parent_id <- NA
-  gate_ids_df <- rbind(gate_ids_df, gate_ids_df_roots)
+  # manually add the root 'gate'
+  pop_df <- rbind(pop_df,
+                  data.frame(FileName = unique(pop_df$FileName), id = paste0("root_", unique(pop_df$FileName)), parent_id = NA))
 
   # pull all counts with and associated ids
-  gate_details <- purrr::map(gg, xml2::xml_parents)
-  counts <- purrr::map_dfr(gate_details, get_count_and_ids)
-  gate_ids_df <- dplyr::left_join(gate_ids_df, counts, by = "id")
+  gate_details <- purrr::map(gates, xml2::xml_parents)
+  gate_details_df_list <- purrr::map(gate_details, gate_details_to_df, more_gate_data = more_gate_data, .progress = show_progress)
+  gate_details_df <- sapply(gate_details_df_list, "[", "df")
+  while (length(gate_details_df) > 20) {
+    gate_details_df <- purrr::map(split(c(1:length(gate_details_df)), ceiling(seq_along(c(1:length(gate_details_df)))/10)), function(x) purrr::reduce(gate_details_df[x], dplyr::bind_rows))
+  }
+  gate_details_df <- purrr::reduce(gate_details_df, dplyr::bind_rows)
+  if (anyDuplicated(gate_details_df[which(!is.na(gate_details_df$id)), "id"]) != 0) {
+    stop("Duplicate gate id detected. FlowJo wsp needs fixing?!")
+  }
+  # join in this way; pop_df has no And-/Or-Depend Gates but gate_details_df has
+  pop_df <- dplyr::left_join(gate_details_df, pop_df, by = c("id", "FileName"))
+
+  # from OrNodes and AndNodes in gate_details_df_list: find all children of these nodes. the remaining row in pop_df must have the samples root as parent
+
+  # assign root as parent_id
+  #(i) name not in ornodenames and andnodenames
+  #(ii) !is.na(id) - these the OrNodes and AndNodes
+  #(iii) name_root != "root" - this is the root itself and has not parent_id
+  # could be made simpler if there are no OrNodes and AndNodes (then there is only two types nodes without parent_id: the root itself and its direct children)
+  for (i in names(gate_details_df_list)) {
+    # one entry for each OrNode or AndNode
+    temp <- xml2::xml_child(gate_details_df_list[[i]][["OrNodes"]], "Subpopulations")
+    ornodenames <- unlist(lapply(temp, function(x) {
+      xml2::xml_attr(xml2::xml_children(x), "name")
+    }))
+    temp <- xml2::xml_child(gate_details_df_list[[i]][["AndNodes"]], "Subpopulations")
+    andnodenames <- unlist(lapply(temp, function(x) {
+      xml2::xml_attr(xml2::xml_children(x), "name")
+    }))
+
+    inds <- Reduce(intersect, list(which(!pop_df$name %in% c(ornodenames, andnodenames)),
+                                   which(!is.na(pop_df$id)),
+                                   which(pop_df$name_root != "root"),
+                                   which(is.na(pop_df$parent_id))))
+    pop_df[inds,"parent_id"] <- paste0("root_", pop_df[inds,"FileName"])
+  }
+
+  # to make a complete graph, all id and parent_id have to be assigned (also of OrNodes and AndNodes)
+  # but how to match unambiguously without PopulationFullPath?
+  # add parent_id for OrNodes and/or AndNodes: only possible after PopulationFullPath was added
+  ## only run this if OrNodes and/or AndNodes exist
+  if (any(!sapply(sapply(gate_details_df_list, "[", "OrNodes"), is.null)) || any(!sapply(sapply(gate_details_df_list, "[", "AndNodes"), is.null))) {
+    # check for if one or the other is null #######
+    if (any(!sapply(sapply(gate_details_df_list, "[", "OrNodes"), is.null))) {
+      pop_df <- add_OrNode_AndNode_data_wo_fullpath(pop_df, gate_details_df_list, "OrNodes")
+    }
+    if (any(!sapply(sapply(gate_details_df_list, "[", "AndNodes"), is.null))) {
+      pop_df <- add_OrNode_AndNode_data_wo_fullpath(pop_df, gate_details_df_list, "AndNodes")
+    }
+  }
 
   ## next: follow graph to derive population full paths
-
-
-
+  # make graph
   # find end nodes (vertices) by checking degree (number of outgoing edges); graph has to be directed
-  # not sufficient to unambiguously match full paths to populations
-  # e.g. if there are end edges with equal population names
-  # iterating through all edges is computationally not expensive though
-  #edge_degrees <- igraph::degree(gate_graph, mode = "out")
-  #end_edges <- edge_degrees[which(edge_degrees == 0)]
+  gate_graph <- igraph::graph_from_data_frame(data.frame(from = pop_df[which(!is.na(pop_df$parent_id)), "parent_id"],
+                                                         to = pop_df[which(!is.na(pop_df$parent_id)), "id"]), directed = T)
 
+  ## maybe provide separate graphs with respective end edges? speed?
+  edge_degrees <- igraph::degree(gate_graph, mode = "out")
+  end_edges <- edge_degrees[which(edge_degrees == 0)]
 
-  # so instead: iterate over all edges
-  gate_ids_df <- get_full_paths(gate_ids_df) # fix finding grandparent nodes - done
-  gate_ids_df <- add_parent_count(gate_ids_df) # add grandparent count here
-  gate_ids_df <- add_grandparent_count(gate_ids_df) # add grandparent count here
+  # adds grandparent_id, PopulationFullPath, PopulationFullPathID, GateDepth
+  pop_df <- add_full_paths(pop_df, gate_graph, end_edges = names(end_edges), show_progress = show_progress) # takes a bit with many samples
 
+  # TODO: add more info to vertices?!
+  igraph::V(gate_graph)$label <- pop_df[match(names(igraph::V(gate_graph)), unique(pop_df$id)),"name_root"]
+  igraph::V(gate_graph)$parent_id <- pop_df[match(names(igraph::V(gate_graph)), unique(pop_df$id)),"parent_id"]
+  # get one graph for each sample
+  graph_subgroups <- igraph::components(gate_graph)
+  subgroup_vertex_id_list <- split(names(graph_subgroups$membership), graph_subgroups$membership)
+  gate_graph_samples <- lapply(stats::setNames(subgroup_vertex_id_list, gsub("root_", "", sapply(subgroup_vertex_id_list, "[", 1))), function(x) igraph::subgraph(graph = gate_graph, vids = x))
+
+  pop_df <- add_parent_count(pop_df) # add parent count
+  pop_df <- add_grandparent_count(pop_df) # add grandparent count
+  pop_df <- add_total_count(pop_df)
+
+  # sample wise of for whole pop_df at once?
+  auto_paths <- shortest_unique_path(unique(pop_df$PopulationFullPath)[which(unique(pop_df$PopulationFullPath) != "")])
+  names(auto_paths) <- unique(pop_df$PopulationFullPath)[which(unique(pop_df$PopulationFullPath) != "")]
+  pop_df$Population <- auto_paths[pop_df$PopulationFullPath]
+  pop_df$Population[which(is.na(pop_df$Population))] <- pop_df$name_root[which(is.na(pop_df$Population))]
+  pop_df$PopulationFullPath[which(pop_df$Population == "root")] <- "root"
+
+  pop_df$FlowJoWsp <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
 
   # harmonize with previous? compare?
   # notify of number of different gating trees - how to do with igraph?
-  # make graph outside of get_full_paths and allow to return?
 
+  # sampleID - done before
+  # FilePath
+  file_paths <- as.data.frame(do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_child(samples, "DataSet"))))
+  file_paths$uri <- gsub("^file:", "", file_paths$uri)
+  names(file_paths)[1] <- "FilePath"
+  pop_df <- dplyr::left_join(pop_df, group_df, by = c("sampleID"))
+  pop_df <- dplyr::left_join(pop_df, file_paths, by = c("sampleID"))
 
-  full_path_df <- unique(purrr::map_dfr(gate_ids_df$id, get_full_paths, gate_ids_df = gate_ids_df))
-
-
-  gate_ids_df2 <- dplyr::left_join(gate_ids_df, full_path_df)
-
-
-
-
-  gates <- lapply_fun(gg, function(n) {
-
-    prnts <- xml2::xml_parents(n)
-
-    s_node <- prnts[which(xml2::xml_name(prnts) == "Sample")]
-    sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
-
-    FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri"))
-    FileName <- basename(FilePath)
-
-    p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
-    PopulationFullPath <- paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")
-    Parent <- if (PopulationFullPath == basename(PopulationFullPath)) {"root"} else {dirname(PopulationFullPath)}
-    Population <- basename(PopulationFullPath)
-
-    Count <- xml2::xml_attr(p_nodes[1], "count")
-    if (Count == -1) {
-      stop("Count = -1 detected. One or more nodes a boolean gate (Or/And) depends may not have been found.
-            Cannot derive correct Count.
-            Did you rename the nodes an Or- or And-Gate depends on?
-                 If so, please re-define the respective boolean gate.")
-    }
-
-    ParentCount <- if (length(p_nodes) > 1) {xml2::xml_attr(p_nodes[2], "count")} else {xml2::xml_attr(xml2::xml_child(s_node, "SampleNode"), "count")}
-    gate_level <- length(p_nodes)
-
-    xDim <- tryCatch({
-      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 1)), "name")
-    }, error = function(e) {
-      NA
-    })
-
-    yDim <- tryCatch({
-      xml2::xml_attr(xml2::xml_child(xml2::xml_child(xml2::xml_child(n), 2)), "name")
-    }, error = function(e) {
-      NA
-    })
-
-    if (xml2::xml_name(n) == "Dependents") {
-      origin <- "Dependents"
-    } else {
-      origin <- "Gate"
-    }
-
-    # deps for Or, And or NotNodes; correct counts afterwards
-    #deps <- xml2::xml_child(p_nodes[1], "Dependents")
-    #deps <- list(xml2::xml_attr(xml2::xml_children(deps), "name"))
-
-    gate_id <- xml2::xml_attr(n, "id")
-    parentgate_id <- xml2::xml_attr(n, "parent_id")
-    eventsInside <- xml2::xml_attr(xml2::xml_child(n), "eventsInside")
-
-    return(data.frame(FileName = FileName,
-                      PopulationFullPath = PopulationFullPath,
-                      Parent = Parent,
-                      Population = Population,
-                      Count = as.numeric(Count),
-                      ParentCount = as.numeric(ParentCount),
-                      FractionOfParent = as.numeric(Count)/as.numeric(ParentCount),
-                      xDim = xDim,
-                      yDim = yDim,
-                      gate_id = gate_id,
-                      parentgate_id = parentgate_id,
-                      eventsInside = eventsInside,
-                      sampleID = sampleID,
-                      FilePath = FilePath,
-                      gate_level = gate_level,
-                      origin = origin,
-                      #deps = I(deps),
-                      #n = n,
-                      stringsAsFactors = F)
-    )
-  }) #, ...
-
-  roots <- do.call(rbind, lapply_fun(rel_nodes, function(y) {
-    data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
-               PopulationFullPath = "root",
-               Parent = NA,
-               Population = "root",
-               Count = as.numeric(xml2::xml_attr(xml2::xml_child(y, "SampleNode"), "count")),
-               ParentCount = NA,
-               FractionOfParent = NA,
-               xDim = NA,
-               yDim = NA,
-               gate_id = NA,
-               parentgate_id = NA,
-               eventsInside = NA,
-               sampleID = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "sampleID"),
-               FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
-               gate_level = 0,
-               origin = "root",
-               #deps = I(list(character(0))),
-               #n = 0,
-               stringsAsFactors = F)
-  })) #, ...
-
-  gates_df <- do.call(rbind, gates)
-  gates_df <- rbind(roots,gates_df)
-  gates_list <- split(gates_df, gates_df$sampleID)
-  # remove duplicate rows from gate+dependents
-  gates_list <- lapply(gates_list, function(y) {
-    ex <- base::intersect(c(which(duplicated(y$PopulationFullPath)),
-                            which(duplicated(y$PopulationFullPath, fromLast=T))),
-                          which(y$origin == "Dependents"))
-    if (length(ex) > 0) {
-      y <- y[-ex,]
-    }
-    return(y)
-  })
-
-  full_paths <- unique(lapply(gates_list, function(y) {
-    if (length(unique(y$PopulationFullPath)) != length(y$PopulationFullPath)) {
-      stop("PopulationFullPaths not unique which cannot or should not be. Check.")
-    }
-    y$PopulationFullPath
-  }))
-
-  auto_paths <- lapply(full_paths, function(y) shortest_unique_path(y))
-
-  for (y in seq_along(gates_list)) {
-    gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
+  cols <- if (more_gate_data) {
+    c("FileName",
+      "PopulationFullPath",
+      "PopulationFullPathID",
+      "Population",
+      "Count",
+      "ParentCount",
+      "GrandparentCount",
+      "TotalCount",
+      "FractionOfParent",
+      "FractionOfGrandparent",
+      "FractionOfTotal",
+      "xDim",
+      "yDim",
+      "eventsInside",
+      "GateDepth",
+      "id",
+      "parent_id",
+      "grandparent_id",
+      "sampleID",
+      "FlowJoGroup",
+      "FlowJoWsp",
+      "FilePath")
+  } else {
+    c("FileName",
+      "PopulationFullPath",
+      "PopulationFullPathID",
+      "Population",
+      "Count",
+      "ParentCount",
+      "GrandparentCount",
+      "TotalCount",
+      "FractionOfParent",
+      "FractionOfGrandparent",
+      "FractionOfTotal",
+      "GateDepth",
+      "id",
+      "parent_id",
+      "grandparent_id",
+      "sampleID",
+      "FlowJoGroup",
+      "FlowJoWsp",
+      "FilePath")
   }
+  # order rows - how?
+  pop_df <- dplyr::arrange(pop_df, GateDepth)
 
-  # if any sample is in at least two groups, the group column becomes a list
-  if (any(table(group_df$sampleID) > 1)) {
-    group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), FlowJoGroup = list(FlowJoGroup))
-  }
-  gates_out <- do.call(rbind, gates_list)
-  gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID") # ...
-  gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
-  gates_out <- gates_out[order(gates_out$FileName, gates_out$gate_level, factor(gates_out$origin, levels = c("root", "Gate", "Dependents"))),]
-  rownames(gates_out) = seq(1,nrow(gates_out),1)
+  return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples))
+  # stats
 
-  if (strip_data) {
+  # matrix/df with all parent gates as ref and FractionOfXXX
+
+
+  stats <- xml2::xml_find_all(ws, ".//Statistic")
+
+  '  if (strip_data) {
     gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
-  }
+  }'
 
-
-  if (return_stats) {
-    stats_out <- do.call(rbind, lapply_fun(seq_along(rel_nodes), function(n) {
+  'if (return_stats) {
+    stats_out <- do.call(dplyr::bind_rows, lapply_fun(seq_along(rel_nodes), function(n) {
       node <- rel_nodes[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
 
-      stats_df <- do.call(rbind, lapply(stats, function(x) {
+      stats_df <- do.call(dplyr::bind_rows, lapply(stats, function(x) {
         prnts <- xml2::xml_parents(x)
         p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
 
@@ -278,87 +270,303 @@ wsx_get_popstats2 <- function(ws,
     }, ...))
     return(list(counts = gates_out, stats = stats_out))
   }
-  return(gates_out)
+  return(gates_out)'
+
 }
 
-get_count_and_ids <- function(nodeset) {
-  ## how to do this more elegantly?
+
+'  ggraph::ggraph(ggraph::create_layout(gate_graph_samples[[2]], layout = "tree")) +
+    ggraph::geom_edge_link() +
+    ggraph::geom_node_point(ggplot2::aes(color = label), size = 2) +
+    ggraph::geom_node_text(ggplot2::aes(label = name)) +
+    ggplot2::theme_void() +
+    ggplot2::scale_color_manual(values = fcexpr::col_pal("custom"))'
+
+'  gate_graphs <- lapply(unique(pop_df$FileName), function(x) {
+    pop_df2 <- dplyr::filter(pop_df, FileName == x)
+    igraph::graph_from_data_frame(data.frame(from = pop_df2[which(!is.na(pop_df2$parent_id)), "parent_id"],
+                                             to = pop_df2[which(!is.na(pop_df2$parent_id)), "id"]), directed = T)
+  })
+
+  igraph::subgraph_isomorphic(gate_graphs[[2]], gate_graphs[[1]])
+  igraph::isomorphic(gate_graphs[[2]], gate_graphs[[3]])'
+
+'  igraph::V(gate_graph)$label <- pop_df[match(names(igraph::V(gate_graph)), unique(pop_df$id)),"name_root"]
+  ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) +
+    ggraph::geom_edge_link() +
+    ggraph::geom_node_point(ggplot2::aes(color = label), size = 2) +
+    ggraph::geom_node_text(ggplot2::aes(label = name)) +
+    ggplot2::theme_void() +
+    ggplot2::scale_color_manual(values = fcexpr::col_pal("custom"))'
+
+'ggraph::ggraph(ggraph::create_layout(gate_graph_samples[[2]], layout = "tree")) +
+  ggraph::geom_edge_link() +
+  ggraph::geom_node_point() +
+  ggraph::geom_node_text(ggplot2::aes(label = name))'
+
+gate_details_to_df <- function(nodeset, more_gate_data = F) {
+
+
+  ## how to do this more elegant?
   attr_list <- purrr::map(nodeset, xml2::xml_attrs)
-  inds <- which(sapply(purrr::map(attr_list, names), "[", 1) == "name")
+  inds <- which(lengths(attr_list) %in% c(6,7))
   attr_list <- attr_list[inds]
   nodeset <- nodeset[inds]
-  attr_list[[which(lengths(attr_list) == 7)]] <- attr_list[[which(lengths(attr_list) == 7)]][-7]
-  df <- as.data.frame(do.call(rbind, attr_list))
-  df$id <- purrr::map_chr(purrr::map(nodeset, xml2::xml_child, search = "Gate"), xml2::xml_attr, attr = "id")
-  df$name_root <- ifelse(is.na(df$id), "root", df$name)
-  df$id <- ifelse(is.na(df$id), paste0("root_", df$name), df$id)
+
+  gate_list <- xml2::xml_find_all(nodeset, ".//Gate|.//Dependents", flatten = T) #|.//Dependents
+  sampleNode <- which(lengths(attr_list) == 7)
+  sampleID <- attr_list[[sampleNode]][[7]]
+  attr_list[[sampleNode]] <- attr_list[[sampleNode]][-7]
+  df <- as.data.frame(do.call(dplyr::bind_rows, attr_list))
+  df$id <- NA
+
+  # depend gates (and/or but not not) have no id - treat separately
+  # this works, also with depends-nodes; but is slow
+  # compare somewhen to approach below
+  #df$id <- purrr::map_chr(purrr::map(nodeset, xml2::xml_child, search = "Gate"), xml2::xml_attr, attr = "id")
+
+  id <- xml2::xml_attr(gate_list, attr = "id")
+  id <- id[which(!is.na(id))]
+  node_types <- xml2::xml_name(nodeset)
+  for (i in which(node_types %in% c("SampleNode", "OrNode", "AndNode"))-1) {
+    id <- append(id, NA, after = i)
+  }
+  df[,"id"] <- id
+  df$count <- as.numeric(df$count)
+  df$name_root <- ifelse(df$count == max(df$count), "root", df$name)
+  df$id <- ifelse(df$count == max(df$count), paste0("root_", df$name), df$id)
+  df$sampleID <- sampleID
+  df$FileName <- df[df$count == max(df$count), "name"]
+  names(df)[which(names(df) == "count")] <- "Count"
+
+  depend_list <- xml2::xml_find_all(nodeset, ".//Dependents", flatten = T) #|.//Dependents
+  depend_list_parents <- xml2::xml_parent(depend_list)
+
+  # handle assignment of parent nodes for OrNodes and AndNodes outside this function
+  parent_node_types <- xml2::xml_name(depend_list_parents)
+  if ("OrNode" %in% parent_node_types) {
+    OrNodes <- depend_list_parents[which(parent_node_types == "OrNode")]
+  } else {
+    OrNodes <- NULL
+  }
+  if ("AndNode" %in% parent_node_types) {
+    AndNodes <- depend_list_parents[which(parent_node_types == "AndNode")]
+  } else {
+    AndNodes <- NULL
+  }
+
+  if (more_gate_data) {
+    '  children <- xml2::xml_children(gate_list)
+  children_attrs <- xml2::xml_attrs(children)
+  children_attrs <- children_attrs[which(lengths(children_attrs) == 9)]
+  as.data.frame(do.call(dplyr::bind_rows, children_attrs))
+  test <- xml2::xml_children(children)'
+
+    df2 <- data.frame(id = character(length(gate_list)),
+                      eventsInside = character(length(gate_list)),
+                      xDim = character(length(gate_list)),
+                      yDim = character(length(gate_list)))
+
+    # run loop for everything? - no, loop is slow
+    for (i in seq_along(gate_list)) {
+      child <- xml2::xml_child(gate_list[[i]], 1)
+      evIn <- xml2::xml_attrs(child)
+      df2$eventsInside[i] <- ifelse("eventsInside" %in% names(evIn), evIn[["eventsInside"]], NA)
+      id <- xml2::xml_attrs(gate_list[[i]])
+      df2$id[i] <- ifelse(length(id) > 0, id[["id"]], NA)
+      df2$xDim[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 1), 1), "name"), NA)
+      df2$yDim[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 2), 1), "name"), NA)
+    }
+    df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
+  }
+  return(list(df = df, OrNodes = OrNodes, AndNodes = AndNodes))
+}
+
+
+add_full_paths <- function(df, graph, end_edges = NULL, show_progress = F) {
+  # providing end_edges speeds up the process
+  # starting from end edges should catch all gates (nodes) at least once (logic, maybe)
+  if (is.null(end_edges)) {
+    edges <- df$id
+  } else {
+    edges <- end_edges
+  }
+
+  full_paths_df <- purrr::map(edges, function(x) {
+    path_to_root <- igraph::shortest_paths(graph,
+                                           mode = "all",
+                                           from = x,
+                                           to = paste0("root_", df[which(df$id == x), "FileName"]),
+                                           algorithm = "unweighted")
+    ## derive full paths
+    pops_to_root <- rev(df[match(names(path_to_root[[1]][[1]]), df$id),"name"])
+    pops_to_root[1] <- ""
+    full_paths <- rev(sapply(1:length(pops_to_root), function(x) paste(pops_to_root[1:x], collapse = "/")))
+    full_id_paths <- rev(sapply(1:length(names(path_to_root[[1]][[1]])), function(x) paste(rev(names(path_to_root[[1]][[1]]))[1:x], collapse = "/")))
+    full_paths <- gsub("^/", "", full_paths)
+    full_paths <- data.frame(name = ifelse(full_paths == "", rev(df[match(names(path_to_root[[1]][[1]]), df$id),"name"])[1], basename(full_paths)),
+                             id = names(path_to_root[[1]][[1]]),
+                             parent_id = c(names(path_to_root[[1]][[1]]), NA)[-1],
+                             grandparent_id = c(names(path_to_root[[1]][[1]]), NA, NA)[-c(1:2)],
+                             PopulationFullPath = full_paths,
+                             PopulationFullPathID = full_id_paths)
+    return(full_paths)
+  }, .progress = show_progress)
+
+  while (length(full_paths_df) > 20) {
+    full_paths_df <- purrr::map(split(c(1:length(full_paths_df)), ceiling(seq_along(c(1:length(full_paths_df)))/10)), function(x) purrr::reduce(full_paths_df[x], dplyr::bind_rows))
+  }
+  full_paths_df <- unique(purrr::reduce(full_paths_df, dplyr::bind_rows))
+  full_paths_df$GateDepth <- nchar(full_paths_df$PopulationFullPath) - nchar(gsub("/", "", full_paths_df$PopulationFullPath)) + 1
+  full_paths_df$GateDepth <- ifelse(full_paths_df$PopulationFullPath == "", 0, full_paths_df$GateDepth)
+  df <- dplyr::left_join(df, full_paths_df, by = c("id" = "id", "parent_id" = "parent_id", "name" = "name"))
+
+
+
+  ## too complicated and slow:
+  #grandparents <- purrr::map(igraph::incident_edges(graph, df$parent_id[which(!is.na(df$parent_id))]), igraph::ends, graph = graph)
+  #grandparents <- purrr::map(grandparents, as.data.frame)
+  #grandparents <- dplyr::bind_rows(grandparents)
+  #grandparents <- dplyr::right_join(grandparents, grandparents, by = c("V2" = "V1"), relationship = "many-to-many")
+  #grandparents <- grandparents[,-2]
+  #names(grandparents) <- c("grandparent_id", "id")
+  #grandparents <- unique(grandparents)
+  #df <- dplyr::left_join(df, grandparents, by = "id")
+  return(df)
+}
+
+add_parent_count <- function(df) {
+  df_parent <- df[,match(c("id", "Count"), names(df))]
+  df_parent <- df_parent[which(!is.na(df_parent$id)),] # depends
+  names(df_parent) <- c("parent_id", "ParentCount")
+  df <- dplyr::left_join(df, df_parent, by = "parent_id")
+  df$FractionOfParent <- df$Count/df$ParentCount
+  return(df)
+}
+
+add_grandparent_count <- function(df) {
+  df_grandparent <- df[,match(c("id", "Count"), names(df))]
+  df_grandparent <- df_grandparent[which(!is.na(df_grandparent$id)),] # depends
+  names(df_grandparent) <- c("grandparent_id", "GrandparentCount")
+  df <- dplyr::left_join(df, df_grandparent, by = "grandparent_id")
+  df$FractionOfGrandparent <- df$Count/df$GrandparentCount
+  return(df)
+}
+
+add_total_count <- function(df) {
+  df_total <- df[which(df$name == df$FileName),c("FileName", "Count")]
+  names(df_total)[2] <- "TotalCount"
+  df <- dplyr::left_join(df, df_total, by = "FileName")
+  df$FractionOfTotal <- df$Count/df$TotalCount
   return(df)
 }
 
 
-get_full_paths <- function(gate_ids_df) {
+add_OrNode_AndNode_data_wo_fullpath <- function(df, gate_details_df_list, nodes_name = c("OrNodes", "AndNodes")) {
 
-  # make graph
-  gate_graph <- igraph::graph_from_data_frame(data.frame(from = gate_ids_df[which(!is.na(gate_ids_df$parent_id)), "parent_id"],
-                                                         to = gate_ids_df[which(!is.na(gate_ids_df$parent_id)), "id"]), directed = T)
-
-
-'  igraph::V(gate_graph)$label <- gate_ids_df[match(names(igraph::V(gate_graph)), unique(gate_ids_df$id)),"name_root"]
-  ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) +
-    geom_edge_link() +
-    geom_node_point(aes(color = label), size = 2) +
-    ggraph::geom_node_text(aes(label = name)) +
-    theme_void() +
-    scale_color_manual(values = fcexpr::col_pal("custom"))'
-
-  full_paths_df <- purrr::map_dfr(gate_ids_df$id, function(x) {
-    path_to_root <- igraph::all_shortest_paths(gate_graph,
-                                               mode = "all",
-                                               from = x,
-                                               to = paste0("root_", gate_ids_df[which(gate_ids_df$id == x), "FileName"]))
+  #grandparent_id
+  #GateDepth
+  #PopulationFullPathID
+  nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes"))
 
 
-    ## derive full paths
-    pops_to_root <- rev(gate_ids_df[match(names(path_to_root[["res"]][[1]]), gate_ids_df$id),"name"])
-    full_paths <- rev(sapply(1:length(pops_to_root), function(x) paste(pops_to_root[1:x], collapse = "/")))
-    full_paths <- data.frame(name = basename(full_paths),
-                             id = x,
-                             FileName = sapply(strsplit(full_paths, "/"), "[", 1),
-                             PopulationFullPath = full_paths)
-    return(full_paths)
-  })
+  # identify parents of OrNodes/AndNodes by name and Count but without PopulationFullPath
+  ## add id and parent_id to OrNodes/AndNodes themselves
+  temp_df <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
+    purrr::map_dfr(x, function(y) {
+      xx <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_children(xml2::xml_parent(y))))
+      yy <- basename(xml2::xml_attr(xml2::xml_children(xml2::xml_child(x, "Dependents")[[1]]), "name"))
+      xx <- xx[which(xx$name %in% yy), c("name", "count")]
+      xx$name2 <- xml2::xml_attr(x, "name")
+      xx$Count2 <- xml2::xml_attr(x, "count")
+      return(xx)
+    })
+  }, .id = "FileName")
+  names(temp_df)[which(names(temp_df) == "count")] <- "Count"
+  temp_df$Count <- as.numeric(temp_df$Count)
+  temp_df$Count2 <- as.numeric(temp_df$Count2)
+  temp_df$FileName <- gsub(paste0("\\.", nodes_name, "$"), "", temp_df$FileName)
+  temp_df <- dplyr::left_join(temp_df,
+                              df[,c("FileName", "Count", "name", "id", "parent_id")],
+                              by = c("FileName", "Count", "name"))
+  temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id)
+  temp_df <- dplyr::summarise(temp_df, id = paste(id, collapse = ","), .groups = "drop")
+  names(temp_df)[which(names(temp_df) == "name2")] <- "name"
+  names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
+  # TODO: remove scexpr dependency
+  # avoid messages of new col names
+  df <- scexpr::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
-  full_paths_df$GateDepth <- nchar(full_paths_df$PopulationFullPath) - nchar(gsub("/", "", full_paths_df$PopulationFullPath))
-  gate_ids_df <- dplyr::left_join(gate_ids_df, full_paths_df, by = c("FileName" = "FileName", "id" = "id", "name" = "name"))
 
-  ## fixed
-  grandparents <- purrr::map(igraph::incident_edges(gate_graph, gate_ids_df$parent_id[which(!is.na(gate_ids_df$parent_id))]), igraph::ends, graph = gate_graph)
-  grandparents <- purrr::map(grandparents, as.data.frame)
-  grandparents <- dplyr::bind_rows(grandparents)
-  grandparents <- dplyr::right_join(grandparents, grandparents, by = c("V2" = "V1"), relationship = "many-to-many")
-  grandparents <- grandparents[,-2]
-  names(grandparents) <- c("grandparent_id", "id")
-  grandparents <- unique(grandparents)
-  gate_ids_df <- dplyr::left_join(gate_ids_df, grandparents, by = "id")
-  return(gate_ids_df)
+  ## add parent_id to children of OrNodes/AndNodes themselves
+  temp_df2 <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
+    purrr::map_dfr(x, function(y) {
+      xx <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_children(xml2::xml_child(y, "Subpopulations"))))[, c("name", "count"),drop=T]
+      names(xx)[which(names(xx) == "name")] <- "name2"
+      names(xx)[which(names(xx) == "count")] <- "count2"
+      xx$name <- xml2::xml_attrs(x[[1]])[["name"]]
+      xx$Count <- xml2::xml_attrs(x[[1]])[["count"]]
+      return(xx)
+    })
+  }, .id = "FileName")
+  temp_df2$Count <- as.numeric(temp_df2$Count)
+  temp_df2$count2 <- as.numeric(temp_df2$count2)
+  temp_df2$FileName <- gsub(paste0("\\.", nodes_name, "$"), "", temp_df2$FileName)
+
+  # join temp_df
+  temp_df2 <- dplyr::left_join(temp_df2, temp_df, by = c("FileName", "name", "Count"))
+  temp_df2 <- temp_df2[,which(names(temp_df2) %in% c("FileName", "name2", "count2", "id"))]
+  names(temp_df2)[2:4] <- c("name", "Count", "parent_id")
+
+  # TODO: remove scexpr dependency
+  # avoid messages of new col names
+
+  # check for duplicate rows (very rare case)
+  df <- scexpr::coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+
+  return(df)
 }
 
-add_parent_count <- function(gate_ids_df) {
 
-  gate_ids_df_parent <- gate_ids_df[,which(names(gate_ids_df) %in% c("id", "count"))]
-  names(gate_ids_df_parent) <- c("parent_id", "ParentCount")
-  gate_ids_df <- dplyr::left_join(gate_ids_df, gate_ids_df_parent, by = "parent_id")
+add_OrNode_AndNode_data <- function(df, gate_details_df_list, nodes_name = c("OrNodes", "AndNodes")) {
 
-  return(gate_ids_df)
+  #grandparent_id
+  #GateDepth
+  #PopulationFullPathID
+  nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes"))
+
+  temp_df <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
+    data.frame(name = xml2::xml_attr(x, "name"),
+               ParentFullPath = dirname(attr(xml2::as_list(xml2::xml_child(x, "Dependents"))[[1]][[1]], "name")))
+  }, .id = "FileName")
+  temp_df$FileName <- gsub(paste0("\\.", nodes_name, "$"), "", temp_df$FileName)
+  temp_df <- dplyr::left_join(temp_df,
+                              df[,c("FileName", "PopulationFullPath", "id")],
+                              by = c("FileName"= "FileName", "ParentFullPath" = "PopulationFullPath"))
+  names(temp_df)[which(names(temp_df) == "ParentFullPath")] <- "PopulationFullPath"
+  names(temp_df)[which(names(temp_df) == "id")] <- "parent_id"
+  temp_df$PopulationFullPath <- paste0(temp_df$PopulationFullPath, "/", temp_df$name)
+  # TODO: remove scexpr dependency
+  # avoid messages of new col names
+  df <- scexpr::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+
+  ## add ids to OrNode
+  temp_df <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
+    temp <- stack(unlist(sapply(xml2::as_list(xml2::xml_find_all(x, "Dependents"))[[1]], attributes)))[,-2,drop=F]
+    temp$name <- xml2::xml_attr(x, "name")
+    temp$Count <- as.numeric(xml2::xml_attr(x, "count"))
+    return(temp)
+  }, .id = "FileName")
+  temp_df$FileName <- gsub(paste0("\\.", nodes_name, "$"), "", temp_df$FileName)
+  names(temp_df)[which(names(temp_df) == "values")] <- "PopulationFullPath"
+  temp_df <- dplyr::left_join(temp_df, df[,c("FileName", "PopulationFullPath", "id")], by = c("FileName", "PopulationFullPath"))
+  temp_df <- dplyr::group_by(temp_df, FileName, name, Count)
+  temp_df <- dplyr::summarise(temp_df, id = paste(id, collapse = ","), .groups = "drop")
+  # TODO: remove scexpr dependency
+  # avoid messages of new col names
+  df <- scexpr::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+
+  return(df)
 }
 
-add_grandparent_count <- function(gate_ids_df) {
-
-  gate_ids_df_grandparent <- gate_ids_df[,which(names(gate_ids_df) %in% c("id", "count"))]
-  names(gate_ids_df_grandparent) <- c("grandparent_id", "GrandparentCount")
-  gate_ids_df <- dplyr::left_join(gate_ids_df, gate_ids_df_grandparent, by = "grandparent_id")
-
-  return(gate_ids_df)
-
-}
 
