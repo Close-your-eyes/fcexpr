@@ -40,10 +40,10 @@ wsx_get_popstats2 <- function(ws,
   # invert_groups = F
 
   # ws with multiple OrNodes and AndNoes
+
   # with with 1d gate
 
   # gate type - check if it works with multiple OrNodes / AndNodes per sample
-  # order rows in the end?
 
   # NotNode on OrNode or AndNode - e.g. does it get an ID?
 
@@ -65,7 +65,6 @@ wsx_get_popstats2 <- function(ws,
   } else {
     group_df <- group_df[which(group_df[,"FlowJoGroup", drop=T] %in% groups),]
   }
-
   if (nrow(group_df) == 0) {
     stop("Non of provided groups found.")
   }
@@ -76,10 +75,8 @@ wsx_get_popstats2 <- function(ws,
   samples <- samples[which(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "sampleID") %in% ids)]
 
   # in samples each sample is an own nodeset with gates that only belong to that sample
-  #gates <- xml2::xml_find_all(samples, ".//Gate|.//Dependents", flatten = F)
-  gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F)
+  gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F) # .//Dependents
   names(gates) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name",drop=T]
-
   #depends <- xml2::xml_find_all(samples, ".//Dependents", flatten = F)
   #names(depends) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name"]
 
