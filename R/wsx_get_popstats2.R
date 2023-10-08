@@ -469,7 +469,6 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df, gate_details_df_list, nodes_
   #PopulationFullPathID
   nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes"))
 
-
   # identify parents of OrNodes/AndNodes by name and Count but without PopulationFullPath
   ## add id and parent_id to OrNodes/AndNodes themselves
   temp_df <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
@@ -493,10 +492,7 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df, gate_details_df_list, nodes_
   temp_df <- dplyr::summarise(temp_df, id = paste(id, collapse = ","), .groups = "drop")
   names(temp_df)[which(names(temp_df) == "name2")] <- "name"
   names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
-  # TODO: remove scexpr dependency
-  # avoid messages of new col names
-  df <- scexpr::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
-
+  df <- coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   ## add parent_id to children of OrNodes/AndNodes themselves
   temp_df2 <- purrr::map_dfr(sapply(gate_details_df_list, "[", nodes_name), function(x) {
@@ -518,11 +514,8 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df, gate_details_df_list, nodes_
   temp_df2 <- temp_df2[,which(names(temp_df2) %in% c("FileName", "name2", "count2", "id"))]
   names(temp_df2)[2:4] <- c("name", "Count", "parent_id")
 
-  # TODO: remove scexpr dependency
-  # avoid messages of new col names
-
   # check for duplicate rows (very rare case)
-  df <- scexpr::coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   return(df)
 }

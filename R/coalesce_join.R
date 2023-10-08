@@ -37,17 +37,11 @@ coalesce_join <- function(x, y,
   if (length(to_coalesce) > 0) {
     suffix_used <- suffix[ifelse(endsWith(to_coalesce, suffix[1]), 1, 2)]
     # remove suffixes and deduplicate
-    to_coalesce <- unique(substr(
-      to_coalesce,
-      1,
-      nchar(to_coalesce) - nchar(suffix_used)
-    ))
+    to_coalesce <- unique(substr(to_coalesce, 1, nchar(to_coalesce) - nchar(suffix_used)))
 
-    coalesced <- purrr::map_dfc(to_coalesce, ~dplyr::coalesce(
-      joined[[paste0(.x, suffix[1])]],
-      joined[[paste0(.x, suffix[2])]]
-    ))
+    coalesced <- purrr::map(to_coalesce, ~dplyr::coalesce(joined[[paste0(.x, suffix[1])]], joined[[paste0(.x, suffix[2])]]))
     names(coalesced) <- to_coalesce
+    coalesced <- dplyr::bind_cols(coalesced)
 
     # only remove cols when they have different names in x and y; because then the col name from y disappears; this is irrespective of left_join and right_join
     # what about other way of specifying join columns?
