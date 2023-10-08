@@ -57,7 +57,7 @@ wsx_get_keywords <- function(ws,
     }
 
     if (return == "data.frame" && !is.null(keys)) {
-      keys <- stack(keys)
+      keys <- utils::stack(keys)
       names(keys) <- c("value", "name")
       keys <- keys[,c(2,1)]
       keys$name <- as.character(keys$name)

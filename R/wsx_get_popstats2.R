@@ -49,7 +49,11 @@ wsx_get_popstats2 <- function(ws,
 
   # make different gating trees per sample (e.g. OrNode and AndNode only in some samples - check how to handle NULLs below)
 
-  # what if OrGates or AndGates are from gates in different dimension? then assigning xDim and yDim and eventsIndide could fail, currently
+  # what if OrGates or AndGates are from gates in different dimension? then assigning xChannel and yChannel and eventsIndide could fail, currently
+
+  # check stats
+
+  # speed up more_gate_data ?
 
   ws <- check_ws(ws)
   group_df <- wsx_get_groups(ws, collapse = NULL)
@@ -88,6 +92,13 @@ wsx_get_popstats2 <- function(ws,
   pop_df <- purrr::map_dfr(purrr::map(gates, xml2::xml_attrs), function(x) as.data.frame(do.call(dplyr::bind_rows, x)), .id = "FileName")
   pop_df$GateType <- unlist(purrr::map(gates, purrr::compose(xml2::xml_name, xml2::xml_children)))
 
+  if (more_gate_data) {
+    GateDef <- purrr::map(gates, xml2::xml_children)
+    GateDef <- purrr::map(GateDef, xml2::as_list)
+    pop_df$GateDef <- purrr::list_flatten(GateDef)
+  }
+
+
   # make sure root counts are joined below: manually add the root 'gate' for each sample
   pop_df <- add_root_node(pop_df)
 
@@ -100,6 +111,10 @@ wsx_get_popstats2 <- function(ws,
   if (anyDuplicated(node_details_df[which(!is.na(node_details_df$id)), "id"]) != 0) {
     stop("Duplicate gate id detected. FlowJo wsp needs fixing?!")
   }
+  if (more_gate_data) {
+    node_details_df <- add_channel_desc(df = node_details_df, ws = ws)
+  }
+
   # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
 
@@ -202,7 +217,7 @@ wsx_get_popstats2 <- function(ws,
 
   pop_df$FlowJoWsp <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
 
-  # harmonize with previous? compare?
+  # harmonize with previous? compare? - with dplyr::anti_join
   # notify of number of different gating trees - how to do with igraph?
 
   # sampleID - done before
@@ -212,6 +227,8 @@ wsx_get_popstats2 <- function(ws,
   names(file_paths)[1] <- "FilePath"
   pop_df <- dplyr::left_join(pop_df, group_df, by = c("sampleID"))
   pop_df <- dplyr::left_join(pop_df, file_paths, by = c("sampleID"))
+
+  # fill whitespaces with NA
 
   cols <- if (more_gate_data) {
     c("FileName",
@@ -225,8 +242,11 @@ wsx_get_popstats2 <- function(ws,
       "FractionOfParent",
       "FractionOfGrandparent",
       "FractionOfTotal",
-      "xDim",
-      "yDim",
+      "xChannel",
+      "yChannel",
+      "xDesc",
+      "yDesc",
+      "GateDef",
       "eventsInside",
       "GateDepth",
       "id",
@@ -258,7 +278,9 @@ wsx_get_popstats2 <- function(ws,
       "FilePath")
   }
   # order rows - how?
-  pop_df <- dplyr::arrange(pop_df, GateDepth)
+  pop_df <- dplyr::group_by(pop_df, FileName)
+  pop_df <- dplyr::arrange(pop_df, GateDepth, .by_group = T)
+  pop_df <- dplyr::ungroup(pop_df)
 
   return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples))
   # stats
@@ -391,12 +413,12 @@ get_node_details <- function(nodeset, more_gate_data = F) {
   as.data.frame(do.call(dplyr::bind_rows, children_attrs))
   test <- xml2::xml_children(children)'
 
-    # OrNodes and AndNodes: add xDim and yDim and eventInside later from originating gates in add_OrNode_AndNode_data_wo_fullpath
+    # OrNodes and AndNodes: add xChannel and yChannel and eventInside later from originating gates in add_OrNode_AndNode_data_wo_fullpath
 
     df2 <- data.frame(id = character(length(gate_list)),
                       eventsInside = character(length(gate_list)),
-                      xDim = character(length(gate_list)),
-                      yDim = character(length(gate_list)))
+                      xChannel = character(length(gate_list)),
+                      yChannel = character(length(gate_list)))
 
     # loop is slow, but currently no other solution
     for (i in seq_along(gate_list)) {
@@ -405,8 +427,8 @@ get_node_details <- function(nodeset, more_gate_data = F) {
       df2$eventsInside[i] <- ifelse("eventsInside" %in% names(evIn), evIn[["eventsInside"]], NA)
       id <- xml2::xml_attrs(gate_list[[i]])
       df2$id[i] <- ifelse(length(id) > 0, id[["id"]], NA)
-      df2$xDim[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 1), 1), "name"), NA)
-      df2$yDim[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 2), 1), "name"), NA)
+      df2$xChannel[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 1), 1), "name"), NA)
+      df2$yChannel[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 2), 1), "name"), NA)
     }
     df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
   }
@@ -523,11 +545,11 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df,
   temp_df$Count2 <- as.numeric(temp_df$Count2)
   temp_df$FileName <- gsub(paste0("\\.", nodes_name, "$"), "", temp_df$FileName)
   temp_df <- dplyr::left_join(temp_df,
-                              df[,if (more_gate_data) {c("FileName", "Count", "name", "id", "parent_id", "xDim", "yDim", "eventsInside")} else {c("FileName", "Count", "name", "id", "parent_id")}],
+                              df[,if (more_gate_data) {c("FileName", "Count", "name", "id", "parent_id", "xChannel", "yChannel", "eventsInside")} else {c("FileName", "Count", "name", "id", "parent_id")}],
                               by = c("FileName", "Count", "name"))
   # or gates in different dimension will cause error
   if (more_gate_data) {
-    temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id, xDim, yDim, eventsInside)
+    temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id, xChannel, yChannel, eventsInside)
   } else {
     temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id)
   }
@@ -608,3 +630,27 @@ bind_rows_chunked <- function(df_list, chunk_size = 10) {
   return(purrr::reduce(df_list, dplyr::bind_rows))
 }
 
+add_channel_desc <- function(df, ws) {
+
+  keys <- purrr::map_dfr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
+    keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
+    keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
+    keys <- utils::stack(keys)
+    names(keys) <- c("value", "name")
+    keys <- keys[,c(2,1)]
+    keys$name <- as.character(keys$name)
+    keys <- keys[which(grepl("^\\$P[[:digit:]]{1,2}[NS]", keys$name)),]
+    keys$channel_digit <- gsub("[NS]", "", gsub("\\$P", "", keys$name))
+    keys$name <- gsub("\\$P[[:digit:]]{1,2}", "", keys$name)
+    keys <- as.data.frame(tidyr::pivot_wider(keys, names_from = name, values_from = value))
+    keys$FileName <- xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]]
+    keys <- keys[,-which(names(keys) == "channel_digit")]
+    return(keys)
+  })
+  names(keys)[c(1,2)] <- c("xChannel", "xDesc")
+  df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
+  names(keys)[c(1,2)] <- c("yChannel", "yDesc")
+  df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
+
+  return(df)
+}

@@ -264,10 +264,7 @@ dr_to_fcs2 <- function(ff.list,
   ## channel names from first ff
   channels <- .get.channels(ff = ff.list[[1]][[1]], timeChannel = timeChannel, channels = channels)
 
-
   # first step to create matrix for fcs file; put here to allow early cluster calculation which then
-  # allows for lda calculation before umap, som, etc.
-  # prepare matrix for FCS file
 
   ## option to save inverse (~untransformed) data only to FCS
   if (write.untransformed.channels.to.FCS && !"untransformed" %in% names(ff.list)) {
