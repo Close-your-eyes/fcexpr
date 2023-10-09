@@ -37,8 +37,8 @@ wsx_get_popstats2 <- function(ws,
   # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
   # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp2_add_gates.wsp"
 
-  # groups = NULL
-  # invert_groups = F
+   groups = NULL
+   invert_groups = F
 
   # ws with multiple OrNodes and AndNoes
 
@@ -96,11 +96,11 @@ wsx_get_popstats2 <- function(ws,
     pop_df$GateDef <- purrr::list_flatten(GateDef)
   }
 
-
   # make sure root counts are joined below: manually add the root 'gate' for each sample
   pop_df <- add_root_node(pop_df)
 
   # pull all counts with and associated ids
+  #nodeset <- purrr::map(gates, xml2::xml_parents)[[1]]
   node_details_list <- purrr::map(.x = purrr::map(gates, xml2::xml_parents),
                                   .f = get_node_details,
                                   .progress = show_progress,
@@ -115,7 +115,8 @@ wsx_get_popstats2 <- function(ws,
 
   # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
-
+  # maybe leave GateType NA for OrNodes and AndNodes
+  #pop_df$GateType <- ifelse(pop_df$NodeType == "OrNode", "OrNode", pop_df$GateType)
   # from OrNodes and AndNodes in node_details_list: find all children of these nodes. the remaining row in pop_df must have the samples root as parent
 
   # assign root as parent_id
@@ -129,10 +130,12 @@ wsx_get_popstats2 <- function(ws,
     for (i in names(node_details_list)) {
       # one entry for each OrNode or AndNode
       temp <- xml2::xml_child(node_details_list[[i]][["OrNodes"]], "Subpopulations")
+      temp <- temp[which(!is.na(temp))]
       ornodenames <- unlist(lapply(temp, function(x) {
         xml2::xml_attr(xml2::xml_children(x), "name")
       }))
       temp <- xml2::xml_child(node_details_list[[i]][["AndNodes"]], "Subpopulations")
+      temp <- temp[which(!is.na(temp))]
       andnodenames <- unlist(lapply(temp, function(x) {
         xml2::xml_attr(xml2::xml_children(x), "name")
       }))
@@ -146,12 +149,12 @@ wsx_get_popstats2 <- function(ws,
 
       # add GateType of OrNodes and AndNodes
       # check if it works for multiple OrNodes / AndNodes per sample
-      inds <- Reduce(intersect, list(which(pop_df$name %in% unlist(xml2::xml_attr(node_details_list[[i]][["OrNodes"]], "name"))),
+'      inds <- Reduce(intersect, list(which(pop_df$name %in% unlist(xml2::xml_attr(node_details_list[[i]][["OrNodes"]], "name"))),
                                      which(pop_df$FileName == i)))
       pop_df[inds, "GateType"] <- "OrNode"
       inds <- Reduce(intersect, list(which(pop_df$name %in% unlist(xml2::xml_attr(node_details_list[[i]][["AndNodes"]], "name"))),
                                      which(pop_df$FileName == i)))
-      pop_df[inds, "GateType"] <- "AndNode"
+      pop_df[inds, "GateType"] <- "AndNode"'
     }
   } else {
     inds <- Reduce(intersect, list(which(pop_df$name_root != "root"),
@@ -245,6 +248,8 @@ wsx_get_popstats2 <- function(ws,
       "xDesc",
       "yDesc",
       "GateDef",
+      "GateType",
+      "NodeType",
       "eventsInside",
       "GateDepth",
       "id",
@@ -266,6 +271,8 @@ wsx_get_popstats2 <- function(ws,
       "FractionOfParent",
       "FractionOfGrandparent",
       "FractionOfTotal",
+      "GateType",
+      "NodeType",
       "GateDepth",
       "id",
       "parent_id",
@@ -356,11 +363,59 @@ wsx_get_popstats2 <- function(ws,
 
 get_node_details <- function(nodeset, more_gate_data = F) {
 
+  '
   ## how to do this more elegant?
+  child_names <- purrr::map(nodeset, purrr::compose(xml2::xml_name, xml2::xml_children))
+  nodeset1 <- nodeset[which(sapply(sapply(child_names, function(x) grepl("AndNode|OrNode", x)), any))]
+  nodeset2 <- nodeset[which(!sapply(sapply(child_names, function(x) grepl("AndNode|OrNode", x)), any))]
+
+  attr_list <- purrr::map(c(nodeset2, xml2::xml_children(nodeset1)), xml2::xml_attrs)
+  inds <- which(lengths(attr_list) %in% c(6,7))
+  attr_list <- attr_list[inds]
+  #nodeset <- c(xml2::xml_children(nodeset1), nodeset2)[inds]
+
+  gate_list <- xml2::xml_find_all(nodeset2, ".//Gate|.//Dependents", flatten = T) #|.//Dependents
+  sampleNode <- which(lengths(attr_list) == 7)
+  sampleID <- attr_list[[sampleNode]][[7]]
+  attr_list[[sampleNode]] <- attr_list[[sampleNode]][-7]
+  df <- as.data.frame(do.call(dplyr::bind_rows, attr_list))
+
+  attr_list <- attr_list[!duplicated(df)]
+  df <- df[!duplicated(df),]
+  df$id <- NA
+
+  # depend gates (and/or but not not) have no id - treat separately
+  # this works, also with depends-nodes; but is slow
+  # slower approach to add id:
+  #df$id <- purrr::map_chr(purrr::map(nodeset, xml2::xml_child, search = "Gate"), xml2::xml_attr, attr = "id")
+
+  id <- xml2::xml_attr(gate_list, attr = "id")
+  id <- id[which(!is.na(id))]
+  node_types <- c(xml2::xml_name(nodeset2), xml2::xml_name(xml2::xml_children(nodeset1)))
+  for (i in which(node_types %in% c("SampleNode", "OrNode", "AndNode"))-1) {
+    id <- append(id, NA, after = i)
+  }
+  df[,"id"] <- id
+  df$count <- as.numeric(df$count)
+  df$name_root <- ifelse(df$count == max(df$count), "root", df$name)
+  df$id <- ifelse(df$count == max(df$count), paste0("root_", df$name), df$id)
+  df$sampleID <- sampleID
+  df$FileName <- df[df$count == max(df$count), "name"]
+  df$NodeType <- node_types
+  names(df)[which(names(df) == "count")] <- "Count"
+
+  depend_list <- xml2::xml_find_all(nodeset, ".//Dependents", flatten = T) #|.//Dependents
+  depend_list_parents <- xml2::xml_parent(depend_list)
+'
+
+  ## how to do this more elegant?
+  ## multiple AndNodes / OrNodes: nodeset is nested - how to unnest respective nodes elegantly?
+  ## making it a list is slow? how to manually make a nodeset
   attr_list <- purrr::map(nodeset, xml2::xml_attrs)
   inds <- which(lengths(attr_list) %in% c(6,7))
   attr_list <- attr_list[inds]
   nodeset <- nodeset[inds]
+
 
   gate_list <- xml2::xml_find_all(nodeset, ".//Gate|.//Dependents", flatten = T) #|.//Dependents
   sampleNode <- which(lengths(attr_list) == 7)
@@ -386,6 +441,7 @@ get_node_details <- function(nodeset, more_gate_data = F) {
   df$id <- ifelse(df$count == max(df$count), paste0("root_", df$name), df$id)
   df$sampleID <- sampleID
   df$FileName <- df[df$count == max(df$count), "name"]
+  df$NodeType <- node_types
   names(df)[which(names(df) == "count")] <- "Count"
 
   depend_list <- xml2::xml_find_all(nodeset, ".//Dependents", flatten = T) #|.//Dependents
@@ -427,7 +483,12 @@ get_node_details <- function(nodeset, more_gate_data = F) {
       id <- xml2::xml_attrs(gate_list[[i]])
       df2$id[i] <- ifelse(length(id) > 0, id[["id"]], NA)
       df2$xChannel[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 1), 1), "name"), NA)
-      df2$yChannel[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 2), 1), "name"), NA)
+      # handle 1D gates
+      if (xml2::xml_length(child) > 1) {
+        df2$yChannel[i] <- ifelse(length(id) > 0, xml2::xml_attr(xml2::xml_child(xml2::xml_child(child, 2), 1), "name"), NA)
+      } else {
+        df2$yChannel[i] <- NA
+      }
     }
     df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
   }
@@ -650,6 +711,8 @@ add_channel_desc <- function(df, ws) {
   df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
   names(keys)[c(1,2)] <- c("yChannel", "yDesc")
   df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
+  df$xDesc[which(df$xDesc == "")] <- NA
+  df$yDesc[which(df$yDesc == "")] <- NA
 
   return(df)
 }
