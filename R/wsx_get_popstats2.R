@@ -35,6 +35,7 @@ wsx_get_popstats2 <- function(ws,
   # ws <- "/Users/vonskopnik/Desktop/Exp_part_20_21.wsp"
   # ws <- "/Users/vonskopnik/Desktop/ExpPart_6_for_pub.wsp"
   # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
+  # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp2_add_gates.wsp"
 
   # groups = NULL
   # invert_groups = F
@@ -409,6 +410,7 @@ get_node_details <- function(nodeset, more_gate_data = F) {
   children_attrs <- children_attrs[which(lengths(children_attrs) == 9)]
   as.data.frame(do.call(dplyr::bind_rows, children_attrs))
   test <- xml2::xml_children(children)'
+
 
     # OrNodes and AndNodes: add xChannel and yChannel and eventInside later from originating gates in add_OrNode_AndNode_data_wo_fullpath
 
