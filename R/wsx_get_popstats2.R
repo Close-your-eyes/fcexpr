@@ -37,9 +37,6 @@ wsx_get_popstats2 <- function(ws,
   # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
   # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp2_add_gates.wsp"
 
-   groups = NULL
-   invert_groups = F
-
   # ws with multiple OrNodes and AndNoes
 
   # with with 1d gate
@@ -56,6 +53,10 @@ wsx_get_popstats2 <- function(ws,
 
   # speed up more_gate_data ?
 
+  groups = NULL
+  invert_groups = F
+  more_gate_data = T
+  show_progress = T
   ws <- check_ws(ws)
   group_df <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
@@ -102,7 +103,7 @@ wsx_get_popstats2 <- function(ws,
   # pull all counts with and associated ids
   #nodeset <- purrr::map(gates, xml2::xml_parents)[[1]]
   node_details_list <- purrr::map(.x = purrr::map(gates, xml2::xml_parents),
-                                  .f = get_node_details,
+                                  .f = get_node_details2,
                                   .progress = show_progress,
                                   more_gate_data = more_gate_data)
   node_details_df <- bind_rows_chunked(df_list = sapply(node_details_list, "[", "df"))
@@ -361,6 +362,76 @@ wsx_get_popstats2 <- function(ws,
   ggraph::geom_node_point() +
   ggraph::geom_node_text(ggplot2::aes(label = name))'
 
+
+get_node_details2<- function(nodeset, more_gate_data = F) {
+
+  pops <- xml2::xml_find_all(nodeset, "Population|AndNode|OrNode|NotNode")
+  temp_attr_list <- purrr::map(nodeset, xml2::xml_attrs)
+  temp_attr_list_names <- sapply(temp_attr_list, names)
+  temp_attr_list <- temp_attr_list[which(grepl("sampleID", temp_attr_list_names))]
+  sampleID <- temp_attr_list[[1]][7]
+  temp_attr_list <- list(temp_attr_list[[1]][-7])
+  # sampleNode is last index
+  attr_list <- c(purrr::map(pops, xml2::xml_attrs), temp_attr_list)
+  gate_list <- xml2::xml_find_all(pops, ".//Gate|.//Dependents", flatten = T)
+
+  df <- as.data.frame(do.call(dplyr::bind_rows, attr_list))
+  df$id <- NA
+
+  id <- xml2::xml_attr(gate_list, attr = "id")
+  id <- id[which(!is.na(id))]
+  node_types <- c(xml2::xml_name(pops), "SampleNode")
+  for (i in which(node_types %in% c("SampleNode", "OrNode", "AndNode"))-1) {
+    id <- append(id, NA, after = i)
+  }
+  browser()
+  df[,"id"] <- id
+  df$count <- as.numeric(df$count)
+  df$name_root <- ifelse(df$count == max(df$count), "root", df$name)
+  df$id <- ifelse(df$count == max(df$count), paste0("root_", df$name), df$id)
+  df$sampleID <- sampleID
+  df$FileName <- df[df$count == max(df$count), "name"]
+  df$NodeType <- node_types
+  names(df)[which(names(df) == "count")] <- "Count"
+  depend_list <- xml2::xml_find_all(pops, ".//Dependents", flatten = T) #|.//Dependents
+  depend_list_parents <- xml2::xml_parent(depend_list)
+
+  # handle assignment of parent nodes for OrNodes and AndNodes outside this function
+  parent_node_types <- xml2::xml_name(depend_list_parents)
+  if ("OrNode" %in% parent_node_types) {
+    OrNodes <- depend_list_parents[which(parent_node_types == "OrNode")]
+  } else {
+    OrNodes <- NULL
+  }
+  if ("AndNode" %in% parent_node_types) {
+    AndNodes <- depend_list_parents[which(parent_node_types == "AndNode")]
+  } else {
+    AndNodes <- NULL
+  }
+
+  if (more_gate_data) {
+    # OrNodes and AndNodes: add xChannel and yChannel and eventInside later from originating gates in add_OrNode_AndNode_data_wo_fullpath
+    gate_list <- gate_list[which(node_types == "Population")]
+    gate_list <- gate_list[xml2::xml_name(gate_list) == "Gate"] ## some dimensions get missing now (e.g. g1, g2)
+    df2 <- data.frame(id = character(length(gate_list)),
+                      eventsInside = character(length(gate_list)),
+                      xChannel = character(length(gate_list)),
+                      yChannel = character(length(gate_list)))
+    gate_list_children <- xml2::xml_children(gate_list)
+    df2$eventsInside <- do.call(dplyr::bind_rows, xml2::xml_attrs(gate_list_children))[,"eventsInside",drop=T]
+    xx <- xml2::xml_children(gate_list_children)
+    xx <- xx[which(xml2::xml_name(xx) == "dimension")]
+    xx <- xml2::xml_children(xx)
+    dims <- xml2::xml_attrs(xx)
+    df2$xChannel <- unlist(dims[seq(1, length(dims), 2)])
+    df2$yChannel <- unlist(dims[seq(2, length(dims), 2)])
+    df2$id <- do.call(dplyr::bind_rows, xml2::xml_attrs(gate_list))[,"id",drop=T]
+    df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
+  }
+  return(list(df = df, OrNodes = OrNodes, AndNodes = AndNodes))
+}
+
+
 get_node_details <- function(nodeset, more_gate_data = F) {
 
   '
@@ -411,6 +482,7 @@ get_node_details <- function(nodeset, more_gate_data = F) {
   ## how to do this more elegant?
   ## multiple AndNodes / OrNodes: nodeset is nested - how to unnest respective nodes elegantly?
   ## making it a list is slow? how to manually make a nodeset
+  ## in the nested form, they are lost
   attr_list <- purrr::map(nodeset, xml2::xml_attrs)
   inds <- which(lengths(attr_list) %in% c(6,7))
   attr_list <- attr_list[inds]
@@ -618,6 +690,7 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df,
   names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
   df <- coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
+  browser()
   ## add parent_id to children of OrNodes/AndNodes themselves
   temp_df2 <- purrr::map_dfr(sapply(node_details_list, "[", nodes_name), function(x) {
     purrr::map_dfr(x, function(y) {
