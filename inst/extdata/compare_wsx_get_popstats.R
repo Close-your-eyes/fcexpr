@@ -1,6 +1,6 @@
-# ws <- "/Users/vonskopnik/Desktop/Exp_part_20_21.wsp"
-# ws <- "/Users/vonskopnik/Desktop/ExpPart_6_for_pub.wsp"
-# ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
+# ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Exp_part_20_21.wsp"
+# ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/ExpPart_6_for_pub.wsp"
+# ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/20231005_FJ_exp_wsp.wsp" # error: ids are wrong, multiple ids for AndOrNodes - fixed!
 
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/no_group_noOrAndGates.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_more_gate_types.wsp"
@@ -8,16 +8,21 @@ ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_different_gating_tre
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate_differentGatingTrees.wsp"
-ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_sameGatingTrees.wsp" # fail
+ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_sameGatingTrees.wsp" # one full path missing - check why; same id assigned to different AndNodes?!
+ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_differentGatingTrees.wsp"
+ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp" # NotNodes of OrNodes or AndNodes are different! - check if code lines are compatible with ordinary NotNodes
+
 
 system.time(df1 <- fcexpr::wsx_get_popstats(ws, strip_data = F)[["counts"]])
 
 system.time(df2 <- wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
 
+## compare even more columns!
 
-
-df1_sub <- df1[,which(names(df1) %in% c("FileName", "PopulationFullPath", "Population", "Count"))]
-df2_sub <- df2[,which(names(df2) %in% c("FileName", "PopulationFullPath", "Population", "Count"))]
+df1_sub <- df1[,which(names(df1) %in% c("FileName", "PopulationFullPath", "Population", "Count"))]#, "gate_id", "parentgate_id"))]
+names(df1_sub)[which(names(df1_sub) == "gate_id")] <- "id"
+names(df1_sub)[which(names(df1_sub) == "parentgate_id")] <- "parent_id"
+df2_sub <- df2[,which(names(df2) %in% c("FileName", "PopulationFullPath", "Population", "Count", "id", "parent_id"))]
 
 tt <- dplyr::anti_join(df1_sub, df2_sub)
 
