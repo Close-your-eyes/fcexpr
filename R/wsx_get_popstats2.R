@@ -381,8 +381,16 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   temp_attr_list <- list(temp_attr_list[[1]][-7])
   # sampleNode becomes last row in df
 
-  pops <- xml2::xml_find_all(nodeset, "Population|AndNode|OrNode|NotNode")
+  pops <- xml2::xml_find_all(nodeset, "Population|AndNode|OrNode|NotNode") # do not omit NotNode here
   gate_list <- xml2::xml_find_all(pops, ".//Gate|.//Dependents", flatten = T)
+
+  ## test
+  ## ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/20231005_FJ_exp_wsp.wsp"; use this table to filter duplicate rows with ID == NA
+  gate_list_par1 <- lapply(gate_list, xml2::xml_parent)
+  gate_list_par1_attrs <- dplyr::bind_rows(lapply(gate_list_par1, xml2::xml_attrs))
+  gate_list_par1_attrs$id <- xml2::xml_attr(gate_list, attr = "id")
+  ## test end
+
   # get parents to maintain correct order of id and associated gates in df
   gate_list_par <- xml2::xml_parent(gate_list)
   attr_list <- c(purrr::map(gate_list_par, xml2::xml_attrs), temp_attr_list)
@@ -390,8 +398,10 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
 
   id <- c(xml2::xml_attr(gate_list, attr = "id"), NA)
   node_types <- c(xml2::xml_name(gate_list_par), "SampleNode")
+
   ### NotNode - yes no ?? if not node is from OrNode or AndNode then it should be added but if NotNode is normal, do not add?
   node_select <- node_types %in% c("SampleNode", "OrNode", "AndNode")
+
   node_select[which(node_types == "NotNode" & is.na(id))] <- T
 
   id <- id[which(!is.na(id))]
