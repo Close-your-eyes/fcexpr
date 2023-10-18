@@ -385,7 +385,9 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   gate_list <- xml2::xml_find_all(pops, ".//Gate|.//Dependents", flatten = T)
 
   ## test
-  ## ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/20231005_FJ_exp_wsp.wsp"; use this table to filter duplicate rows with ID == NA
+  ## ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/20231005_FJ_exp_wsp.wsp"
+  # use this table to filter duplicate rows with ID == NA
+  # since the lapply step is probably slow, only do this when 'node_types' and 'id' are of different lengths
   gate_list_par1 <- lapply(gate_list, xml2::xml_parent)
   gate_list_par1_attrs <- dplyr::bind_rows(lapply(gate_list_par1, xml2::xml_attrs))
   gate_list_par1_attrs$id <- xml2::xml_attr(gate_list, attr = "id")
