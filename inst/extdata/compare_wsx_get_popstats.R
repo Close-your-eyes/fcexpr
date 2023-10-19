@@ -15,6 +15,7 @@ ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_No
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_with_children_sameDims_sameGatingTrees.wsp"
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/OrAndNodes_from_different_Dims_sameGatingTrees.wsp" # some gate types missing
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp"
+ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp" # error
 
 system.time(df1 <- fcexpr::wsx_get_popstats(ws, strip_data = F)[["counts"]])
 system.time(df2 <- wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])

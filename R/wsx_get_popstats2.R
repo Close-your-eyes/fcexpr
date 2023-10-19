@@ -196,7 +196,8 @@ wsx_get_popstats2 <- function(ws,
                                       more_gate_data = more_gate_data)
     }
     # do not nodes at last, because notnodes stemming from OrNodes/AndNodes - those OrNodes/AndNodes need an id themselves first (before they are NA)
-    if (any(!sapply(sapply(node_details_list, "[", "NotNodes"), is.null))) {
+    # why can the be nodesets of length zero and not NULL?
+    if (any(!sapply(sapply(node_details_list, "[", "NotNodes"), is.null)) & any(sapply(sapply(node_details_list, "[", "NotNodes"), length) > 0)) {
       pop_df <- add_boolean_gate_data(df = pop_df,
                                       node_details_list = node_details_list,
                                       nodes_name = "NotNodes",
@@ -324,6 +325,7 @@ wsx_get_popstats2 <- function(ws,
   pop_df <- dplyr::arrange(pop_df, GateDepth, .by_group = T)
   pop_df <- dplyr::ungroup(pop_df)
 
+
   return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples))
   # stats
 
@@ -411,28 +413,32 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   pops <- xml2::xml_find_all(nodeset, "Population|AndNode|OrNode|NotNode") # do not omit NotNode here
   gate_list <- xml2::xml_find_all(pops, ".//Gate|.//Dependents", flatten = T)
 
-  ## test
-  ## ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/20231005_FJ_exp_wsp.wsp"
-  # use this table to filter duplicate rows with ID == NA
-  # since the lapply step is probably slow, only do this when 'node_types' and 'id' are of different lengths
-  gate_list_par1 <- lapply(gate_list, xml2::xml_parent)
-  gate_list_par1_attrs <- dplyr::bind_rows(lapply(gate_list_par1, xml2::xml_attrs))
-  gate_list_par1_attrs$id <- xml2::xml_attr(gate_list, attr = "id")
-  ## test end
-
   # get parents to maintain correct order of id and associated gates in df
   gate_list_par <- xml2::xml_parent(gate_list)
   attr_list <- c(purrr::map(gate_list_par, xml2::xml_attrs), temp_attr_list)
   df <- as.data.frame(do.call(dplyr::bind_rows, attr_list))
 
-  id <- c(xml2::xml_attr(gate_list, attr = "id"), NA)
+  id <- c(xml2::xml_attr(gate_list, attr = "id"), NA) # add NA for SampleNode at the end
   node_types <- c(xml2::xml_name(gate_list_par), "SampleNode")
+
+  # sometimes, boolean gates are returned duplicated, but only of them has an ID
+  # in this case ID and node_types are of different lengths which causes error
+  # filter for indices (rows), that are duplicates but have an ID
+  if (length(id) != length(node_types)) {
+    gate_list_par2 <- lapply(gate_list, xml2::xml_parent)
+    gate_list_par2_attrs <- dplyr::bind_rows(lapply(gate_list_par2, xml2::xml_attrs))
+    gate_list_par2_attrs$id <- xml2::xml_attr(gate_list, attr = "id")
+    gate_list_par2_attrs <- dplyr::group_by(gate_list_par2_attrs, !!!rlang::syms(names(gate_list_par2_attrs)[1:6]))
+    gate_list_par2_attrs <- dplyr::mutate(gate_list_par2_attrs, n = dplyr::n())
+    gate_list_par2_attrs <- dplyr::filter(gate_list_par2_attrs, !(is.na(id) & n > 1))
+    gate_list_par2_attrs <- dplyr::ungroup(gate_list_par2_attrs)
+    #gate_list_par2_attrs$node_type <- node_types[-length(node_types)] # just for checking
+    id <- c(gate_list_par2_attrs$id, NA) # add NA for SampleNode at the end
+  }
 
   ### NotNode - yes no ?? if not node is from OrNode or AndNode then it should be added but if NotNode is normal, do not add?
   node_select <- node_types %in% c("SampleNode", "OrNode", "AndNode")
-
   node_select[which(node_types == "NotNode" & is.na(id))] <- T
-
   id <- id[which(!is.na(id))]
   # "NotNode"
   for (i in which(node_select)-1) {
@@ -612,6 +618,12 @@ add_boolean_gate_data <- function(df,
       return(xx)
     })
   }, .id = "FileName")
+
+  if (nrow(temp_df) == 0) {
+    # this happened with NotNodes; but should now be caught outside, see above
+    return(df)
+  }
+
   #temp_df <- unique(temp_df)
   names(temp_df)[which(names(temp_df) == "count")] <- "Count"
   temp_df$Count <- as.numeric(temp_df$Count)
@@ -622,6 +634,7 @@ add_boolean_gate_data <- function(df,
   } else {
     cols <- c("FileName", "Count", "name", "id", "parent_id")
   }
+
   temp_df <- dplyr::left_join(temp_df,
                               df[,cols],
                               by = c("FileName", "Count", "name"))
@@ -634,6 +647,7 @@ add_boolean_gate_data <- function(df,
   # do not group by xChannel and yChannel, but summarise them as below
   # if OrNodes/AndNodes are from different dimension, then summarizing would not work correctly if xChannel, yChannel were used for grouping
   # if done like all dimension from different feeding are gates saved
+
   temp_df <- dplyr::summarise(temp_df,
                                id = paste(sort(id), collapse = ","),
                                xChannel = paste(sort(unique(xChannel)), collapse = ","),
@@ -772,6 +786,10 @@ add_channel_desc <- function(df, ws) {
   }
   df$xDesc[which(df$xDesc == "")] <- NA
   df$yDesc[which(df$yDesc == "")] <- NA
+  df$xDesc[which(df$xDesc == "NA")] <- NA
+  df$yDesc[which(df$yDesc == "NA")] <- NA
+  df$xChannel[which(df$xChannel == "NA")] <- NA
+  df$yChannel[which(df$yChannel == "NA")] <- NA
 
   return(as.data.frame(df))
 }
