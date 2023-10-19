@@ -110,9 +110,6 @@ wsx_get_popstats2 <- function(ws,
   if (anyDuplicated(node_details_df[which(!is.na(node_details_df$id)), "id"]) != 0) {
     stop("Duplicate gate id detected. FlowJo wsp needs fixing?!")
   }
-  if (more_gate_data) {
-    node_details_df <- add_channel_desc(df = node_details_df, ws = ws)
-  }
 
   # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
@@ -127,6 +124,7 @@ wsx_get_popstats2 <- function(ws,
   # could be made simpler if there are no OrNodes and AndNodes (then there is only two types nodes without parent_id: the root itself and its direct children)
 
   if (any(!sapply(sapply(node_details_list, "[", "OrNodes"), is.null)) || any(!sapply(sapply(node_details_list, "[", "AndNodes"), is.null))) {
+    #  || any(!sapply(sapply(node_details_list, "[", "NotNodes"), is.null))
     # filter for !is.null first
     for (i in names(node_details_list)) {
       # one entry for each OrNode or AndNode
@@ -152,6 +150,18 @@ wsx_get_popstats2 <- function(ws,
         }))
       }
 
+      # needed?
+      '      temp_nodes <- node_details_list[[i]][["NotNodes"]]
+      temp_nodes <- temp_nodes[which(!sapply(temp_nodes, is.null))]
+      notnodenames <- NULL
+      if (length(temp_nodes) > 0) {
+        temp <- xml2::xml_child(temp_nodes, "Subpopulations")
+        temp <- temp[which(!is.na(temp))]
+        notnodenames <- unlist(lapply(temp, function(x) {
+          xml2::xml_attr(xml2::xml_children(x), "name")
+        }))
+      }'
+
       inds <- Reduce(intersect, list(which(!pop_df$name %in% c(ornodenames, andnodenames)),
                                      which(!is.na(pop_df$id)),
                                      which(pop_df$name_root != "root"),
@@ -169,28 +179,45 @@ wsx_get_popstats2 <- function(ws,
   ## add OrGate and AndGate to GateType if applicable
 
   # to make a complete graph, all id and parent_id have to be assigned (also of OrNodes and AndNodes)
-  # but how to match unambiguously without PopulationFullPath? - use name and count (see add_OrNode_AndNode_data_wo_fullpath)
+  # but how to match unambiguously without PopulationFullPath? - use name and count (see add_boolean_gate_data)
   ## only run this if OrNodes and/or AndNodes exist
-  if (any(!sapply(sapply(node_details_list, "[", "OrNodes"), is.null)) || any(!sapply(sapply(node_details_list, "[", "AndNodes"), is.null))) {
+  if (any(!sapply(sapply(node_details_list, "[", "OrNodes"), is.null)) || any(!sapply(sapply(node_details_list, "[", "AndNodes"), is.null)) || any(!sapply(sapply(node_details_list, "[", "NotNodes"), is.null))) {
     # check for if one or the other is null #######
     if (any(!sapply(sapply(node_details_list, "[", "OrNodes"), is.null))) {
-      pop_df <- add_OrNode_AndNode_data_wo_fullpath(df = pop_df,
-                                                    node_details_list = node_details_list,
-                                                    nodes_name = "OrNodes",
-                                                    more_gate_data = more_gate_data)
+      pop_df <- add_boolean_gate_data(df = pop_df,
+                                      node_details_list = node_details_list,
+                                      nodes_name = "OrNodes",
+                                      more_gate_data = more_gate_data)
     }
     if (any(!sapply(sapply(node_details_list, "[", "AndNodes"), is.null))) {
-      pop_df <- add_OrNode_AndNode_data_wo_fullpath(df = pop_df,
-                                                    node_details_list = node_details_list,
-                                                    nodes_name = "AndNodes",
-                                                    more_gate_data = more_gate_data)
+      pop_df <- add_boolean_gate_data(df = pop_df,
+                                      node_details_list = node_details_list,
+                                      nodes_name = "AndNodes",
+                                      more_gate_data = more_gate_data)
     }
-    pop_df[which(duplicated(pop_df$id)),]
+    # do not nodes at last, because notnodes stemming from OrNodes/AndNodes - those OrNodes/AndNodes need an id themselves first (before they are NA)
+    if (any(!sapply(sapply(node_details_list, "[", "NotNodes"), is.null))) {
+      pop_df <- add_boolean_gate_data(df = pop_df,
+                                      node_details_list = node_details_list,
+                                      nodes_name = "NotNodes",
+                                      more_gate_data = more_gate_data)
+    }
 
-    # when the same nodes have multiple ... no still weird ... seems as if in some cases of OrNodes/AndNodes origin nodes are assigned wrong: "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_sameGatingTrees.wsp"
+    # add "not" to id for duplicated ids from not nodes
+    dup_id <- unique(pop_df$id[duplicated(pop_df$id)])
+    inds <- intersect(which(pop_df$id %in% dup_id), which(pop_df$NodeType == "NotNode"))
+    pop_df[inds,"id"] <- paste0(pop_df[inds,"id"], "_Not")
+
+    # when NotNodes, somehow from same OrNodes/AndNodes still have the id - make it unique; all correct?
+    # check somewhen. but this only occurs in kind of exotic gating strategies. will not cause problems, regularly
+    #"/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
     pop_df$id <- make.unique(pop_df$id)
   }
 
+  # add channel desc here, after boolean gates have been enriched by data, including xChannel, yChannel
+  if (more_gate_data) {
+    pop_df <- add_channel_desc(df = pop_df, ws = ws)
+  }
 
   ## next: follow graph to derive population full paths
   # make graph
@@ -424,9 +451,20 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   } else {
     AndNodes <- NULL
   }
+  ## NotNodes only relevant if they stem from OrNodes/AndNodes, because then they have no id
+  if ("NotNode" %in% parent_node_types) {
+    NotNodes <- depend_list_parents[which(parent_node_types == "NotNode")]
+    # check if NotNodes from node_details_list already have id in df - then they could be removed from node_details_list
+    # they have an id if they do not stem from OrNodes/AndNodes; if they do they have no id
+    # match returns only the first match !! similar to duplicated
+    NotNodes <- NotNodes[which(is.na(df[match(xml2::xml_attr(NotNodes, "name"), df$name),"id"]))]
+  } else {
+    NotNodes <- NULL
+  }
+
 
   if (more_gate_data) {
-    # OrNodes and AndNodes: add xChannel and yChannel and eventInside later from originating gates in add_OrNode_AndNode_data_wo_fullpath
+    # OrNodes and AndNodes: add xChannel and yChannel and eventInside later from originating gates in add_boolean_gate_data
     #gate_list2 <- gate_list[which(node_types == "Population")]
 
     gate_list_children <- xml2::xml_children(gate_list)
@@ -450,7 +488,7 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
 
     df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
   }
-  return(list(df = df, OrNodes = OrNodes, AndNodes = AndNodes))
+  return(list(df = df, OrNodes = OrNodes, AndNodes = AndNodes, NotNodes = NotNodes))
 }
 
 
@@ -542,12 +580,12 @@ add_total_count <- function(df) {
 }
 
 
-add_OrNode_AndNode_data_wo_fullpath <- function(df,
-                                                node_details_list,
-                                                nodes_name = c("OrNodes", "AndNodes"),
-                                                more_gate_data = F) {
+add_boolean_gate_data <- function(df,
+                                  node_details_list,
+                                  nodes_name = c("OrNodes", "AndNodes", "NotNodes"),
+                                  more_gate_data = F) {
 
-  nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes"))
+  nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes", "NotNodes"))
 
   # identify parents of OrNodes/AndNodes by name and Count but without PopulationFullPath
   ## add id and parent_id to OrNodes/AndNodes themselves
@@ -577,12 +615,19 @@ add_OrNode_AndNode_data_wo_fullpath <- function(df,
                               by = c("FileName", "Count", "name"))
   # or gates in different dimension will cause error
   if (more_gate_data) {
-    temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id, xChannel, yChannel, eventsInside)
+    temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id, eventsInside)
   } else {
     temp_df <- dplyr::group_by(temp_df, FileName, name2, Count2, parent_id)
   }
+  # do not group by xChannel and yChannel, but summarise them as below
+  # if OrNodes/AndNodes are from different dimension, then summarizing would not work correctly if xChannel, yChannel were used for grouping
+  # if done like all dimension from different feeding are gates saved
+  temp_df <- dplyr::summarise(temp_df,
+                               id = paste(sort(id), collapse = ","),
+                               xChannel = paste(sort(unique(xChannel)), collapse = ","),
+                               yChannel = paste(sort(unique(yChannel)), collapse = ","),
+                               .groups = "drop")
 
-  temp_df <- dplyr::summarise(temp_df, id = paste(sort(id), collapse = ","), .groups = "drop")
   names(temp_df)[which(names(temp_df) == "name2")] <- "name"
   names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
 
@@ -686,12 +731,35 @@ add_channel_desc <- function(df, ws) {
     keys <- keys[,-which(names(keys) == "channel_digit")]
     return(keys)
   })
-  names(keys)[c(1,2)] <- c("xChannel", "xDesc")
-  df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
-  names(keys)[c(1,2)] <- c("yChannel", "yDesc")
-  df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
+
+  ## for OrNodes/AndNodes from different dimension: expand rows first, then join, then collapse them again
+  ## check for comma in xChannel, yChannel to determine if this special procedure is needed
+
+  if (any(grepl(",", df$xChannel)) || any(grepl(",", df$yChannel))) {
+    if (any(grepl(",", df$xChannel))) {
+      df$xChannel <- strsplit(df$xChannel, ",")
+      df <- tidyr::unnest(df, xChannel)
+      names(keys)[c(1,2)] <- c("xChannel", "xDesc")
+      df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
+      df <- dplyr::group_by(df, !!!rlang::syms(names(df)[which(!names(df) %in% c("xChannel", "xDesc"))]))
+      df <- dplyr::summarise(df, xDesc = paste0(xDesc, collapse = ","), xChannel = paste0(xChannel, collapse = ","), .groups = "drop")
+    }
+    if (any(grepl(",", df$yChannel))) {
+      df$yChannel <- strsplit(df$yChannel, ",")
+      df <- tidyr::unnest(df, yChannel)
+      names(keys)[c(1,2)] <- c("yChannel", "yDesc")
+      df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
+      df <- dplyr::group_by(df, !!!rlang::syms(names(df)[which(!names(df) %in% c("yChannel", "yDesc"))]))
+      df <- dplyr::summarise(df, yDesc = paste0(yDesc, collapse = ","), yChannel = paste0(yChannel, collapse = ","), .groups = "drop")
+    }
+  } else {
+    names(keys)[c(1,2)] <- c("xChannel", "xDesc")
+    df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
+    names(keys)[c(1,2)] <- c("yChannel", "yDesc")
+    df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
+  }
   df$xDesc[which(df$xDesc == "")] <- NA
   df$yDesc[which(df$yDesc == "")] <- NA
 
-  return(df)
+  return(as.data.frame(df))
 }
