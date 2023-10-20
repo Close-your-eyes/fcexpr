@@ -17,7 +17,7 @@ wsx_get_groups <- function(ws,
                            collapse = "nest",
                            force_collapse = F) {
 
-  if (!is.null(collapse) && collapse %in% c("nest", "list") && !is.character(collapse)) {
+  if (!is.null(collapse) && !collapse %in% c("nest", "list") && !is.character(collapse)) {
     stop("collapse has to be NULL, 'nest', 'list' or a character.")
   }
 

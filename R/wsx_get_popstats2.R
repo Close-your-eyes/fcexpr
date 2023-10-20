@@ -32,26 +32,9 @@ wsx_get_popstats2 <- function(ws,
                               show_progress = F,
                               ...) {
 
-  # ws <- "/Users/vonskopnik/Desktop/Exp_part_20_21.wsp"
-  # ws <- "/Users/vonskopnik/Desktop/ExpPart_6_for_pub.wsp"
-  # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp.wsp"
-  # ws <- "/Users/vonskopnik/Desktop/20231005_FJ_exp_wsp2_add_gates.wsp"
-
-  # ws with multiple OrNodes and AndNoes
-
-  # with with 1d gate
-
-  # gate type - check if it works with multiple OrNodes / AndNodes per sample
-
-  # NotNode on OrNode or AndNode - e.g. does it get an ID?
-
-  # make different gating trees per sample (e.g. OrNode and AndNode only in some samples - check how to handle NULLs below)
-
-  # what if OrGates or AndGates are from gates in different dimension? then assigning xChannel and yChannel and eventsIndide could fail, currently
 
   # check stats
 
-  # speed up more_gate_data ? - done
 
   groups = NULL
   invert_groups = F
@@ -71,10 +54,16 @@ wsx_get_popstats2 <- function(ws,
     stop("Non of provided groups found.")
   }
 
+  # jannis wsp: multiple samples from same FCS file
+
   # each sample which may be in multiple groups is only considered once
   ids <- unique(group_df[,"sampleID",drop=T])
   samples <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
-  samples <- samples[which(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "sampleID") %in% ids)]
+  sample_ids <- which(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "sampleID") %in% ids)
+  if (anyDuplicated(basename(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "uri"))) != 0) {
+    message("Duplicate filenames detected.")
+  }
+  samples <- samples[sample_ids]
 
   # in samples each sample is an own nodeset with gates that only belong to that sample
   gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F) # .//Dependents
@@ -102,6 +91,7 @@ wsx_get_popstats2 <- function(ws,
 
   # pull all counts with and associated ids
   # nodeset <- purrr::map(gates, xml2::xml_parents)[[1]]
+  # nodeset <- purrr::map(gates, xml2::xml_parents)[["Compensation Controls_CD19 APC Stained Control.fcs"]]
   node_details_list <- purrr::map(.x = purrr::map(gates, xml2::xml_parents),
                                   .f = get_node_details2,
                                   .progress = show_progress,
@@ -113,8 +103,7 @@ wsx_get_popstats2 <- function(ws,
 
   # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
-  # maybe leave GateType NA for OrNodes and AndNodes
-  #pop_df$GateType <- ifelse(pop_df$NodeType == "OrNode", "OrNode", pop_df$GateType)
+
   # from OrNodes and AndNodes in node_details_list: find all children of these nodes. the remaining row in pop_df must have the samples root as parent
 
   # assign root as parent_id
@@ -175,8 +164,8 @@ wsx_get_popstats2 <- function(ws,
     pop_df[inds,"parent_id"] <- paste0("root_", pop_df[inds,"FileName"])
   }
 
-  ## TODO:
-  ## add OrGate and AndGate to GateType if applicable
+  ## error below here with
+  # ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp"
 
   # to make a complete graph, all id and parent_id have to be assigned (also of OrNodes and AndNodes)
   # but how to match unambiguously without PopulationFullPath? - use name and count (see add_boolean_gate_data)
@@ -495,15 +484,33 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
     gate_list_children2 <- gate_list_children2[which(xml2::xml_name(gate_list_children2) == "dimension")]
     gate_list_children2 <- xml2::xml_children(gate_list_children2)
     dims <- xml2::xml_attrs(gate_list_children2)
-    xChannel <- unlist(dims[seq(1, length(dims), 2)])
-    yChannel <- unlist(dims[seq(2, length(dims), 2)])
-
+    if (length(dims)/2 != length(id)) {
+      ndims <- sapply(lapply(gate_list_children, function(x) xml2::xml_name(xml2::xml_children(x))), function(y) sum(y == "dimension"))
+      xChannel <- character(length(id))
+      yChannel <- character(length(id))
+      n = 1
+      for (i in 1:length(ndims)) {
+        xChannel[i] <- dims[n]
+        if (ndims[i] == 2) {
+          yChannel[i] <- dims[n+1]
+        } else {
+          yChannel[i] <- NA
+        }
+        n <- n + i
+        xChannel <- unlist(xChannel)
+        yChannel <- unlist(yChannel)
+      }
+      # count dimension for each gate and split dims accordingly
+    } else {
+      # does not work with 1D-gates which only have one dimension and hence one channel
+      xChannel <- unlist(dims[seq(1, length(dims), 2)])
+      yChannel <- unlist(dims[seq(2, length(dims), 2)])
+    }
 
     df2 <- data.frame(id = id,
                       eventsInside = eventsInside,
                       xChannel = xChannel,
                       yChannel = yChannel)
-
     df <- dplyr::left_join(df, df2[which(!is.na(df2$id)),], by = "id")
   }
   return(list(df = df, OrNodes = OrNodes, AndNodes = AndNodes, NotNodes = NotNodes))
@@ -520,7 +527,6 @@ add_full_paths <- function(df, graph, end_edges = NULL, show_progress = F) {
     edges <- end_edges
   }
 
-  # x <- "ID2144680755,ID2144680755"
   # different OrNodes / AndNodes with same id (multiple id assigned by same originating gates?!)
   full_paths_df <- purrr::map(edges, function(x) {
     path_to_root <- igraph::shortest_paths(graph,
@@ -688,7 +694,6 @@ add_boolean_gate_data <- function(df,
     names(temp_df2)[2:4] <- c("name", "Count", "parent_id")
     # check for duplicate rows (very rare case)
     df <- coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
-
   }
 
   return(df)
