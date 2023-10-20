@@ -35,7 +35,6 @@ wsx_get_popstats2 <- function(ws,
 
   # check stats
 
-
   groups = NULL
   invert_groups = F
   more_gate_data = T
@@ -54,6 +53,7 @@ wsx_get_popstats2 <- function(ws,
     stop("Non of provided groups found.")
   }
 
+
   # jannis wsp: multiple samples from same FCS file
 
   # each sample which may be in multiple groups is only considered once
@@ -64,6 +64,38 @@ wsx_get_popstats2 <- function(ws,
     message("Duplicate filenames detected.")
   }
   samples <- samples[sample_ids]
+
+  file_paths <- as.data.frame(do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_child(samples, "DataSet"))))
+  file_paths$uri <- gsub("^file:", "", file_paths$uri)
+
+  file_names <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
+  keys_list <- purrr::map(setNames(xml2::xml_children(xml2::xml_child(ws, "SampleList")), ids), function(x) {
+    keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
+    keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
+    keys <- utils::stack(keys)
+    names(keys) <- c("value", "name")
+    keys <- keys[,c(2,1)]
+    keys$name <- as.character(keys$name)
+    return(keys)
+  })
+
+  return_dup_files <- T
+  dup_files <- purrr::map_dfr(keys_list, function(x) x[which(grepl("\\$FIL|\\$DATE|\\$TOT|\\$BTIM|\\$ETIM", x$name)),], .id = "sampleID")
+  dup_files <- tidyr::pivot_wider(dup_files, names_from = "name", values_from = "value")
+  dup_files <- tidyr::drop_na(dup_files)
+  if (nrow(dup_files) > 1) {
+    dup_files <- dplyr::group_by(dup_files, !!!rlang::syms(c("$FIL","$DATE","$TOT","$BTIM","$ETIM")))
+    dup_files <- dplyr::mutate(dup_files, group_id = dplyr::cur_group_id())
+    dup_files <- dplyr::ungroup(dup_files)
+    dup_files <- dplyr::left_join(dup_files, file_paths, by = "sampleID")
+    dup_table <- table(dup_files$group_id)
+    if (any(dup_table) > 1) {
+      return_dup_files <- T
+      warning("One or multiple FCS files seem to be duplicates. A data.frame with details will be returned.")
+      print(dup_files)
+    }
+  }
+  names(keys_list) <- file_names
 
   # in samples each sample is an own nodeset with gates that only belong to that sample
   gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F) # .//Dependents
@@ -206,7 +238,7 @@ wsx_get_popstats2 <- function(ws,
 
   # add channel desc here, after boolean gates have been enriched by data, including xChannel, yChannel
   if (more_gate_data) {
-    pop_df <- add_channel_desc(df = pop_df, ws = ws)
+    pop_df <- add_channel_desc(df = pop_df, ws = ws, keys_list = keys_list)
   }
 
   ## next: follow graph to derive population full paths
@@ -250,8 +282,8 @@ wsx_get_popstats2 <- function(ws,
 
   # sampleID - done before
   # FilePath
-  file_paths <- as.data.frame(do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_child(samples, "DataSet"))))
-  file_paths$uri <- gsub("^file:", "", file_paths$uri)
+  #file_paths <- as.data.frame(do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_child(samples, "DataSet"))))
+  #file_paths$uri <- gsub("^file:", "", file_paths$uri)
   names(file_paths)[1] <- "FilePath"
   pop_df <- dplyr::left_join(pop_df, group_df, by = c("sampleID"))
   pop_df <- dplyr::left_join(pop_df, file_paths, by = c("sampleID"))
@@ -314,8 +346,11 @@ wsx_get_popstats2 <- function(ws,
   pop_df <- dplyr::arrange(pop_df, GateDepth, .by_group = T)
   pop_df <- dplyr::ungroup(pop_df)
 
-
-  return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples))
+  if (return_dup_files) {
+    return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples, duplicate_FCS_files = dup_files))
+  } else {
+    return(list(counts = pop_df[,cols], graph = gate_graph, graph_sample = gate_graph_samples))
+  }
   # stats
 
   # matrix/df with all parent gates as ref and FractionOfXXX
@@ -655,10 +690,10 @@ add_boolean_gate_data <- function(df,
   # if done like all dimension from different feeding are gates saved
 
   temp_df <- dplyr::summarise(temp_df,
-                               id = paste(sort(id), collapse = ","),
-                               xChannel = paste(sort(unique(xChannel)), collapse = ","),
-                               yChannel = paste(sort(unique(yChannel)), collapse = ","),
-                               .groups = "drop")
+                              id = paste(sort(id), collapse = ","),
+                              xChannel = paste(sort(unique(xChannel)), collapse = ","),
+                              yChannel = paste(sort(unique(yChannel)), collapse = ","),
+                              .groups = "drop")
 
   names(temp_df)[which(names(temp_df) == "name2")] <- "name"
   names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
@@ -745,9 +780,9 @@ bind_rows_chunked <- function(df_list, chunk_size = 10) {
   return(purrr::reduce(df_list, dplyr::bind_rows))
 }
 
-add_channel_desc <- function(df, ws) {
+add_channel_desc <- function(df, ws, keys_list = NULL) {
 
-  keys <- purrr::map_dfr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
+  'keys <- purrr::map_dfr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
     keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
     keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
     keys <- utils::stack(keys)
@@ -761,7 +796,29 @@ add_channel_desc <- function(df, ws) {
     keys$FileName <- xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]]
     keys <- keys[,-which(names(keys) == "channel_digit")]
     return(keys)
-  })
+  })'
+
+  #get keys from above
+  if (is.null(keys_list)) {
+    file_names <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
+    keys_list <- purrr::map(setNames(xml2::xml_children(xml2::xml_child(ws, "SampleList")), file_names), function(x) {
+      keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
+      keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
+      keys <- utils::stack(keys)
+      names(keys) <- c("value", "name")
+      keys <- keys[,c(2,1)]
+      keys$name <- as.character(keys$name)
+      return(keys)
+    })
+  }
+  keys <- purrr::map_dfr(keys_list, function(x) {
+    x <- x[which(grepl("^\\$P[[:digit:]]{1,2}[NS]", x$name)),]
+    x$channel_digit <- gsub("[NS]", "", gsub("\\$P", "", x$name))
+    x$name <- gsub("\\$P[[:digit:]]{1,2}", "", x$name)
+    x <- as.data.frame(tidyr::pivot_wider(x, names_from = name, values_from = value))
+    x <- x[,-which(names(x) == "channel_digit")]
+    return(x)
+  }, .id = "FileName")
 
   ## for OrNodes/AndNodes from different dimension: expand rows first, then join, then collapse them again
   ## check for comma in xChannel, yChannel to determine if this special procedure is needed
@@ -770,7 +827,8 @@ add_channel_desc <- function(df, ws) {
     if (any(grepl(",", df$xChannel))) {
       df$xChannel <- strsplit(df$xChannel, ",")
       df <- tidyr::unnest(df, xChannel)
-      names(keys)[c(1,2)] <- c("xChannel", "xDesc")
+      names(keys)[which(names(keys) == "N")] <- "xChannel"
+      names(keys)[which(names(keys) == "S")] <- "xDesc"
       df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
       df <- dplyr::group_by(df, !!!rlang::syms(names(df)[which(!names(df) %in% c("xChannel", "xDesc"))]))
       df <- dplyr::summarise(df, xDesc = paste0(xDesc, collapse = ","), xChannel = paste0(xChannel, collapse = ","), .groups = "drop")
@@ -778,15 +836,23 @@ add_channel_desc <- function(df, ws) {
     if (any(grepl(",", df$yChannel))) {
       df$yChannel <- strsplit(df$yChannel, ",")
       df <- tidyr::unnest(df, yChannel)
-      names(keys)[c(1,2)] <- c("yChannel", "yDesc")
+      if (any(grepl(",", df$xChannel))) {
+        names(keys)[which(names(keys) == "xChannel")] <- "yChannel"
+        names(keys)[which(names(keys) == "xDesc")] <- "yDesc"
+      } else {
+        names(keys)[which(names(keys) == "N")] <- "yChannel"
+        names(keys)[which(names(keys) == "S")] <- "yDesc"
+      }
       df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
       df <- dplyr::group_by(df, !!!rlang::syms(names(df)[which(!names(df) %in% c("yChannel", "yDesc"))]))
       df <- dplyr::summarise(df, yDesc = paste0(yDesc, collapse = ","), yChannel = paste0(yChannel, collapse = ","), .groups = "drop")
     }
   } else {
-    names(keys)[c(1,2)] <- c("xChannel", "xDesc")
+    names(keys)[which(names(keys) == "N")] <- "xChannel"
+    names(keys)[which(names(keys) == "S")] <- "xDesc"
     df <- dplyr::left_join(df, keys, by = c("FileName", "xChannel"))
-    names(keys)[c(1,2)] <- c("yChannel", "yDesc")
+    names(keys)[which(names(keys) == "xChannel")] <- "yChannel"
+    names(keys)[which(names(keys) == "xDesc")] <- "yDesc"
     df <- dplyr::left_join(df, keys, by = c("FileName", "yChannel"))
   }
   df$xDesc[which(df$xDesc == "")] <- NA
