@@ -179,7 +179,7 @@ get_smpl_df <- function(wsp,
     return(y)
   }))
 
-  return(smpl)
+  return(as.data.frame(smpl))
 }
 
 check_in <- function(wsp,
@@ -423,9 +423,7 @@ get_gs <- function(x,
                    ...) {
 
   lapply_fun <- match.fun(lapply_fun)
-  x_split <- split(x, (seq(nrow(x))-1) %/% split_size)
-
-  gs_list <- lapply_fun(x_split, function(x) {
+  gs_list <- lapply_fun(split(x, (seq(nrow(x))-1) %/% split_size), function(x) {
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(x$wsp)),
                                       name = unique(x$FlowJoGroup),
                                       path = unique(x$FCS.file.folder),
