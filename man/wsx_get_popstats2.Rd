@@ -9,8 +9,9 @@ wsx_get_popstats2(
   groups = NULL,
   invert_groups = F,
   return_stats = T,
-  lapply_fun = lapply,
   strip_data = T,
+  more_gate_data = F,
+  show_progress = F,
   ...
 )
 }
@@ -22,8 +23,6 @@ wsx_get_popstats2(
 \item{invert_groups}{logical whether to exclude the selected groups}
 
 \item{return_stats}{logical (T,F) whether to return statistics next to cells counts}
-
-\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }

@@ -4,38 +4,25 @@
 \alias{col_pal}
 \title{Color palettes}
 \usage{
-col_pal(name = "custom", n = 100, nbrew = NULL, reverse = F)
+col_pal(name = NULL, n = NULL, direction = c(1, -1))
 }
 \arguments{
 \item{name}{name of the palette}
 
 \item{n}{number of colors to return; may not work for every palette}
 
-\item{nbrew}{number of color from brewer palettes}
+\item{direction}{reverse palette with -1}
 
-\item{reverse}{reverse the palette}
+\item{nbrew}{number of color from brewer palettes}
 }
 \value{
 a color palette as character vector
 }
 \description{
-Common interface to get color palettes from different packages:
-viridisLite, colorRamps,
-\href{"https://github.com/BlakeRMills/MetBrewer"}{MetBrewer},
-href{"https://github.com/karthik/wesanderson"}{wesanderson}
-and RColorBrewer.
-Moreover three custom palettes: "custom", "dutch" and "spanish".
-}
-\details{
-See available palettes:
-c(rev(ls("package:viridisLite"))\link{-c(1,2)},
-rev(ls("package:colorRamps"))\link{-c(2,3)},
-rownames(RColorBrewer::brewer.pal.info),
-names(wesanderson::wes_palettes), "custom", "dutch", "spanish",
-MetBrewer::MetPalettes)
-Use scales::show_col() to plot color grid
+Wrapper function around paletteer and two additional color palettes. See paletteer::palettes_c_names and paletteer::palettes_d_names.
 }
 \examples{
 \dontrun{
+col_pal(name = "custom", n = 10)
 }
 }

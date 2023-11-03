@@ -2,6 +2,7 @@
 
 export(ab_info_to_panel)
 export(ab_panel_to_fcs)
+export(coalesce_join)
 export(col_pal)
 export(compMat_neutral_to_fcs)
 export(compMat_to_fcs)

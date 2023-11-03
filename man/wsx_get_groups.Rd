@@ -7,8 +7,8 @@
 wsx_get_groups(
   ws,
   filter_AllSamples = T,
-  collapse_groups = T,
-  collapse_to = "list"
+  collapse = "nest",
+  force_collapse = F
 )
 }
 \arguments{
@@ -16,9 +16,9 @@ wsx_get_groups(
 
 \item{filter_AllSamples}{logical whether to filter the All Samples Group in case the fcs file is also part of another group}
 
-\item{collapse_groups}{logical whether to collapse multiple group-belongings of samples into a list-column in the data frame}
+\item{collapse}{string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '\emph{-}'}
 
-\item{collapse_to}{string how to collapse groups; to collapse to a list-column pass 'list'; to collapse to a string provide any separator string like ';', ',' or '\emph{-}'}
+\item{force_collapse}{collapse in any case, even though there is only one group per sample}
 }
 \value{
 a data frame

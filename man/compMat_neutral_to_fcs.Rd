@@ -4,12 +4,18 @@
 \alias{compMat_neutral_to_fcs}
 \title{Make an existing compensation matrix in a FCS neutral}
 \usage{
-compMat_neutral_to_fcs(fcs_file_path, compMat_keyword = "SPILL")
+compMat_neutral_to_fcs(
+  fcs_file_path,
+  compMat_keyword = "SPILL",
+  channel_names = NULL
+)
 }
 \arguments{
 \item{fcs_file_path}{character, file path to the fcs file}
 
 \item{compMat_keyword}{character, name of the keyword which holds the matrix}
+
+\item{channel_names}{enter channels for comp matrix; only applied when matrix under compMat_keyword is missing of size 0}
 }
 \value{
 no return, but FCS changed on disk

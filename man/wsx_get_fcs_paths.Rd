@@ -4,12 +4,14 @@
 \alias{wsx_get_fcs_paths}
 \title{Get file paths to the fcs files in a workspace}
 \usage{
-wsx_get_fcs_paths(ws, split = T)
+wsx_get_fcs_paths(ws, split = T, filter_AllSamples = F)
 }
 \arguments{
 \item{ws}{path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))}
 
-\item{split}{logical whether to split file paths by groups; if yes a list is returned, if no a data frame}
+\item{split}{logical whether to split file paths by groups; if TRUE a list is returned, if FALSE a data frame}
+
+\item{filter_AllSamples}{logical whether to filter the All Samples Group in case the fcs file is also part of another group}
 }
 \value{
 a list or data frame of paths to fcs files
