@@ -4,6 +4,8 @@
 # But then writing the FCS file with flowCore::write.FCS failed because the spillover matrix in the $SPILLOVER keyword was a 0x0 matrix. This caused an error in a C++ script within flowCore::write.FCS.
 # So, first a proper neutral matrix has to be written into this keyword with: fcexpr::compMat_neutral_to_fcs.
 
+## But: changing the event order does not always work - it still depends on randomness, somehow, if FlowJo on my Mac crashed due to importing the FCS file or not
+
 
 # FYI, for finding the error it was necessary to source all scripts from flowCore:
 'r_files <- list.files("/Users/christopher.skopnik/Downloads/flowCore-devel/R", full.names = T)
