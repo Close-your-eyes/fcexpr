@@ -5,6 +5,7 @@
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/no_group_noOrAndGates.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_more_gate_types.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_different_gating_trees.wsp"
+
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate_differentGatingTrees.wsp"
@@ -18,7 +19,7 @@ ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp" # error
 
 system.time(df1 <- fcexpr::wsx_get_popstats(ws, strip_data = F)[["counts"]])
-system.time(df2 <- wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
+system.time(df2 <- fcexpr::wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
 
 ## compare even more columns!
 
@@ -31,11 +32,9 @@ tt <- dplyr::anti_join(df1_sub, df2_sub)
 tt2 <- dplyr::anti_join(df2_sub, df1_sub)
 
 
+
 dup_id <- unique(pop_df$id[duplicated(df2$id)])
-
 df22 <- df2[which(df2$id %in% dup_id),]
-
-
 df2$GateDef[which(is.null(df2$GateDef[[1]]))] <- NA
 out <- df2$GateDef
 df2$GateDef[which(sapply(df2$GateDef, is.null))] <- NA
