@@ -111,9 +111,8 @@ wsp_get_ff <- function(wsp,
     stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
-
   pp <- do.call(rbind, lapply(wsp, function(x) {
-    wsx_get_poppaths(x, collapse = F)
+    wsx_get_poppaths(x, groups = groups, collapse = F)
   }))
   pp <- pp[which(pp$FileName %in% smpl$FileName),]
   pp <-

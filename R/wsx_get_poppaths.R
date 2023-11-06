@@ -22,7 +22,7 @@ wsx_get_poppaths <- function(ws,
 
   ws <- check_ws(ws)
 
-  ids <- wsx_get_groups(ws)
+  ids <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
     groups <- unique(ids[,"FlowJoGroup", drop=T])
   }
@@ -30,7 +30,6 @@ wsx_get_poppaths <- function(ws,
   rel_nodes <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   rel_nodes <- rel_nodes[which(sapply(seq_along(rel_nodes), function(x) xml2::xml_attrs(xml2::xml_child(rel_nodes[[x]], "DataSet"))[["sampleID"]]) %in% ids)]
   gg <- xml2::xml_find_all(rel_nodes, ".//Gate|.//Dependents")
-
 
   gates <- lapply(seq_along(gg), function(n) {
 
