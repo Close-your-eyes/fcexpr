@@ -519,23 +519,22 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
     gate_list_children2 <- gate_list_children2[which(xml2::xml_name(gate_list_children2) == "dimension")]
     gate_list_children2 <- xml2::xml_children(gate_list_children2)
     dims <- xml2::xml_attrs(gate_list_children2)
+    # count dimension for each gate and split dims accordingly
     if (length(dims)/2 != length(id)) {
       ndims <- sapply(lapply(gate_list_children, function(x) xml2::xml_name(xml2::xml_children(x))), function(y) sum(y == "dimension"))
       xChannel <- character(length(id))
       yChannel <- character(length(id))
       n = 1
-      for (i in 1:length(ndims)) {
-        xChannel[i] <- dims[n]
+      for (i in seq_along(ndims)) {
+        # if gate has only 1 dimension, then this becomes the x-dimension
+        xChannel[i] <- unname(dims[n][[1]])
         if (ndims[i] == 2) {
-          yChannel[i] <- dims[n+1]
+          yChannel[i] <- unname(dims[n+1][[1]])
         } else {
           yChannel[i] <- NA
         }
-        n <- n + i
-        xChannel <- unlist(xChannel)
-        yChannel <- unlist(yChannel)
+        n <- n + ndims[i] # increment to next xdim of next gate depent upon the number of dims of current gate (1 or 2)
       }
-      # count dimension for each gate and split dims accordingly
     } else {
       # does not work with 1D-gates which only have one dimension and hence one channel
       xChannel <- unlist(dims[seq(1, length(dims), 2)])

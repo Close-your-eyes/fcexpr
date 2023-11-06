@@ -19,7 +19,9 @@ ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp" # error
 
 system.time(df1 <- fcexpr::wsx_get_popstats(ws, strip_data = F)[["counts"]])
-system.time(df2 <- fcexpr::wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
+system.time(df2 <- wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
+
+#fix columns of df2 a bit
 
 ## compare even more columns!
 
