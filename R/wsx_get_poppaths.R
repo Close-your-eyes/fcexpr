@@ -22,7 +22,7 @@ wsx_get_poppaths <- function(ws,
 
   ws <- check_ws(ws)
 
-  ids <- wsx_get_groups(ws, collapse = NULL)
+  ids <- wsx_get_groups(ws, collapse = "character")
   if (is.null(groups)) {
     groups <- unique(ids[,"FlowJoGroup", drop=T])
   }

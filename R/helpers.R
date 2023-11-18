@@ -190,10 +190,12 @@ check_in <- function(wsp,
                      return_transformed = NULL) {
 
   if (missing(wsp) || !methods::is(wsp, "character")) {stop("Please provide a vector of paths to flowjo workspaces.")}
+
   if (!is.null(groups)) {
     if (methods::is(groups, "list") && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
     if (!methods::is(groups, "list")) {groups <- rep(list(groups), length(wsp))}
   }
+
   if (!is.null(samples)) {
     if (length(samples) == 0) {
       stop("No samples provided.")
