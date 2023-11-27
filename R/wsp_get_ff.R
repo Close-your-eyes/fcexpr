@@ -69,7 +69,10 @@ wsp_get_ff <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder,
+  checked_in <- check_in(wsp = wsp,
+                         groups = groups,
+                         samples = samples,
+                         FCS.file.folder = FCS.file.folder,
                          return_untransformed = return_untransformed,
                          return_transformed = return_transformed)
   groups <- checked_in[["groups"]]
@@ -111,13 +114,16 @@ wsp_get_ff <- function(wsp,
     stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
   }
 
-  pp <- do.call(rbind, mapply(x = wsp, y = groups, function(x,y) {
-    wsx_get_poppaths(ws = x, groups = y, collapse = F)
-  }, SIMPLIFY = F))
-
-'  pp <- do.call(rbind, lapply(wsp, function(x) {
-    wsx_get_poppaths(x, groups = groups, collapse = F)
-  }))'
+  # NULL cannot be passed to mapply; when groups was NULL, the function was not executed --> somewhen: change this behaviour; groups my not be NULL at all; or checked_in could return all groups of the wsp if is.null(groups)
+  if (is.null(groups)) {
+    pp <- do.call(rbind, lapply(wsp, function(x) {
+      wsx_get_poppaths(x, groups = groups, collapse = F)
+    }))
+  } else {
+    pp <- do.call(rbind, mapply(x = wsp, y = groups, function(x,y) {
+      wsx_get_poppaths(ws = x, groups = y, collapse = F)
+    }))
+  }
 
   pp <- pp[which(pp$FileName %in% smpl$FileName),]
   pp <-

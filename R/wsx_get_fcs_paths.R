@@ -36,5 +36,5 @@ wsx_get_fcs_paths <- function(ws,
   if (split) {
     paths <- split(paths[,"FilePath",drop=T], paths[,"FlowJoGroup",drop=T])
   }
-  return(paths)
+  return(as.data.frame(paths))
 }

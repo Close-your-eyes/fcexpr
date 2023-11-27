@@ -96,7 +96,7 @@ get_smpl_df <- function(wsp,
     y$FileName <- basename(y$FilePath)
 
     key <- wsx_get_keywords(wsp[x], return = "data.frame", keywords = c("$FIL", "$TOT", "$BEGINDATA"), lapply_fun = lapply_fun, ...)
-    key <- dplyr::bind_rows(key, .id = "FileName")
+    key <- as.data.frame(dplyr::bind_rows(key, .id = "FileName"))
 
     y$FIL <- stats::setNames(key[which(key$name == "$FIL"),"value"], key[which(key$name == "$FIL"),"FileName"])[y$FileName]
     y$TOT <- trimws(stats::setNames(key[which(key$name == "$TOT"),"value"], key[which(key$name == "$TOT"),"FileName"])[y$FileName])
@@ -183,9 +183,9 @@ get_smpl_df <- function(wsp,
 }
 
 check_in <- function(wsp,
-                     samples,
-                     groups,
-                     FCS.file.folder,
+                     samples = NULL,
+                     groups = NULL,
+                     FCS.file.folder = NULL,
                      return_untransformed = NULL,
                      return_transformed = NULL) {
 

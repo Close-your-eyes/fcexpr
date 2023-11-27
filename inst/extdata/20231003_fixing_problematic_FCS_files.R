@@ -6,6 +6,9 @@
 
 ## But: changing the event order does not always work - it still depends on randomness, somehow, if FlowJo on my Mac crashed due to importing the FCS file or not
 
+### FIX !!!! #####
+# uncheck 'Check Sample Quality' in the settings. This avoids any quitting of the workspace.
+
 
 # FYI, for finding the error it was necessary to source all scripts from flowCore:
 'r_files <- list.files("/Users/christopher.skopnik/Downloads/flowCore-devel/R", full.names = T)
