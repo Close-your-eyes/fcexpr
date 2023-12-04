@@ -296,7 +296,12 @@ get_ff <- function(x,
     inverse_transform <- stats::setNames(c(F,T), c("transformed", "untransformed"))
   }
 
-  ex <- lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
+  ex <- tryCatch({
+    lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
+  }, error = function(err) {
+    message(err)
+    message("Do FCS files contain a valid compensation matrix?")
+  })
 
   # alter population here by an optional leading forward slash in order to not make changes to ind_mat construction which could
   # have effects elsewhere. Maybe find a better solution some when
