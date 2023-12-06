@@ -31,10 +31,11 @@ wsx_get_fcs_paths <- function(ws,
                             by = "sampleID")
 
   paths$FileName <- basename(paths$FilePath)
-  paths <- tidyr::unnest(paths, "FlowJoGroup")
+  paths <- as.data.frame(tidyr::unnest(paths, "FlowJoGroup"))
 
   if (split) {
     paths <- split(paths[,"FilePath",drop=T], paths[,"FlowJoGroup",drop=T])
   }
-  return(as.data.frame(paths))
+
+  return(paths)
 }
