@@ -122,7 +122,7 @@ wsp_get_ff <- function(wsp,
   } else {
     pp <- do.call(rbind, mapply(x = wsp, y = groups, function(x,y) {
       wsx_get_poppaths(ws = x, groups = y, collapse = F)
-    }))
+    }, SIMPLIFY = F))
   }
 
   pp <- pp[which(pp$FileName %in% smpl$FileName),]
