@@ -430,6 +430,7 @@ sync_sampledescription <- function(FCS.file.folder,
   if (any(!c("FileName", "identity") %in% names(sd))) {
     stop("Columns FileName and identity have to exist is the sampledescription file.")
   }
+
   if (nrow(sd) > length(fcs.files)) {
     print(sd[which(!sd[, "identity"] %in% fcs.files), which(names(sd) %in% c("FileName", "identity"))])
     stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save it, close it and run sync_sampledescription again.")

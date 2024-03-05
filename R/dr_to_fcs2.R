@@ -296,7 +296,7 @@ dr_to_fcs2 <- function(ff.list,
   }
 
   ## if transformed data is provided, these are used, if not then untransformed
-  ff.list_index <- ifelse("transformed" %in% names(ff[["flowframes"]]), "transformed", "untransformed")
+  ff.list_index <- ifelse("transformed" %in% names(ff.list), "transformed", "untransformed")
 
   ## write ident to fcs; any transformed or untransformed is fine
   dim.red.data <- cbind(dim.red.data, ident = rep(1:length(ff.list[[ff.list_index]]), sapply(ff.list[[ff.list_index]], nrow)))

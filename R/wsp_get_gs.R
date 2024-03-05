@@ -61,6 +61,8 @@ wsp_get_gs <- function(wsp,
   }
 
   smpl_list <- split(smpl, paste0(basename(smpl$wsp), "_-_", smpl$group))
+
+  # check the whole procedure - how to to group files by common FCS file path?
   smpl_list <- lapply(smpl_list, function(x) {
     if (any(is.na(x$FCS.file.folder))) {
       path <- x$FilePath
