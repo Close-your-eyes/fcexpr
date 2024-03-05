@@ -57,6 +57,7 @@ sync_sampledescription <- function(FCS.file.folder,
     }
   }
 
+  file.sep <- NULL
   if (file.suffix %in% c("txt", "tsv")) {
     file.sep <- "\t"
   }
@@ -287,6 +288,7 @@ sync_sampledescription <- function(FCS.file.folder,
     })
 
     ## read the putative updated file and check if FileNames are updated
+    #browser()
     if (!identical(named.sheet.list[[1]][,"FileName",drop=T],openxlsx::read.xlsx(xlsxFile = file.path(wd, file.name))[,"FileName",drop=T])) {
       choice <- utils::menu(c("Yes", "No"), title = paste0("FileNames in sampledescription seem to not have changed. Is the file still opened? If so, close it and give saving an updated version another try (1) or not (2)?"))
       if (choice == 1) {
@@ -406,7 +408,6 @@ sync_sampledescription <- function(FCS.file.folder,
   }
   return(fcs_identities)
 }
-
 
 .read.and.check.sd <- function(wd, file.name, fcs.files, file.sep) {
   if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
