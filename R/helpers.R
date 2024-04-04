@@ -89,7 +89,7 @@ get_smpl_df <- function(wsp,
                         FCS.file.folder,
                         lapply_fun = lapply,
                         ...) {
-# FlowJoGroup
+  # FlowJoGroup
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
     y$wsp <- wsp[x]
@@ -147,7 +147,8 @@ get_smpl_df <- function(wsp,
       y$FCS.file.folder <- NA
     } else {
       y$FCS.file.folder <- FCS.file.folder[x]
-      y$FilePath <- sapply(y$FileName, function(z) {
+      y$FilePath <- unname(sapply(y$FileName, function(z) {
+        #z <- gsub("%20", " ", z) # new
         match_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = z)
         if (length(match_files) > 1) {
           message("Found multiple FCS files with equal names. Will select the one which matches best the keywords from flowjo workspace.")
@@ -171,10 +172,21 @@ get_smpl_df <- function(wsp,
           })
           # select best match
           return(match_files[which.max(scores)])
+        } else if (length(match_files) == 0) {
+          message(z)
+          message("No exact match found for FCS file. Do filenames contain special letters? Will take the best matching filename based on string distance but this may yield wrong results. Check it!")
+
+          fcs_files_in_dir <- list.files(path = FCS.file.folder[x], pattern = "\\.fcs$", full.names = T, recursive = T, ignore.case = T)
+          names(fcs_files_in_dir) <- basename(fcs_files_in_dir)
+          best_match_index <- which.min(adist(z, names(fcs_files_in_dir))[1,])
+
+          message(fcs_files_in_dir[best_match_index], "\n")
+
+          return(fcs_files_in_dir[best_match_index])
         } else {
           return(match_files)
         }
-      })
+      }))
     }
     return(y)
   }))

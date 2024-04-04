@@ -51,6 +51,7 @@ wsp_get_gs <- function(wsp,
   samples <- checked_in[["samples"]]
   FCS.file.folder <- checked_in[["FCS.file.folder"]]
 
+
   smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder, lapply_fun = lapply_fun, ...)
   if (is.null(smpl)) {
     return(NULL)
