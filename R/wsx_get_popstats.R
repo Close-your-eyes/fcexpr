@@ -35,6 +35,7 @@ wsx_get_popstats <- function(ws,
   ## allow to pass mclapply
   lapply_fun <- match.fun(lapply_fun)
 
+  ws_raw <- ws
   ws <- check_ws(ws)
 
   group_df <- wsx_get_groups(ws, collapse = NULL)
@@ -198,6 +199,36 @@ wsx_get_popstats <- function(ws,
   }
 
 
+  ## get keywords to derive identity of fcs files
+  k <- wsx_get_keywords(ws_raw, keywords = c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL"))
+  kk <- do.call(rbind, k)
+  kk$FileName <- rep(names(k), sapply(k,nrow))
+  kk <- tidyr::pivot_wider(kk, names_from = name, values_from = value)
+  ## this is from sync_sampldescription - .get_fcs_identities
+  tt <- kk$`$BTIM`
+  et <- kk$`$ETIM`
+  dd <- kk$`$DATE`
+  fil <- kk$`$FIL`
+  tot <- kk$`$TOT`
+
+  if (any(nchar(tt) - nchar(gsub(":", "", tt)) > 2)) {
+    tt_fix_ind <- which(nchar(tt) - nchar(gsub(":", "", tt)) > 2)
+    tt[tt_fix_ind] <- paste(rev(rev(strsplit(tt[tt_fix_ind], ":")[[1]])[-1]), collapse = ":")
+  }
+  datetime <- paste0(dd, "-", tt)
+  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
+  datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
+                                                                     "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
+  if (any(is.na(datetime))) {
+    warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
+  }
+  kk$identity <- paste0(fil, "_-_", trimws(tot), "_-_", datetime)
+  kk <- dplyr::select(kk, FileName, identity)
+
+  gates_out <- dplyr::left_join(gates_out, kk, by = "FileName")
+
+
+
   if (return_stats) {
     stats_out <- do.call(rbind, lapply_fun(seq_along(rel_nodes), function(n) {
       node <- rel_nodes[n]
@@ -228,3 +259,4 @@ wsx_get_popstats <- function(ws,
   }
   return(gates_out)
 }
+
