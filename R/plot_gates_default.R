@@ -130,6 +130,7 @@ plot_gates <- function(gs,
 
       }
 
+      browser()
       p <- ggcyto::ggcyto(gs, subset = gg[1,"Parent"], filter = my.filter, ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])), max_nrow_to_plot = max_nrow_to_plot)
 
       if (geom == "hex") {
