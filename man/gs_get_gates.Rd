@@ -7,7 +7,7 @@
 gs_get_gates(
   gs,
   n_bins = 50^2,
-  quantile_lim_filter = c(1e-04, 0.9999),
+  quantile_lim_filter = c(0.0001, 0.9999),
   min_max_vals = c(0, 300),
   min_max_vals_scatter = c(0, 250000),
   x_statpos_name = 0.9,
