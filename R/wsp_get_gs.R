@@ -29,10 +29,10 @@ wsp_get_gs <- function(wsp,
                        samples = NULL,
                        invert_samples = F,
                        remove_redundant_channels = F,
-                       lapply_fun = lapply,
-                       split_size = 2,
-                       additional.sampleID = F,
-                       ...) {
+                       lapply_fun = lapply
+                       #split_size = 2,
+                       #additional.sampleID = F,
+) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -44,51 +44,84 @@ wsp_get_gs <- function(wsp,
     BiocManager::install("flowWorkspace")
   }
 
-  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
   lapply_fun <- match.fun(lapply_fun)
 
-  groups <- checked_in[["groups"]]
-  samples <- checked_in[["samples"]]
-  FCS.file.folder <- checked_in[["FCS.file.folder"]]
+  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
 
-
-  smpl <- get_smpl_df(wsp = wsp, groups = groups, invert_groups = invert_groups, samples = samples, invert_samples = invert_samples, FCS.file.folder = FCS.file.folder, lapply_fun = lapply_fun, ...)
+  smpl <- get_smpl_df(
+    wsp = wsp,
+    groups = checked_in[["groups"]],
+    invert_groups = invert_groups,
+    samples = checked_in[["samples"]],
+    invert_samples = invert_samples,
+    FCS.file.folder = checked_in[["FCS.file.folder"]],
+    lapply_fun = lapply_fun
+  )
   if (is.null(smpl)) {
     return(NULL)
   }
-  if (any(table(smpl$FilePath) > 1)) {
-    print(smpl$FilePath[which(table(smpl$FilePath) > 1)])
-    stop("Same FCS files found in multiple workspaces or groups. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-  }
-
-  smpl_list <- split(smpl, paste0(basename(smpl$wsp), "_-_", smpl$group))
-
-  # check the whole procedure - how to to group files by common FCS file path?
-  smpl_list <- lapply(smpl_list, function(x) {
-    if (any(is.na(x$FCS.file.folder))) {
-      path <- x$FilePath
-      #n <- length(unique(path))
-      n <- 2 # set to 2 arbitrarily. if there is only one FCS file with 1 unique path, then this will cause to get its dirname at least
-      while (n != 1) {
-        path <- dirname(path)
-        n <- length(unique(path))
-      }
-      message("Common FCS.file.folder determined: ", unique(path), ".")
-      x$FCS.file.folder <- path
-    }
+  # check gating trees for equality
+  ps <-
+    wsx_get_popstats(ws = wsp, return_stats = F) |>
+    dplyr::filter(identity %in% smpl$identity)
+  gatings_list <- purrr::map(setNames(unique(ps$identity), unique(ps$identity)), function(x) {
+    fcexpr::gating_tree_plot(ps |> dplyr::filter(identity == x) |> dplyr::pull("PopulationFullPath"))
+  })
+  gatings_df <-
+    dplyr::bind_rows(purrr::map(gatings_list, `[[`, 3), .id = "identity") |>
+    dplyr::left_join(ps |>
+                       dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
+                       dplyr::rename("xDimfrom" = xDim, "yDimfrom" = yDim),
+                     by = c("identity" = "identity", "from" = "PopulationFullPath")) |>
+    dplyr::left_join(ps |>
+                       dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
+                       dplyr::rename("xDimto" = xDim, "yDimto" = yDim),
+                     by = c("identity" = "identity", "to" = "PopulationFullPath"))
+  gatings_df <- split(gatings_df, gatings_df$identity)
+  gatings_df <- lapply(gatings_df, function(x) {
+    x <-
+      x |>
+      dplyr::select(-identity) |>
+      dplyr::arrange(from, to)
+    #x <- dplyr::select(x, from, to) # ignore channels for splitting?!
+    rownames(x) <- seq(1, nrow(x))
     return(x)
   })
+  dfhashes <-
+    stack(purrr::map_chr(gatings_df, digest::digest, algo = "sha256")) |>
+    dplyr::group_by(values) |>
+    dplyr::mutate(gatinggroup = dplyr::cur_group_id()) |>
+    dplyr::rename("hash" = values, "identity" = ind) |>
+    dplyr::mutate(identity = as.character(identity))
+  smpl <- dplyr::left_join(smpl, dfhashes, by = "identity")
 
+  #waldo::compare(gatings_list[[1]], gatings_list[[2]])
+  if (any(table(smpl$identity) > 1)) {
+    message("Same FCS files found in multiple workspaces. This may cause problems. Provide samples argument as a list of vectors, one for each wsp and filter the duplicate files.")
+    message(paste(names(table(smpl$identity))[which(table(smpl$identity) > 1)], collapse = ", "))
+  }
+
+  smpl_list <- split(smpl, smpl$gatinggroup)
+  message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.")
+  for (i in smpl_list) {
+    message(paste(i$FlowJoFileName, collapse = ", "), "\n")
+  }
+  #x<- smpl
   gs_list <- lapply(smpl_list,
                     get_gs,
                     remove_redundant_channels = remove_redundant_channels,
-                    lapply_fun = lapply_fun,
-                    split_size = split_size,
-                    additional.sampleID = additional.sampleID,
-                    ...)
+                    lapply_fun = lapply_fun)
+  # split_size = split_size,
+  # additional.sampleID = additional.sampleID,
+  # ...)
   names(gs_list) <- names(smpl_list)
 
-  return(gs_list)
+  return(
+    gs_list = gs_list,
+    FCS_files = smpl,
+    gating_hierachies = gatings_list,
+    gatings_compare = gatings_df
+  )
 }
 
 

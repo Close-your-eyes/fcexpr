@@ -361,7 +361,7 @@ sync_sampledescription <- function(FCS.file.folder,
 }
 
 
-.get_fcs_identities <- function(kwl) {
+.get_fcs_identities <- function(kwl, allow_duplicates = F) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -373,6 +373,16 @@ sync_sampledescription <- function(FCS.file.folder,
   # kwl = keyword_list; needs names
   # kwl can be provided from FCS files: kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
   # or kwl can be provided from wsp: kwl = wsx_get_keywords(ws = ws, return = "vector")
+  # from fj wsp when return type is data.frame:
+  # kwldf <- wsx_get_keywords(ws_raw, return = "data.frame", keywords = c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL"))
+  # kwl2 <- do.call(rbind, kwldf)
+  # kwl2$FileName <- rep(names(kwldf), sapply(kwldf,nrow))
+  # kwl2 <- tidyr::pivot_wider(kwl2, names_from = name, values_from = value)
+  # tt <- kwl2$`$BTIM`
+  # et <- kwl2$`$ETIM`
+  # dd <- kwl2$`$DATE`
+  # fil <- kwl2$`$FIL`
+  # tot <- kwl2$`$TOT`
 
   if (!methods::is(kwl, "list")) {
     stop("keyword list not a list. Could be made a list but then names are missing. Try to fix.")
@@ -402,7 +412,7 @@ sync_sampledescription <- function(FCS.file.folder,
     warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
   }
   fcs_identities <- stats::setNames(paste0(fil, "_-_", trimws(tot), "_-_", datetime), nm = names(kwl))
-  if (length(unique(fcs_identities)) != length(fcs_identities)) {
+  if (!allow_duplicates && length(unique(fcs_identities)) != length(fcs_identities)) {
     stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs_identities[duplicated(fcs_identities) |
                                                                                                                                      duplicated(fcs_identities, fromLast = T)]), collapse = "\n")))
   }

@@ -12,10 +12,7 @@ wsp_get_gs(
   samples = NULL,
   invert_samples = F,
   remove_redundant_channels = F,
-  lapply_fun = lapply,
-  split_size = 2,
-  additional.sampleID = F,
-  ...
+  lapply_fun = lapply
 )
 }
 \arguments{
@@ -38,10 +35,10 @@ if NULL all samples (from selected groups) are read}
 
 \item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
 
+\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
+
 \item{split_size}{chunk size of splits of fcs files parsed to CytoML::flowjo_to_gatingset;
 splitting allows to have a progress bar from pblapply or to use multicore processing by parallel::mclapply}
-
-\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
 list of gatingsets
