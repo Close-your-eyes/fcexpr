@@ -42,7 +42,7 @@ list of matrices, one for each selected sample; each column of the matrices hold
 Every row in a fcs file represents an event. Every column is a parameter (channel). Gates select a subset (rows) of events by applying limits to usually one or two channels.
 A sub-population of gated events hence may be defined by a vector of (row-) indices (TRUE - events is included in gate; FALSE - event is not included). A whole gating tree
 may be represented by a matrix with n columns for n gates and m rows for m events. The output of this function may be saved to disk and applied to fcs files with fcexpr::inds_get_ff
-in order to obtain subsetted flowfframes representing gated populations in flowjo.
+in order to obtain subsetted flowframes representing gated populations in flowjo.
 }
 \details{
 Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.

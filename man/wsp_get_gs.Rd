@@ -11,8 +11,7 @@ wsp_get_gs(
   invert_groups = F,
   samples = NULL,
   invert_samples = F,
-  remove_redundant_channels = F,
-  lapply_fun = lapply
+  remove_redundant_channels = F
 )
 }
 \arguments{
@@ -32,22 +31,25 @@ if NULL all samples (from selected groups) are read}
 \item{invert_samples}{logical whether to invert sample selection}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
-
-\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
-
-\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
-
-\item{split_size}{chunk size of splits of fcs files parsed to CytoML::flowjo_to_gatingset;
-splitting allows to have a progress bar from pblapply or to use multicore processing by parallel::mclapply}
 }
 \value{
-list of gatingsets
+list of gatingsets, FCS files used, gating hierarchies
 }
 \description{
-Get (subsetted) gatingsets from flowjo workspaces
+Wsp files are checked for corresponding gating hierarchies and FCS files are
+read into separate GatingSets (gs), respectively. That means FCS files from different
+wsp are combined if their gatings are equal. But simple import from one wsp is
+also possible. If file paths to FCS files in flowjo are not valid on the current computer
+(e.g. because flowjo analysis was done on another computer), you have to provide the
+local top folder which contains all of the necessary FCS files: FCS.files.folder.
+Therein, the files are searched for recursively. Samples from wsp(s) with missing FCS files are skipped.
 }
 \examples{
 \dontrun{
-gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp")
+# check fcs files in wsp first
+samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp", split = F, filter_AllSamples = T)
+# read-in Gating set with selected samples
+gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder",
+groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
 }
 }

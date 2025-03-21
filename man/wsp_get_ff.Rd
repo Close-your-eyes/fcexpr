@@ -48,7 +48,7 @@ if NULL all samples (from selected groups) are read}
 
 \item{downsample}{numeric, if < 0 then a fraction of events is sampled, if > 0 an absolute number of events is sampled; or set to "min"
 which will lead to downsampling each flowframe to the number of events in the flowframe with lowest number of events; can be a single value to treat all
-FCS files equally or can be a vector of same length as FCS files}
+value for all FCS files or a vector of same length as FCS files}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
 
@@ -69,15 +69,42 @@ a list of (subsetted) flowframes with events that are within the gated populatio
 From a flowjo workspace with gated populations and the respective fcs files flowframes are generated.
 Under the hood CytoML::flowjo_to_gatingset applies the geometric gate definitions and filters
 relevant rows (indices) of fcs files. The compensation matrix as defined in flowjo will be used
-to compensate fluorescence intensities.
+to compensate fluorescence intensities. The index matrix (ind_mat) returned cannot be used with
+the flow frames as these contain subsetted rows. Rather ind_mat can be used to read defined
+rows from the fcs files without the need to re-read gate definitions from the workspace again.
+ind_mats only, without any flow frames of gated populations, are returned by fcexpr::wsp_get_indices.
+When reading data with ind_mats from fcs files, compensation needs to be applied manually. One
+has to extract the compensation matrix either from the fcs file or from the flowjo workspace
+where it is usually defined.
 }
 \details{
-If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have transformed
-and untransformed expression values returned.
+If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have both,
+transformed and untransformed, expression values returned.
 }
 \examples{
 \dontrun{
 ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
 # ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
+## how to to work with the returned nested list
+# ignore ind_mats and create one big data.frame w/o any filtering from flow frames
+ff1 <- purrr::list_flatten(x = purrr::list_flatten(x = ff.list[["flowframes"]],
+                                                   name_spec = "{outer}___{inner}"),
+                           name_spec = "{outer}___{inner}")
+ff1 <-
+  purrr::map_dfr(ff1, purrr::compose(tibble::as_tibble, flowCore::exprs), .id = "type") |>
+  tidyr::separate(type, into = c("sample", "pop", "trafo"), sep = "___")
+
+# pluck a subset of flowframe only
+ff2 <- purrr::map(ff.list[["flowframes"]], purrr::pluck, "CD4", "transformed")
+ff2 <- purrr::map_dfr(ff2, purrr::compose(tibble::as_tibble, flowCore::exprs), .id = "sample")
+
+# discard a transformation, then extract expression values
+ff3 <- purrr::map(ff.list[["flowframes"]], ~ purrr::map(.x, ~ purrr::discard(.x, names(.x) == "untransformed")))
+ff3 <- purrr::map(ff3, ~ purrr::map(.x, ~ purrr::pluck(.x, "transformed")))
+ff3 <- purrr::map(ff3, ~ purrr::map(.x, ~ tibble::as_tibble(flowCore::exprs(.x))))
+
+## how to work with ind_mats
+# see ?fcexpr::inds_get_ff
+# or ?fcexpr::fcs_files_df_get_ff
 }
 }

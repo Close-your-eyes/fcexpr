@@ -37,6 +37,8 @@ inds_get_ff <- function(ind_mat,
                         leverage_score_for_sampling = F,
                         ...) {
 
+  ## check and update
+
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
   }

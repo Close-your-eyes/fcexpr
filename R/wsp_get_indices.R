@@ -3,7 +3,7 @@
 #' Every row in a fcs file represents an event. Every column is a parameter (channel). Gates select a subset (rows) of events by applying limits to usually one or two channels.
 #' A sub-population of gated events hence may be defined by a vector of (row-) indices (TRUE - events is included in gate; FALSE - event is not included). A whole gating tree
 #' may be represented by a matrix with n columns for n gates and m rows for m events. The output of this function may be saved to disk and applied to fcs files with fcexpr::inds_get_ff
-#' in order to obtain subsetted flowfframes representing gated populations in flowjo.
+#' in order to obtain subsetted flowframes representing gated populations in flowjo.
 #'
 #' Geometric gate definitions from flowjo are applied with CytoML::flowjo_to_gatingset and indices matrices are obtained with flowWorkspace::gh_pop_get_indices_mat.
 #' This process may take a while depend upon size of fcs files as a .h5 file is written to disk for every fcs file before indices can be derived. Hence, it is recommended
@@ -36,6 +36,14 @@ wsp_get_indices <- function(wsp,
                             invert_samples = F,
                             lapply_fun = lapply,
                             ...) {
+
+  ## return the smpl_df
+  # update examples: show how to read ff and then apply ind mat with subset
+  # also note that compensation may be done with fs_apply_comp
+  # and get compmat fromflowjo wsp or from fcs keyword
+
+  # change check_in function: add inverted arguments and maybe change name
+  # make get smpl df an exported function - maintain tthe inverted arguments, set them to F within functions oce check_in was updated
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")

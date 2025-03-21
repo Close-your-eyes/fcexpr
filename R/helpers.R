@@ -86,9 +86,8 @@ get_smpl_df <- function(wsp,
                         invert_groups,
                         samples,
                         invert_samples,
-                        FCS.file.folder,
-                        lapply_fun = lapply
-                        ) {
+                        FCS.file.folder
+) {
   # FlowJoGroup
   # one wsp at a time
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
@@ -204,6 +203,12 @@ get_smpl_df <- function(wsp,
       if (nrowbefore != nrow(y)) {
         message("Joining flowjo df and local df of fcs files caused new rows. This is a bug. Check.")
       }
+      y$equal_FilePaths <- y$FlowJoFilePath == y$LocalFilePath
+      y$equal_FileDirs <- dirname(y$FlowJoFilePath) == dirname(y$LocalFilePath)
+
+      # equal paths means: flowjo dir was passed as fcs.file.folder and hence, it is the very same fcs file - ignore those below
+      y[which(y$equal_FilePaths), "FlowJoFilePathExists"] <- F
+
       if (any(inds <- !y$FlowJoFilePathExists & is.na(y$LocalFilePath))) {
         message(sum(inds), " of ", nrow(y), " FCS files from FlowJo could not be matched to any local FCS file and cannot be found by the FilePath in Flowjo.")
         message(unique(basename(y$wsp)))
@@ -218,15 +223,17 @@ get_smpl_df <- function(wsp,
         message(sum(inds), " of ", nrow(y), " FCS files from FlowJo have matching FilePath in FlowJo and locally (in FCS.file.folder).")
         message(unique(basename(y$wsp)))
         message(paste("'", y[which(inds), "FlowJoFileName"], "'", collapse = ", ", sep = ""))
-        y[inds,"FlowJoFilePathExists"] <- F
-        ysub <- y[inds,]
-        ysub <-
-          ysub |>
-          dplyr::mutate(equal_dirname = dirname(LocalFilePath) == dirname(FlowJoFilePath))
-        if (any(ysub$equal_dirname)) {
-          inds2 <- which(ysub$equal_dirname)
-          message()
-        }
+        y[inds,"FlowJoFilePathExists"] <- F #prefer the path from fcs.file.folder
+        # ysub <- y[inds,]
+        # if (any(ysub$equal_FileDirs)) {
+        #   inds2 <- which(ysub$equal_FileDirs)
+        #   message("At least some of these files are in the same directory. In this case the FCS file that appears first by name will be read.
+        #           To force which file to read, modify one of their filename on disk and, for instance, add a prefix underscore to make sure this file comes first.")
+        #   message(paste("'", ysub[inds2, "FlowJoFileName"], "'", collapse = ", ", sep = ""))
+        # } else {
+        #   message("Will use the path from FCS.files.folder in this case.")
+        # }
+        message("Will use the path from FCS.files.folder in this case.")
       }
       if (any(inds <- y$FlowJoFilePathExists & is.na(y$LocalFilePath))) {
         message(sum(inds), " of ", nrow(y), " FCS files from FlowJo have matching FilePath in FlowJo but not locally (in FCS.file.folder). Will use the FlowJo path here.")
@@ -249,6 +256,11 @@ get_smpl_df <- function(wsp,
     return(y)
   }))
 
+  if (any(table(smpl$identity) > 1)) {
+    message("Same FCS files found in multiple workspaces. This may cause problems. Provide samples argument as a list of vectors, one for each wsp and filter the duplicate files.")
+    message(paste(names(table(smpl$identity))[which(table(smpl$identity) > 1)], collapse = ", "))
+  }
+
   return(as.data.frame(smpl))
 }
 
@@ -259,12 +271,11 @@ check_in <- function(wsp,
                      return_untransformed = NULL,
                      return_transformed = NULL) {
 
+  # check invert samples and groups herein
+
   if (missing(wsp) || !methods::is(wsp, "character")) {stop("Please provide a vector of paths to flowjo workspaces.")}
 
-  if (!is.null(groups)) {
-    if (methods::is(groups, "list") && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
-    if (!methods::is(groups, "list")) {groups <- rep(list(groups), length(wsp))}
-  }
+  wsp_data <- lapply(wsp, wsx_get_fcs_paths, split = F, filter_AllSamples = T)
 
   if (!is.null(samples)) {
     if (length(samples) == 0) {
@@ -273,6 +284,26 @@ check_in <- function(wsp,
     if (methods::is(samples, "list") && length(samples) != length(wsp)) {stop("list of samples has to have the same length as wsp. Alternatively pass a vector samples to use for all workspace.")}
     if (!methods::is(samples, "list")) {samples <- rep(list(samples), length(wsp))}
   }
+
+  if (!is.null(groups)) {
+    if (methods::is(groups, "list") && length(groups) != length(wsp)) {stop("list of groups has to have the same length as wsp. Alternatively pass a vector groups to use for all workspace.")}
+    if (!methods::is(groups, "list")) {groups <- rep(list(groups), length(wsp))}
+  } else if (is.null(samples)) {
+    groups <- rep(list("All Samples"), length(wsp))
+  } else {
+    groups <- purrr::map2(wsp_data, samples, function(x,y) {
+      dplyr::filter(x, FileName  %in% y) |> dplyr::distinct(FlowJoGroup) |> dplyr::pull(FlowJoGroup)
+    })
+  }
+
+  if (is.null(samples)) {
+    samples <- purrr::map2(wsp_data, groups, function(x,y) {
+      dplyr::filter(x, FlowJoGroup  %in% y) |> dplyr::distinct(FileName) |> dplyr::pull(FileName)
+    })
+  }
+
+
+
   if (!is.null(FCS.file.folder)) {
     if (any(!dir.exists(FCS.file.folder))) {stop(paste0(FCS.file.folder[which(!dir.exists(FCS.file.folder))], " not found."))}
     if (length(FCS.file.folder) == 1) {FCS.file.folder <- rep(FCS.file.folder, length(wsp))}
@@ -292,20 +323,17 @@ check_in <- function(wsp,
 get_ff <- function(x,
                    return_untransformed = T,
                    return_transformed = T,
-                   downsample = 1,
-                   remove_redundant_channels = F,
                    population,
                    seed = 42,
                    channels = NULL,
                    leverage_score_for_sampling = F,
                    return_ind_mat_only = F) {
 
-  # one file at a time avoids problems due to different gating trees, but this may leave unintentional different gating trees undetected
-  # pass full path as attr and check consistency later?
-
-  if (nrow(x) > 1) {
-    stop("Only one fcs file at a time.")
+  downsample <- suppressWarnings(as.numeric(attr(x, "downsample")))
+  if (is.na(downsample)) {
+    downsample <- 1 # set to neutral when downsample was "min", then sampling happens outside of get_ff
   }
+
   if (!return_untransformed && !return_transformed) {
     stop("At least one of return_untransformed or return_transformed has to be TRUE.")
   }
@@ -315,7 +343,7 @@ get_ff <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+  if (downsample != 1 && leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
     }
@@ -323,39 +351,17 @@ get_ff <- function(x,
   }
 
   if (!is.null(channels) && !leverage_score_for_sampling) {
-    message("channels are only needed for leverage score aided sampling. leverage_score_for_sampling = F though, so channels are ignored.")
+    message("channels are only needed for leverage score aided sampling. since leverage_score_for_sampling = F channels are ignored.")
   }
 
-  if (is.na(x$FCS.file.folder)) {
-    path <- dirname(x$FilePath)
-    if (!file.exists(path)) {
-      stop(paste0(path, " not found. Was the workspace saved on another computer? If so, reconnect FCS files in flowjo or provide the FCS.file.folder(s) on the current computer."))
-    }
-  } else {
-    path <- x$FCS.file.folder
-  }
-
-  gs <- CytoML::flowjo_to_gatingset(ws = CytoML::open_flowjo_xml(x$wsp),
-                                    name = x$FlowJoGroup,
-                                    path = path,
-                                    subset = `$TOT` == x$TOT & `$BEGINDATA` == x$BEGINDATA, # not && !
-                                    truncate_max_range = F,
-                                    transform = T,
-                                    #emptyValue = T,
-                                    keywords = c("$FIL", "$TOT", "$BEGINDATA"),
-                                    additional.keys = c("$TOT", "$BEGINDATA"))
-
-  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gs[[1]], y = flowWorkspace::gh_get_pop_paths(gs[[1]]))
+  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gh = x, y = flowWorkspace::gh_get_pop_paths(x = x))
   attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-  attr(ind_mat, "ws") <- x$wsp
-  attr(ind_mat, "FilePath") <- x$FilePath
+  attr(ind_mat, "ws") <- attr(x, "ws")
+  attr(ind_mat, "FilePath") <- attr(x, "FilePath")
 
   if (return_ind_mat_only) {
+    flowWorkspace::gs_cleanup_temp(x)
     return(ind_mat)
-  }
-
-  if (remove_redundant_channels) {
-    gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
   }
 
   if (return_untransformed && !return_transformed) {
@@ -366,56 +372,73 @@ get_ff <- function(x,
     inverse_transform <- stats::setNames(c(F,T), c("transformed", "untransformed"))
   }
 
-  ex <- tryCatch({
-    lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs[[1]], inverse.transform = y)))
+  ff <- tryCatch({
+    lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(x, inverse.transform = y)))
   }, error = function(err) {
     message(err)
     message("Do FCS files contain a valid compensation matrix?")
   })
 
+  population <-
+    population |>
+    dplyr::filter(FileName == attr(x, "FlowJoFileName")) |>
+    dplyr::pull(Population)
+
   # alter population here by an optional leading forward slash in order to not make changes to ind_mat construction which could
   # have effects elsewhere. Maybe find a better solution some when
   # wsx_get_poppaths(x) return population paths without leading fwd slash
   inds <- ind_mat[,ifelse(population %in% attr(ind_mat, "short_names"),
-                          names(which(attr(ind_mat, "short_names") == population)),
-                          ifelse(grepl("^/", population), population, paste0("/", population))),drop=T]
-
-  ## overwrite downsample argument if provided as attr in x
-  if ("downsample" %in% names(x)) {
-    downsample <- x$downsample
-  }
+                          names(attr(ind_mat, "short_names"))[which(attr(ind_mat, "short_names") %in% population)],
+                          ifelse(grepl("^/", population), population, paste0("/", population))),
+                  drop=F]
 
   if (leverage_score_for_sampling) {
     message("Calculating leverage scores.")
-    channels <- .get.channels(ex[[1]], channels = channels)
-    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ex[[1]])[which(inds),channels]), verbose = F, seed = seed)
+    channels <- .get.channels(ff[[1]], channels = channels)
+    lev_scores <- lapply(asplit(inds, 2), function(x) {
+      Seurat::LeverageScore(object = t(flowCore::exprs(ff[[1]])[which(x),channels]), verbose = F, seed = seed)
+    })
   } else {
-    lev_scores <- NULL
+    lev_scores <- lapply(asplit(inds, 2), function(x) rep(1, length(which(x))))
   }
 
   if (downsample != 1) {
-    set.seed(seed)
-    s <- sort(sample(x = which(inds),
-                     size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample), min(c(length(which(inds)), downsample))),
-                     prob = lev_scores))
+    s <- mapply(sampling_fun, inds_col = asplit(inds, 2), lev_score = lev_scores)
   } else {
-    s <- which(inds)
+    s <- lapply(asplit(inds, 2), which)
   }
-  inds[which(inds)[!which(inds) %in% s]] <- F
+  inds <- mapply(inds = asplit(inds, 2), s = s, function(inds,s) {
+    inds[which(inds)[!which(inds) %in% s]] <- F
+    return(inds)
+  }, SIMPLIFY = F)
 
-  for (i in seq_along(ex)) {
-    ex[[i]] <- subset(ex[[i]], inds)
-  }
+  # pull multiple population from flowframe
+  ff <- lapply(inds, function(x) {
+    for (i in seq_along(ff)) {
+      ff[[i]] <- flowCore::Subset(ff[[i]], x)
+    }
+    return(ff)
+  })
+  names(ff) <- attr(ind_mat, "short_names")[names(ff)]
 
-  ind_mat <- ind_mat[which(inds),,drop=F]
-  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-  attr(ind_mat, "ws") <- x$wsp
-  attr(ind_mat, "FilePath") <- x$FilePath
 
-  flowWorkspace::gs_cleanup_temp(gs)
-  return(list(expr = ex, ind_mat = ind_mat))
+  # ind_mat <- ind_mat[which(inds),,drop=F]
+  # attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
+  # attr(ind_mat, "ws") <- x$wsp
+  # attr(ind_mat, "FilePath") <- x$FilePath
+
+  flowWorkspace::gs_cleanup_temp(x)
+  return(list(ff = ff, ind_mat = ind_mat))
 }
 
+sampling_fun <- function(inds_col, lev_score) {
+  set.seed(seed)
+  s <- sort(sample(x = which(inds_col),
+                   size = ifelse(downsample < 1,
+                                 ceiling(length(which(inds_col))*downsample),
+                                 min(c(length(which(inds_col)), downsample))),
+                   prob = lev_score))
+}
 
 get_ff2 <- function(x,
                     downsample = 1,
@@ -489,48 +512,48 @@ get_ff2 <- function(x,
   }
   inds[which(inds)[!which(inds) %in% s]] <- F
 
-  return(stats::setNames(list(subset(ff, inds)), "untransformed"))
+  return(stats::setNames(list(flowCore::Subset(ff, inds)), "untransformed"))
 }
 
 get_gs <- function(x,
                    remove_redundant_channels,
-                   lapply_fun = lapply) {
-                   # split_size = 2,
-                   # additional.sampleID = F,
-                   # ...) {
-#y<-asplit(x,1)[[1]]
-  lapply_fun <- match.fun(lapply_fun)
+                   merge_to_gs = T) {
+
   # split(x, (seq(nrow(x))-1) %/% split_size
-  gs_list <- lapply_fun(asplit(x,1), function(y) {
-    message(y[["FilePathUse"]])
-    # gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(y$wsp)),
-    #                                   name = unique(y$FlowJoGroup),
-    #                                   path = unique(y$FCS.file.folder),
-    #                                   subset = `$FIL` %in% x$FIL & `$BEGINDATA` %in% x$BEGINDATA & `$TOT` %in% x$TOT,
-    #                                   truncate_max_range = F,
-    #                                   keywords = c("$FIL", "$BEGINDATA", "$TOT"),
-    #                                   additional.keys = c("$TOT", "$BEGINDATA"),
-    #                                   additional.sampleID	= additional.sampleID)
-    gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(unique(y[["wsp"]])),
+  message("tempdir: ", tempdir())
+  gs_list <- lapply(asplit(x,1), function(y) {
+    message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
+
+    gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(y[["wsp"]]),
                                       name = unique(y[["FlowJoGroup"]]),
                                       path = dirname(y[["FilePathUse"]]),
-                                      subset = `$FIL` %in% y[["$FIL"]] & `$TOT` %in% y[["$TOT"]] & `$ETIM` %in% y[["$ETIM"]] & `$BTIM` %in% y[["$BTIM"]],
+                                      subset = if (y[["equal_FileDirs"]]) {basename(y[["FilePathUse"]])} else {`$FIL` %in% y[["$FIL"]] & `$TOT` %in% y[["$TOT"]] & `$ETIM` %in% y[["$ETIM"]] & `$BTIM` %in% y[["$BTIM"]]},
                                       truncate_max_range = F,
                                       keywords = c("$FIL", "$ETIM", "$BTIM", "$TOT"),
-                                      additional.keys = c("$TOT", "$ETIM", "$BTIM", "$TOT"))
-                                      #additional.sampleID	= additional.sampleID)
+                                      additional.keys = c("$TOT", "$ETIM", "$BTIM"))
 
     flowWorkspace::sampleNames(gs) <- y[["FlowJoFileName"]]
+    attr(gs, "ws") <- y[["wsp"]]
+    attr(gs, "FlowJoFileName") <- y[["FlowJoFileName"]]
+    attr(gs, "FilePath") <- y[["FilePathUse"]]
+    attr(gs, "downsample") <- y[["downsample"]]
     #rownames(y) <- paste(y[["$FIL"]], y[["$TOT"]], y[["$ETIM"]], y[["$BTIM"]], sep = "_")
     #flowWorkspace::sampleNames(gs) <- y[flowWorkspace::sampleNames(gs),"FileName"]
 
     if (remove_redundant_channels) {
       gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
     }
+    path <- list.files(flowWorkspace::gs_get_uri(gs), full.names = T)
+    message("Written to temdir/", file.path(basename(dirname(path)), basename(path)), "\n")
     return(gs)
   })
 
-  return(flowWorkspace::merge_list_to_gs(gs_list))
+  if (merge_to_gs) {
+    return(flowWorkspace::merge_list_to_gs(gs_list))
+  } else {
+    return(stats::setNames(gs_list, basename(x$FilePathUse)))
+  }
+
 }
 
 .get.channels <- function(ff,

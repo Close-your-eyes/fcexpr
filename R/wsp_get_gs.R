@@ -1,5 +1,13 @@
 #' Get (subsetted) gatingsets from flowjo workspaces
 #'
+#' Wsp files are checked for corresponding gating hierarchies and FCS files are
+#' read into separate GatingSets (gs), respectively. That means FCS files from different
+#' wsp are combined if their gatings are equal. But simple import from one wsp is
+#' also possible. If file paths to FCS files in flowjo are not valid on the current computer
+#' (e.g. because flowjo analysis was done on another computer), you have to provide the
+#' local top folder which contains all of the necessary FCS files: FCS.files.folder.
+#' Therein, the files are searched for recursively. Samples from wsp(s) with missing FCS files are skipped.
+#'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param groups vector or list of groups in flowjo to consider; if a list, each index corresponds to the index in wsp;
 #' if NULL samples from all groups are read
@@ -10,17 +18,17 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
-#' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
-#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
-#' @param split_size chunk size of splits of fcs files parsed to CytoML::flowjo_to_gatingset;
-#' splitting allows to have a progress bar from pblapply or to use multicore processing by parallel::mclapply
 #'
-#' @return list of gatingsets
+#' @return list of gatingsets, FCS files used, gating hierarchies
 #' @export
 #'
 #' @examples
 #'\dontrun{
-#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp")
+#' # check fcs files in wsp first
+#' samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp", split = F, filter_AllSamples = T)
+#' # read-in Gating set with selected samples
+#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder",
+#' groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
 #'}
 wsp_get_gs <- function(wsp,
                        FCS.file.folder = NULL,
@@ -28,10 +36,7 @@ wsp_get_gs <- function(wsp,
                        invert_groups = F,
                        samples = NULL,
                        invert_samples = F,
-                       remove_redundant_channels = F,
-                       lapply_fun = lapply
-                       #split_size = 2,
-                       #additional.sampleID = F,
+                       remove_redundant_channels = F
 ) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -44,9 +49,12 @@ wsp_get_gs <- function(wsp,
     BiocManager::install("flowWorkspace")
   }
 
-  lapply_fun <- match.fun(lapply_fun)
-
-  checked_in <- check_in(wsp = wsp, samples = samples, groups = groups, FCS.file.folder = FCS.file.folder)
+  checked_in <- check_in(
+    wsp = wsp,
+    samples = samples,
+    groups = groups,
+    FCS.file.folder = FCS.file.folder
+  )
 
   smpl <- get_smpl_df(
     wsp = wsp,
@@ -54,19 +62,23 @@ wsp_get_gs <- function(wsp,
     invert_groups = invert_groups,
     samples = checked_in[["samples"]],
     invert_samples = invert_samples,
-    FCS.file.folder = checked_in[["FCS.file.folder"]],
-    lapply_fun = lapply_fun
+    FCS.file.folder = checked_in[["FCS.file.folder"]]
   )
   if (is.null(smpl)) {
     return(NULL)
   }
+
   # check gating trees for equality
-  ps <-
-    wsx_get_popstats(ws = wsp, return_stats = F) |>
-    dplyr::filter(identity %in% smpl$identity)
-  gatings_list <- purrr::map(setNames(unique(ps$identity), unique(ps$identity)), function(x) {
-    fcexpr::gating_tree_plot(ps |> dplyr::filter(identity == x) |> dplyr::pull("PopulationFullPath"))
-  })
+  gatings_list <- purrr::list_flatten(purrr::map(wsp, function(ws) {
+    ps <-
+      wsx_get_popstats(ws = ws, return_stats = F) |>
+      dplyr::filter(identity %in% smpl$identity)
+    gatings_list <- purrr::map(setNames(unique(ps$identity), unique(ps$identity)), function(x) {
+      fcexpr::gating_tree_plot(ps |> dplyr::filter(identity == x) |> dplyr::pull("PopulationFullPath"))
+    })
+    return(gatings_list)
+  }))
+
   gatings_df <-
     dplyr::bind_rows(purrr::map(gatings_list, `[[`, 3), .id = "identity") |>
     dplyr::left_join(ps |>
@@ -96,32 +108,31 @@ wsp_get_gs <- function(wsp,
   smpl <- dplyr::left_join(smpl, dfhashes, by = "identity")
 
   #waldo::compare(gatings_list[[1]], gatings_list[[2]])
-  if (any(table(smpl$identity) > 1)) {
-    message("Same FCS files found in multiple workspaces. This may cause problems. Provide samples argument as a list of vectors, one for each wsp and filter the duplicate files.")
-    message(paste(names(table(smpl$identity))[which(table(smpl$identity) > 1)], collapse = ", "))
-  }
 
   smpl_list <- split(smpl, smpl$gatinggroup)
-  message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.")
-  for (i in smpl_list) {
-    message(paste(i$FlowJoFileName, collapse = ", "), "\n")
+  names(smpl_list) <- paste(names(smpl_list),
+                            purrr::map_chr(smpl_list, function(x) {
+                              paste(paste(unique(basename(x$wsp)), sep = "_"), paste(unique(x$FlowJoGroup), sep = "_"), sep = "_")
+                            }),
+                            sep = "_")
+  if (length(length(smpl_list)) > 1) {
+    message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.")
+    for (i in smpl_list) {
+      message(paste(i$FlowJoFileName, collapse = ", "), "\n")
+    }
   }
-  #x<- smpl
+
   gs_list <- lapply(smpl_list,
                     get_gs,
-                    remove_redundant_channels = remove_redundant_channels,
-                    lapply_fun = lapply_fun)
-  # split_size = split_size,
-  # additional.sampleID = additional.sampleID,
-  # ...)
+                    remove_redundant_channels = remove_redundant_channels)
   names(gs_list) <- names(smpl_list)
 
-  return(
+  return(list(
     gs_list = gs_list,
     FCS_files = smpl,
     gating_hierachies = gatings_list,
     gatings_compare = gatings_df
-  )
+  ))
 }
 
 
