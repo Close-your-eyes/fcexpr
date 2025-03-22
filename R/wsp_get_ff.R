@@ -97,28 +97,27 @@ wsp_get_ff <- function(wsp,
   if (missing(population)) {
     stop("population missing. please provide one or more.")
   }
+  if ((!is.null(return_untransformed) && !return_untransformed) && (!is.null(return_transformed) && !return_transformed)) {
+    stop("At least one of return_transformed or return_untransformed has to be TRUE.")
+  }
   lapply_fun <- match.fun(lapply_fun)
 
 
-  checked_in <- check_in(wsp = wsp,
-                         groups = groups,
-                         samples = samples,
-                         FCS.file.folder = FCS.file.folder,
-                         return_untransformed = return_untransformed,
-                         return_transformed = return_transformed)
-  groups <- checked_in[["groups"]]
+  smpl <- wsx_get_sample_df(
+    ws = wsp,
+    groups = groups,
+    samples = samples,
+    FCS.file.folder = FCS.file.folder,
+    invert_groups = invert_groups,
+    invert_samples = invert_samples
+  )
 
-
-  smpl <- get_smpl_df(wsp = wsp,
-                      groups = groups,
-                      invert_groups = invert_groups,
-                      samples = checked_in[["samples"]],
-                      invert_samples = invert_samples,
-                      FCS.file.folder = checked_in[["FCS.file.folder"]])
   if (is.null(smpl)) {
     return(NULL)
   }
 
+  groups <- split(smpl$wsp, smpl$FlowJoGroup)
+  groups <- groups[wsp] # order correctly
 
   if (is.numeric(downsample)) {
     ds <- downsample

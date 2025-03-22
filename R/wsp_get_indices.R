@@ -56,18 +56,14 @@ wsp_get_indices <- function(wsp,
   }
   lapply_fun <- match.fun(lapply_fun)
 
-  checked_in <- check_in(wsp = wsp, groups = groups, samples = samples, FCS.file.folder = FCS.file.folder)
-  groups <- checked_in[["groups"]]
-  samples <- checked_in[["samples"]]
-  FCS.file.folder <- checked_in[["FCS.file.folder"]]
-
-  smpl <- get_smpl_df(wsp = wsp,
-                      groups = groups,
-                      invert_groups = invert_groups,
-                      samples = samples,
-                      invert_samples = invert_samples,
-                      FCS.file.folder = FCS.file.folder)
-
+  smpl <- wsx_get_sample_df(
+    ws = wsp,
+    groups = groups,
+    samples = samples,
+    FCS.file.folder = FCS.file.folder,
+    invert_groups = invert_groups,
+    invert_samples = invert_samples
+  )
   if (is.null(smpl)) {
     return(NULL)
   }

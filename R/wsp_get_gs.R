@@ -49,20 +49,13 @@ wsp_get_gs <- function(wsp,
     BiocManager::install("flowWorkspace")
   }
 
-  checked_in <- check_in(
-    wsp = wsp,
-    samples = samples,
+  smpl <- wsx_get_sample_df(
+    ws = wsp,
     groups = groups,
-    FCS.file.folder = FCS.file.folder
-  )
-
-  smpl <- get_smpl_df(
-    wsp = wsp,
-    groups = checked_in[["groups"]],
+    samples = samples,
+    FCS.file.folder = FCS.file.folder,
     invert_groups = invert_groups,
-    samples = checked_in[["samples"]],
-    invert_samples = invert_samples,
-    FCS.file.folder = checked_in[["FCS.file.folder"]]
+    invert_samples = invert_samples
   )
   if (is.null(smpl)) {
     return(NULL)
