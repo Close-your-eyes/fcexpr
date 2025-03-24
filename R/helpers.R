@@ -89,7 +89,11 @@ get_ff <- function(x,
                    leverage_score_for_sampling = F,
                    return_ind_mat_only = F) {
 
-  downsample <- suppressWarnings(as.numeric(attr(x, "downsample")))
+  if ("downsample" %in% names(attributes(x))) {
+    downsample <- suppressWarnings(as.numeric(attr(x, "downsample"))) # when min --> NA
+  } else {
+    downsample <- NA
+  }
   if (is.na(downsample)) {
     downsample <- 1 # set to neutral when downsample was "min", then sampling happens outside of get_ff
   }
@@ -167,15 +171,16 @@ get_ff <- function(x,
   } else {
     s <- lapply(asplit(inds, 2), which)
   }
+
   inds <- mapply(inds = asplit(inds, 2), s = s, function(inds,s) {
     inds[which(inds)[!which(inds) %in% s]] <- F
     return(inds)
   }, SIMPLIFY = F)
-
+#browser()
   # pull multiple population from flowframe
   ff <- lapply(inds, function(x) {
     for (i in seq_along(ff)) {
-      ff[[i]] <- flowCore::Subset(ff[[i]], x)
+      ff[[i]] <- flowCore::Subset(ff[[i]], as.logical(x)) # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
     }
     return(ff)
   })
@@ -201,10 +206,9 @@ sampling_fun <- function(inds_col, lev_score) {
 }
 
 get_ff2 <- function(x,
-                    downsample = 1,
                     population,
-                    alias_attr_name,
-                    path_attr_name,
+                    alias_attr_name = "short_names",
+                    path_attr_name = "FilePath",
                     leverage_score_for_sampling = F,
                     channels = NULL,
                     seed = 42) {
@@ -218,9 +222,15 @@ get_ff2 <- function(x,
     return(NULL)
   }
 
-  if (length(population) > 1) {
-    stop("Only provide one population.")
+  if ("downsample" %in% names(attributes(x))) {
+    downsample <- suppressWarnings(as.numeric(attr(x, "downsample"))) # when min --> NA
+  } else {
+    downsample <- NA
   }
+  if (is.na(downsample)) {
+    downsample <- 1 # set to neutral when downsample was "min", then sampling happens outside of get_ff2
+  }
+
 
   if (downsample == 1 && leverage_score_for_sampling) {
     message("No downsampling with leverage_score_for_sampling = T is not meaningful. leverage_score_for_sampling set to F.")
@@ -238,45 +248,59 @@ get_ff2 <- function(x,
     message("channels are only needed for leverage score aided sampling. leverage_score_for_sampling = F though, so channels are ignored.")
   }
 
-  if (population %in% colnames(x)) {
-    inds <- x[,which(colnames(x) == population)]
-  } else if (alias_attr_name %in% names(attributes(x)) && all(names(attr(x,alias_attr_name)) == colnames(x)) && population %in% attr(x,alias_attr_name)) {
-    inds <- x[,which(attr(x,alias_attr_name) == population)]
-  } else {
-    message("population not found for ", attr(x, path_attr_name))
-    return(NULL)
+
+  col_inds <- which(colnames(x) %in% population)
+  if (alias_attr_name %in% names(attributes(x))) {
+    col_inds <- c(col_inds, which(attr(x,alias_attr_name) %in% population))
   }
+  col_inds <- unique(col_inds)
 
-  ## overwrite downsample argument if provided as attr in x
-  if ("downsample" %in% names(attributes(x))) {
-    downsample <- attr(x, "downsample")
+  if (length(col_inds) == 0) {
+    message("no population found")
+  } else if (length(col_inds) != length(population)) {
+    message("not all population found.")
   }
-
-
+  inds <- x[, col_inds]
   ff <- flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F)
 
   if (leverage_score_for_sampling) {
-    channels <- .get.channels(ff, channels = channels)
-    lev_scores <- Seurat::LeverageScore(object = t(flowCore::exprs(ff)[which(inds),channels]), verbose = F, seed = seed)
+    message("Calculating leverage scores.")
+    channels <- .get.channels(ff[[1]], channels = channels)
+    lev_scores <- lapply(asplit(inds, 2), function(x) {
+      Seurat::LeverageScore(object = t(flowCore::exprs(ff[[1]])[which(x),channels]), verbose = F, seed = seed)
+    })
   } else {
-    lev_scores <- NULL
+    lev_scores <- lapply(asplit(inds, 2), function(x) rep(1, length(which(x))))
   }
 
   if (downsample != 1) {
-    set.seed(seed)
-    s <- sample(x = which(inds),
-                size = ifelse(downsample < 1, ceiling(length(which(inds))*downsample), min(c(length(which(inds)),downsample))),
-                prob = lev_scores)
+    s <- mapply(sampling_fun, inds_col = asplit(inds, 2), lev_score = lev_scores)
   } else {
-    s <- which(inds)
+    s <- lapply(asplit(inds, 2), which)
   }
-  inds[which(inds)[!which(inds) %in% s]] <- F
 
-  return(stats::setNames(list(flowCore::Subset(ff, inds)), "untransformed"))
+  inds <- mapply(inds = asplit(inds, 2), s = s, function(inds,s) {
+    inds[which(inds)[!which(inds) %in% s]] <- F
+    return(inds)
+  }, SIMPLIFY = F)
+
+  # pull multiple population from flowframe
+  ff <- lapply(inds, function(x) {
+    # for (i in seq_along(ff)) {
+    #   ff[[i]] <- flowCore::Subset(ff[[i]], as.logical(x)) # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
+    # }
+     # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
+    flowCore::Subset(ff, as.logical(x))
+  })
+
+  if (alias_attr_name %in% names(attributes(x))) {
+    names(ff) <- attr(x, alias_attr_name)[col_inds]
+  }
+  return(ff)
 }
 
 get_gs <- function(x,
-                   remove_redundant_channels,
+                   remove_redundant_channels = F,
                    merge_to_gs = T) {
 
   # split(x, (seq(nrow(x))-1) %/% split_size
@@ -296,7 +320,10 @@ get_gs <- function(x,
     attr(gs, "ws") <- y[["wsp"]]
     attr(gs, "FlowJoFileName") <- y[["FlowJoFileName"]]
     attr(gs, "FilePath") <- y[["FilePathUse"]]
-    attr(gs, "downsample") <- y[["downsample"]]
+    if ("downsample" %in% names(y)) {
+      attr(gs, "downsample") <- y[["downsample"]]
+    }
+
     #rownames(y) <- paste(y[["$FIL"]], y[["$TOT"]], y[["$ETIM"]], y[["$BTIM"]], sep = "_")
     #flowWorkspace::sampleNames(gs) <- y[flowWorkspace::sampleNames(gs),"FileName"]
 

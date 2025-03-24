@@ -27,8 +27,7 @@
 #' # check fcs files in wsp first
 #' samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp", split = F, filter_AllSamples = T)
 #' # read-in Gating set with selected samples
-#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder",
-#' groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
+#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder", groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
 #'}
 wsp_get_gs <- function(wsp,
                        FCS.file.folder = NULL,
@@ -66,19 +65,19 @@ wsp_get_gs <- function(wsp,
     ps <-
       wsx_get_popstats(ws = ws, return_stats = F) |>
       dplyr::filter(identity %in% smpl$identity)
-    gatings_list <- purrr::map(setNames(unique(ps$identity), unique(ps$identity)), function(x) {
+    gatings_list <- purrr::map(stats::setNames(unique(ps$identity), unique(ps$identity)), function(x) {
       fcexpr::gating_tree_plot(ps |> dplyr::filter(identity == x) |> dplyr::pull("PopulationFullPath"))
     })
-    return(gatings_list)
+    return(list(ps = ps, gatings_list = gatings_list))
   }))
 
   gatings_df <-
-    dplyr::bind_rows(purrr::map(gatings_list, `[[`, 3), .id = "identity") |>
-    dplyr::left_join(ps |>
+    dplyr::bind_rows(purrr::map(gatings_list[["gatings_list"]], `[[`, 3), .id = "identity") |>
+    dplyr::left_join(gatings_list[["ps"]] |>
                        dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
                        dplyr::rename("xDimfrom" = xDim, "yDimfrom" = yDim),
                      by = c("identity" = "identity", "from" = "PopulationFullPath")) |>
-    dplyr::left_join(ps |>
+    dplyr::left_join(gatings_list[["ps"]] |>
                        dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
                        dplyr::rename("xDimto" = xDim, "yDimto" = yDim),
                      by = c("identity" = "identity", "to" = "PopulationFullPath"))
@@ -93,7 +92,7 @@ wsp_get_gs <- function(wsp,
     return(x)
   })
   dfhashes <-
-    stack(purrr::map_chr(gatings_df, digest::digest, algo = "sha256")) |>
+    utils::stack(purrr::map_chr(gatings_df, digest::digest, algo = "sha256")) |>
     dplyr::group_by(values) |>
     dplyr::mutate(gatinggroup = dplyr::cur_group_id()) |>
     dplyr::rename("hash" = values, "identity" = ind) |>

@@ -49,7 +49,6 @@ Therein, the files are searched for recursively. Samples from wsp(s) with missin
 # check fcs files in wsp first
 samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp", split = F, filter_AllSamples = T)
 # read-in Gating set with selected samples
-gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder",
-groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
+gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder", groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
 }
 }

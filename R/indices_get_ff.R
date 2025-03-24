@@ -24,20 +24,21 @@
 #' @examples
 #' \dontrun{
 #' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
-#' ff <- inds_get_ff(ind_mat = ind_mat, population = "CD8+")
+#' ff <- indices_get_ff(ind_mat = ind_mat, population = "CD8+")
 #' }
-inds_get_ff <- function(ind_mat,
-                        population,
-                        alias_attr_name = "short_names",
-                        path_attr_name = "FilePath",
-                        downsample = 1,
-                        lapply_fun = lapply,
-                        seed = 42,
-                        channels = channels,
-                        leverage_score_for_sampling = F,
-                        ...) {
+indices_get_ff <- function(ind_mat,
+                           population,
+                           alias_attr_name = "short_names",
+                           path_attr_name = "FilePath",
+                           downsample = 1,
+                           lapply_fun = lapply,
+                           seed = 42,
+                           channels = NULL,
+                           leverage_score_for_sampling = F,
+                           ...) {
 
   ## check and update
+
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -48,34 +49,33 @@ inds_get_ff <- function(ind_mat,
   if (missing(population)) {
     stop("Plesae provide a population to get flowframes for. To get all events, set population = 'root'.")
   }
-  if (length(population) > 1) {
-    stop("Only provide one population.")
-  }
 
+  if (is.matrix(ind_mat)) {
+    ind_mat <- list(ind_mat)
+  }
   lapply_fun <- match.fun(lapply_fun)
+
 
   if (is.numeric(downsample)) {
     ds <- downsample
   } else if (all(downsample == "min")) {
     ds <- 1
   } else {
-    stop("downsample has to be numeric of 'min'. With min all flowframes will be downsampled to that flowframe with the lowest number of events.")
+    stop("downsample has to be numeric or 'min'. With min, all flowframes will be downsampled to that flowframe with the lowest number of events.")
   }
-  # check length of downsample equal to length of ind_mat or equal to 1
   if (length(ds) != 1 && length(ds) != length(ind_mat)) {
-    stop("downsample has to have length 1 or length of ind_mat (one value for each FCS file).")
+    stop("downsample has to have length 1 or length of ind_mats.")
+  } else if (length(ds) == 1) {
+    ds <- rep(ds, length(ind_mat))
   }
 
-  if (length(ds) != 1) {
-    for (x in seq_along(ind_mat)) {
-      attr(ind_mat[[x]], "downsample") <- ds[x]
-    }
+  for (x in seq_along(ind_mat)) {
+    attr(ind_mat[[x]], "downsample") <- ds[x]
   }
 
   ## loop over ind_mat_indices = loop over fcs files
   ff.list <- lapply_fun(ind_mat,
                         get_ff2,
-                        downsample = ds,
                         population = population,
                         alias_attr_name = alias_attr_name,
                         path_attr_name = path_attr_name,
@@ -83,25 +83,26 @@ inds_get_ff <- function(ind_mat,
                         channels = channels,
                         leverage_score_for_sampling = leverage_score_for_sampling,
                         ...)
-
-  if (all(downsample == "min")) {
-    min <- min(unlist(lapply(sapply(sapply(ff.list, "[", 1), "[", 1), nrow)))
-    for (x in seq_along(ff.list)) {
-      inds <- c(rep(T, min), rep(F, nrow(ff.list[[x]][[1]][[1]])-min))
-      ff.list[[x]][[1]][[1]] <- subset(ff.list[[x]][[1]][[1]], sample(inds))
-      ff.list[[x]][[1]][[2]] <- subset(ff.list[[x]][[1]][[2]], sample(inds))
-    }
+  if (is.null(names(ff.list))) {
+    names(ff.list) <- purrr::map_chr(ind_mat, function(x) basename(attr(x, "FilePath")))
   }
 
-  ind_mat <- ind_mat[which(!sapply(ff.list, is.null))]
-  ff.list <- ff.list[which(!sapply(ff.list, is.null))]
-
-  # maybe not necessary
-  names(ff.list) <- unname(sapply(ind_mat, function(x) basename(attr(x, path_attr_name))))
-  # rearrange
-  ff.list <- stats::setNames(lapply(names(ff.list[[1]]), function(x) {
-    lapply(ff.list, "[[", x)
-  }), nm = names(ff.list[[1]]))
+  if (all(downsample == "min") && length(ff.list) > 1) {
+    pops <- unique(unlist(purrr::map(ff.list, names)))
+    names(pops) <- pops
+    minrows <- purrr::map_int(pops, function(pop) {
+      min(purrr::map_int(purrr::map(ff.list, ~ purrr::pluck(.x, pop)), purrr::compose(nrow, flowCore::exprs)))
+    })
+    for (pop in pops) {
+      for (z in seq_along(ff.list)) {
+        if (pop %in% names(ff.list[[z]])) {
+          set.seed(seed)
+          inds <- sample(c(rep(T, minrows[pop]), rep(F, nrow(ff.list[[z]][[pop]])-minrows[pop])))
+          ff.list[[z]][[pop]] <- flowCore::Subset(ff.list[[z]][[pop]], inds)
+        }
+      }
+    }
+  }
 
   return(ff.list)
 }

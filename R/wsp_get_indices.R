@@ -26,7 +26,7 @@
 #'
 #' @examples
 #'\dontrun{
-#' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+#' ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp", groups = "Compensation", invert_groups = TRUE)
 #'}
 wsp_get_indices <- function(wsp,
                             FCS.file.folder = NULL,
@@ -41,9 +41,6 @@ wsp_get_indices <- function(wsp,
   # update examples: show how to read ff and then apply ind mat with subset
   # also note that compensation may be done with fs_apply_comp
   # and get compmat fromflowjo wsp or from fcs keyword
-
-  # change check_in function: add inverted arguments and maybe change name
-  # make get smpl df an exported function - maintain tthe inverted arguments, set them to F within functions oce check_in was updated
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -68,17 +65,16 @@ wsp_get_indices <- function(wsp,
     return(NULL)
   }
 
-  if (any(table(smpl$FilePath) > 1)) {
-    warning("Same FCS files found in multiple workspaces. This cannot be handled. Please provide the samples and/or groups argument or fix manually.")
-    stop(smpl$FilePath[which(table(smpl$FilePath) > 1)])
-  }
+  gs_list <- lapply(list(smpl),
+                    get_gs,
+                    merge_to_gs = F)[[1]]
 
-  ind.list <- lapply_fun(split(smpl, 1:nrow(smpl)),
+  ind_mats <- lapply_fun(gs_list,
                          get_ff,
                          return_ind_mat_only = T,
                          ...)
-  names(ind.list) <- smpl$FileName
-  return(ind.list)
+  message("temporary .h5 were removed.")
+  return(list(ind_mats = ind_mats, FCS_files = smpl))
 }
 
 

@@ -51,6 +51,6 @@ to save the indices-matrices to disk in case of large FCS files.
 }
 \examples{
 \dontrun{
-ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp")
+ind_mat <- fcexpr::wsp_get_indices("mypath/my.wsp", groups = "Compensation", invert_groups = TRUE)
 }
 }

@@ -25,7 +25,7 @@ wsx_get_sample_df <- function(ws,
                               FCS.file.folder) {
 
   checked_in <- check_wsp_for_samples_and_groups(
-    wsp = wsp,
+    wsp = ws,
     groups = groups,
     samples = samples,
     FCS.file.folder = FCS.file.folder,
@@ -33,7 +33,7 @@ wsx_get_sample_df <- function(ws,
     invert_samples = invert_samples
   )
 
-  smpl <- get_smpl_df(wsp = wsp,
+  smpl <- get_smpl_df(wsp = ws,
                       groups = checked_in[["groups"]],
                       invert_groups = F,
                       samples = checked_in[["samples"]],
@@ -72,7 +72,7 @@ check_wsp_for_samples_and_groups <- function(wsp,
       if (invert_samples) {
         samples <- purrr::map2(wsp_data, samples, ~ .x$FileName[which(!.x$FileName %in% .y)])
       } else {
-        not_found_samples <- unlist(purrr::map2(wsp_data, samples, ~ .x$FileName[which(!.x$FileName %in% .y)]))
+        not_found_samples <- unlist(purrr::map2(wsp_data, samples, ~ .y[which(!.y %in% .x$FileName)]))
         if (length(not_found_samples) > 0) {
           message("samples not found: ", paste(not_found_samples, collapse = ", "))
         }
@@ -94,7 +94,7 @@ check_wsp_for_samples_and_groups <- function(wsp,
       if (invert_groups) {
         groups <- purrr::map2(wsp_data, groups, ~ .x$FlowJoGroup[which(!.x$FlowJoGroup %in% .y)])
       } else {
-        not_found_groups <- unlist(purrr::map2(wsp_data, groups, ~ .x$FlowJoGroup[which(!.x$FlowJoGroup %in% .y)]))
+        not_found_groups <- unlist(purrr::map2(wsp_data, groups, ~ .y[which(!.y %in% .x$FlowJoGroup)]))
         if (length(not_found_groups) > 0) {
           message("groups not found: ", paste(not_found_groups, collapse = ", "))
         }

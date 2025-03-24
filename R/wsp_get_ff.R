@@ -44,7 +44,7 @@
 #'
 #' @examples
 #'\dontrun{
-#' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+#' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = c("CD8+", "CD4+"), groups = "Compensation", invert_groups = TRUE)
 #' # ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
 #' ## how to to work with the returned nested list
 #' # ignore ind_mats and create one big data.frame w/o any filtering from flow frames
@@ -169,7 +169,7 @@ wsp_get_ff <- function(wsp,
   ff.list <- list(flowframes = purrr::map(ff.list, purrr::pluck, "ff"),
                   ind_mats = purrr::map(ff.list, purrr::pluck, "ind_mat"))
 
-  if (all(downsample == "min")) {
+  if (all(downsample == "min") && length(ff.list[["flowframes"]]) > 1) {
     pops <- unique(unlist(purrr::map(ff.list[["flowframes"]], names)))
     names(pops) <- pops
     minrows <- purrr::map_int(pops, function(pop) {

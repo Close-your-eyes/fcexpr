@@ -83,7 +83,7 @@ transformed and untransformed, expression values returned.
 }
 \examples{
 \dontrun{
-ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = "CD8+")
+ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = c("CD8+", "CD4+"), groups = "Compensation", invert_groups = TRUE)
 # ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
 ## how to to work with the returned nested list
 # ignore ind_mats and create one big data.frame w/o any filtering from flow frames
