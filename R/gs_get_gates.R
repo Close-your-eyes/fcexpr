@@ -57,6 +57,8 @@ gs_get_gates <- function(gs,
   if (is.null(quantile_lim_filter)) {
     quantile_lim_filter <- c(0,1)
   }
+  min_max_vals <- sort(min_max_vals)
+  min_max_vals_scatter <- sort(min_max_vals_scatter)
 
   gates <-
     data.frame(PopulationFullPath = gsub("^/", "", flowWorkspace::gs_get_pop_paths(gs)),
@@ -72,65 +74,89 @@ gs_get_gates <- function(gs,
                   y_statpos_pct = y_statpos_pct,
                   statsize_pct = statsize_pct)
 
-  gates$dims <- sapply(gates$PopulationFullPath, function(x) {
-    y <- unname(flowCore::parameters({flowWorkspace::gs_pop_get_gate(gs[[1]], x)[[1]]}))
+  # for 1D gates: dimension becomes x-dim, always. does not matter. or does it?
+  gates$dims <- lapply(gates$PopulationFullPath, function(x) {
+    y <- unname(flowCore::parameters(flowWorkspace::gs_pop_get_gate(gs[[1]], x)[[1]]))
     return(y)
     # stupid handling of Not-gate. other booleans may require similar specific treatment
-'    if (length(y) == 0) {
+    '    if (length(y) == 0) {
       y <- list(unname(flowCore::parameters({flowWorkspace::gs_pop_get_gate(gs[[1]], gsub("^!", "", zz@deparse))[[1]]})))
     } else {
       return(list(y))
     }'
-  }, simplify = F)
+  })
+
   ## filter boolean gates - test further ... # boolean are not easy to handle (e.g. their children)
   gates <- gates[which(lengths(gates$dims) > 0),]
 
-  gates$x <- unname(sapply(gates$dims, function(x) {unlist(x)[1]}))
-  gates$y <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
-  gates$x_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[1]}))
-  gates$y_lab <- unname(sapply(gates$dims, function(x) {unlist(x)[2]}))
+  gates$x <- sapply(gates$dims, "[", 1)
+  gates$y <- sapply(gates$dims, "[", 2)
+  gates$x_lab <- gates$x
+  gates$y_lab <- gates$y
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
-  lims <- lapply(split(gates, 1:nrow(gates)), function(y) {
-    parent <- dirname(y$PopulationFullPath)
-    if (parent == ".") {
-      parent <- "root"
+  get_inds <- function(channel, fs, fs_name, min_max = c(0, 300)) {
+    if (is.na(channel)) {return(NULL)}
+    if (nrow(flowCore::exprs(fs[[fs_name]])) == 0) {return(NULL)}
+    inds_in_range <- dplyr::between(flowCore::exprs(fs[[fs_name]])[,channel], min_max[1], min_max[2])
+    return(inds_in_range)
+  }
+  get_quantiles <- function(gate, fs, fs_name, min_max_vals_scatter, min_max_vals) {
+
+    # inds are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
+    xy_channel <- stats::setNames(c(gate$x, gate$y), c("x", "y"))
+    xy_channel <- xy_channel[which(!is.na(xy_channel))]
+    #xy_channel <- stats::setNames(c(gate$x, gate$y), c(gate$x, gate$y))
+    inds_xy <- purrr::map(xy_channel,
+                          ~get_inds(channel = .x,
+                                    fs = fs,
+                                    fs_name = fs_name,
+                                    min_max = if (grepl("fsc|ssc", .x, ignore.case = T)) min_max_vals_scatter else min_max_vals))
+    if (length(inds_xy) == 2) {
+      # 2D gate: no NA channel
+      inds <- inds_xy[[1]] & inds_xy[[2]] # event within limits in both dimension?
+    } else {
+      inds <- inds_xy[[1]]
     }
 
-    out <- flowWorkspace::cytoset_to_flowSet(flowWorkspace::gs_pop_get_data(gs, y = parent, truncate_max_range = F))
-    out_names <- names(out@frames)
-    min_max_vals <- sort(min_max_vals)
-    min_max_vals_scatter <- sort(min_max_vals_scatter)
-    tempfun <- function(x, z) {
-      if (grepl("fsc|ssc", x, ignore.case = T)) {
-        flowCore::exprs(out[[z]])[,x] > min_max_vals_scatter[1] & flowCore::exprs(out[[z]])[,x] < min_max_vals_scatter[2]
-      } else {
-        flowCore::exprs(out[[z]])[,x] > min_max_vals[1] & flowCore::exprs(out[[z]])[,x] < min_max_vals[2]
-      }
+    if (any(inds)) {
+      quants <- apply(flowCore::exprs(fs[[fs_name]])[inds, xy_channel, drop=F],
+                      MARGIN = 2,
+                      FUN = stats::quantile,
+                      probs = quantile_lim_filter)
+    } else {
+      return(NULL)
     }
+    return(quants)
 
-    ## currently focus is on 2D-gates only
-    quants <- do.call(rbind, lapply(out_names, function(z) {
-      # rel are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
-      temp <- sapply(c(y$x, y$y), tempfun, z = z)
-      if (all(lengths(temp) > 0)) {
-        temp <- as.matrix(temp)
-        if (ncol(temp) == 1) {
-          temp <- t(temp)
-        }
-        rel <- apply(temp, 1, all)
-        if (length(rel) > 0) {
-          apply(flowCore::exprs(out[[z]])[rel,c(y$x, y$y),drop=F], 2, stats::quantile, quantile_lim_filter)
-        } else {
-          NULL
-        }
-      } else {
-        NULL
-      }
-    }))
+  }
+
+  lims <- purrr::map(split(gates, 1:nrow(gates)), function(gate) {
+
+    fs <- flowWorkspace::cytoset_to_flowSet(flowWorkspace::gs_pop_get_data(gs, y = gate$Parent, truncate_max_range = F))
+
+    ## currently focus is on 2D-gates only and 1D
+    quants <- do.call(rbind, purrr::map(names(fs@frames),
+                                        ~ get_quantiles(gate = gate,
+                                                       fs = fs,
+                                                       fs_name = .x,
+                                                       min_max_vals_scatter = min_max_vals_scatter,
+                                                       min_max_vals = min_max_vals)))
+
     # get min and max from all flowFrames
-    return(c(apply(quants, 2, min), apply(quants, 2, max)))
+    if (is.null(quants)) {
+      return(NULL)
+    }
+    quants <- c(apply(quants, 2, min), apply(quants, 2, max))
+    if (is.na(gate$x)) {
+      quants <- c(NA, quants[1], NA, quants[2])
+    }
+    if (is.na(gate$y)) {
+      quants <- c(quants[1], NA, quants[2], NA)
+    }
+    return(quants)
   })
+  lims[which(sapply(lims, is.null))] <- NA
 
   # order is known
   gates$x_lowlim <- sapply(lims, "[", 1)

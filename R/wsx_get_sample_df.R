@@ -265,7 +265,7 @@ get_smpl_df <- function(wsp,
         #local_fcs_files_df <- rbind(local_fcs_files_df, local_fcs_files_df[4,] |> dplyr::mutate(LocalFileName = "othername")) # filtered below by joining
       }
       nrowbefore <- nrow(y)
-      y <- dplyr::left_join(y, local_fcs_files_df, by = c("identity" = "identity", "FlowJoFileName" = "LocalFileName"))
+      y <- dplyr::left_join(y, local_fcs_files_df, by = c("identity" = "identity")) # , "FlowJoFileName" = "LocalFileName"
       if (nrowbefore != nrow(y)) {
         message("Joining flowjo df and local df of fcs files caused new rows. This is a bug. Check.")
       }

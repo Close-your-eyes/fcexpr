@@ -316,7 +316,9 @@ get_gs <- function(x,
                                       keywords = c("$FIL", "$ETIM", "$BTIM", "$TOT"),
                                       additional.keys = c("$TOT", "$ETIM", "$BTIM"))
 
-    flowWorkspace::sampleNames(gs) <- y[["FlowJoFileName"]]
+    # validity check in flowWorkspace::merge_list_to_gs checks for eqaul names of gs. they have to be unique.
+    # so using y[["FlowJoFileName"]] may not be sufficient to avoid ambiguities, use identity
+    flowWorkspace::sampleNames(gs) <- y[["identity"]]
     attr(gs, "ws") <- y[["wsp"]]
     attr(gs, "FlowJoFileName") <- y[["FlowJoFileName"]]
     attr(gs, "FilePath") <- y[["FilePathUse"]]
@@ -330,6 +332,9 @@ get_gs <- function(x,
     if (remove_redundant_channels) {
       gs <- suppressMessages(flowWorkspace::gs_remove_redundant_channels(gs))
     }
+
+    # identity has become rownames of pData, name column may still contain duplicate fcs file names --> make them unique
+    flowCore::pData(gs)$name <- rownames(flowCore::pData(gs))
     path <- list.files(flowWorkspace::gs_get_uri(gs), full.names = T)
     message("Written to temdir/", file.path(basename(dirname(path)), basename(path)), "\n")
     return(gs)

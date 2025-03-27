@@ -61,53 +61,16 @@ wsp_get_gs <- function(wsp,
   }
 
   # check gating trees for equality
-  gatings_list <- purrr::list_flatten(purrr::map(wsp, function(ws) {
-    ps <-
-      wsx_get_popstats(ws = ws, return_stats = F) |>
-      dplyr::filter(identity %in% smpl$identity)
-    gatings_list <- purrr::map(stats::setNames(unique(ps$identity), unique(ps$identity)), function(x) {
-      fcexpr::gating_tree_plot(ps |> dplyr::filter(identity == x) |> dplyr::pull("PopulationFullPath"))
-    })
-    return(list(ps = ps, gatings_list = gatings_list))
-  }))
-
-  gatings_df <-
-    dplyr::bind_rows(purrr::map(gatings_list[["gatings_list"]], `[[`, 3), .id = "identity") |>
-    dplyr::left_join(gatings_list[["ps"]] |>
-                       dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
-                       dplyr::rename("xDimfrom" = xDim, "yDimfrom" = yDim),
-                     by = c("identity" = "identity", "from" = "PopulationFullPath")) |>
-    dplyr::left_join(gatings_list[["ps"]] |>
-                       dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
-                       dplyr::rename("xDimto" = xDim, "yDimto" = yDim),
-                     by = c("identity" = "identity", "to" = "PopulationFullPath"))
-  gatings_df <- split(gatings_df, gatings_df$identity)
-  gatings_df <- lapply(gatings_df, function(x) {
-    x <-
-      x |>
-      dplyr::select(-identity) |>
-      dplyr::arrange(from, to)
-    #x <- dplyr::select(x, from, to) # ignore channels for splitting?!
-    rownames(x) <- seq(1, nrow(x))
-    return(x)
-  })
-  dfhashes <-
-    utils::stack(purrr::map_chr(gatings_df, digest::digest, algo = "sha256")) |>
-    dplyr::group_by(values) |>
-    dplyr::mutate(gatinggroup = dplyr::cur_group_id()) |>
-    dplyr::rename("hash" = values, "identity" = ind) |>
-    dplyr::mutate(identity = as.character(identity))
-  smpl <- dplyr::left_join(smpl, dfhashes, by = "identity")
-
-  #waldo::compare(gatings_list[[1]], gatings_list[[2]])
+  gh_comparison <- compare_gating_hierarchies(wsp = wsp, sample_df = smpl)
+  smpl <- dplyr::left_join(smpl, gh_comparison[["dfhashes"]], by = c("identity" = "identity", "wsp" = "wsp"))
 
   smpl_list <- split(smpl, smpl$gatinggroup)
   names(smpl_list) <- paste(names(smpl_list),
                             purrr::map_chr(smpl_list, function(x) {
-                              paste(paste(unique(basename(x$wsp)), sep = "_"), paste(unique(x$FlowJoGroup), sep = "_"), sep = "_")
+                              paste(paste(unique(basename(x$wsp)), collapse = "_"), paste(unique(x$FlowJoGroup), collapse = "_"), sep = "_")
                             }),
                             sep = "_")
-  if (length(length(smpl_list)) > 1) {
+  if (length(smpl_list) > 1) {
     message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.")
     for (i in smpl_list) {
       message(paste(i$FlowJoFileName, collapse = ", "), "\n")
@@ -122,9 +85,62 @@ wsp_get_gs <- function(wsp,
   return(list(
     gs_list = gs_list,
     FCS_files = smpl,
-    gating_hierachies = gatings_list,
-    gatings_compare = gatings_df
+    gating_hierachies = purrr::map(gh_comparison[["gatings_list"]], purrr::pluck, "gatings_list"),
+    gatings_compare = gh_comparison[["gatings_df"]]
   ))
 }
 
+compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
+  gatings_list <- purrr::map(stats::setNames(wsp, wsp), function(ws) {
+    ps <- wsx_get_popstats(ws = ws, return_stats = F)
+    if (!is.null(sample_df)) {
+      ps <- dplyr::filter(ps, identity %in% sample_df$identity)
+    }
+    gatings_list <- purrr::map(stats::setNames(unique(ps$identity), unique(ps$identity)), function(x) {
+      pssub <- dplyr::filter(ps, identity == x)
+      # no, wsp is iterated over
+      # if (length(unique(pssub$ws)) > 1) {
+      #   # one identity can only exist once in a workspace; so if multiple ws: same fcs file with potentially different gating in multiple ws
+      #   message("gating tree comparison: duplicate identity in sample df found. if they dont have different gatings, this will cause a problem.")
+      # }
+      #
+      fcexpr::gating_tree_plot(PopulationFullPath = dplyr::pull(pssub, "PopulationFullPath"))
+    })
+    return(list(ps = ps, gatings_list = gatings_list))
+  })
 
+  gatings_df <-
+    dplyr::bind_rows(purrr::map(gatings_list, function(x) {
+      purrr::map_dfr(x[["gatings_list"]], `[[`, 3, .id = "identity") |>
+        dplyr::left_join(x[["ps"]] |>
+                           dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
+                           dplyr::rename("xDimfrom" = xDim, "yDimfrom" = yDim),
+                         by = c("identity" = "identity", "from" = "PopulationFullPath")) |>
+        dplyr::left_join(x[["ps"]] |>
+                           dplyr::select(PopulationFullPath, identity, xDim, yDim) |>
+                           dplyr::rename("xDimto" = xDim, "yDimto" = yDim),
+                         by = c("identity" = "identity", "to" = "PopulationFullPath"))
+    }), .id = "wsp")
+  seperator <- "_"
+  while (any(c(grepl(seperator, gatings_df$identity), grepl(seperator, gatings_df$wsp)))) {
+    seperator <- paste0("_", seperator)
+  }
+  gatings_df <- split(gatings_df, paste(gatings_df$identity, gatings_df$wsp, sep = seperator)) # propagate identity and wsp for joining with smpl below
+  gatings_df <- lapply(gatings_df, function(x) {
+    x <-
+      x |>
+      dplyr::select(-c(identity, wsp)) |> # remove to only compare df for from, to and dims
+      dplyr::arrange(from, to)
+    #x <- dplyr::select(x, from, to) # ignore channels for splitting?!
+    rownames(x) <- seq(1, nrow(x))
+    return(x)
+  })
+  dfhashes <-
+    utils::stack(purrr::map_chr(gatings_df, digest::digest, algo = "sha256")) |>
+    dplyr::group_by(values) |>
+    dplyr::mutate(gatinggroup = dplyr::cur_group_id()) |>
+    dplyr::ungroup() |>
+    tidyr::separate(ind, into = c("identity", "wsp"), sep = seperator) |>
+    dplyr::rename("hash" = values)
+  return(list(gatings_list = gatings_list, gatings_df = gatings_df, dfhashes = dfhashes))
+}
