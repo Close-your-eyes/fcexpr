@@ -304,10 +304,12 @@ get_gs <- function(x,
                    merge_to_gs = T) {
 
   # split(x, (seq(nrow(x))-1) %/% split_size
+
   message("tempdir: ", tempdir())
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
 
+y[["equal_FileDirs"]] <- F # using filename as subset caused error
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(y[["wsp"]]),
                                       name = unique(y[["FlowJoGroup"]]),
                                       path = dirname(y[["FilePathUse"]]),

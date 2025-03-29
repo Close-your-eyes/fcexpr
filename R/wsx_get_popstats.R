@@ -42,6 +42,8 @@ wsx_get_popstats <- function(ws,
 
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])
+  } else {
+    groups <- unique(groups)
   }
 
   if (invert_groups) {
@@ -133,7 +135,7 @@ wsx_get_popstats <- function(ws,
                       #n = n,
                       stringsAsFactors = F)
     )
-  }) #, ...
+  }, ...) #, ...
 
   roots <- do.call(rbind, lapply_fun(rel_nodes, function(y) {
     data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
@@ -155,7 +157,7 @@ wsx_get_popstats <- function(ws,
                #deps = I(list(character(0))),
                #n = 0,
                stringsAsFactors = F)
-  })) #, ...
+  }, ...)) #, ...
 
   gates_df <- do.call(rbind, gates)
   gates_df <- rbind(roots,gates_df)
@@ -211,6 +213,7 @@ wsx_get_popstats <- function(ws,
       node <- rel_nodes[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
 
+
       stats_df <- do.call(rbind, lapply(stats, function(x) {
         prnts <- xml2::xml_parents(x)
         p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
@@ -220,18 +223,25 @@ wsx_get_popstats <- function(ws,
         FileName <- basename(FilePath)
         PopulationFullPath <- if (length(p_nodes) == 0) {"root"} else {paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")}
 
-
-        data.frame(FileName = FileName,
+        df <- data.frame(FileName = FileName,
                    PopulationFullPath = PopulationFullPath,
                    statistic = xml2::xml_attr(x, "name"),
                    channel = xml2::xml_attr(x, "id"),
-                   value = as.numeric(xml2::xml_attr(x, "value")),
+                   value = suppressWarnings(as.numeric(xml2::xml_attr(x, "value"))),
                    FilePath = FilePath,
                    stringsAsFactors = F)
+        if (is.na(df$value)) {
+          message("stats: statistic not a number.")
+          print(df)
+        }
+        return(df)
       }))
 
       return(stats_df)
-    }, ...))
+    }))
+    if (anyNA(stats_out$value)) {
+      print(tibble::as_tibble(stats_out) |> dplyr::filter(is.na(value)), n = Inf)
+    }
     return(list(counts = gates_out, stats = stats_out))
   }
   return(gates_out)

@@ -228,7 +228,29 @@ get_smpl_df <- function(wsp,
 
     if (!is.null(FCS.file.folder)) {
       local_fcs_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = "\\.fcs$", ignore.case = T)
-      local_fcs_files <- fcexpr:::.get_fcs_identities(kwl = flowCore::read.FCSheader(local_fcs_files))
+      kwl <- tryCatch(
+        expr = {
+          # unknown error in c++ with some fcs files once
+          flowCore::read.FCSheader(local_fcs_files)
+        },
+        error = function(e){
+          print(e)
+          kwl <- purrr::map(stats::setNames(local_fcs_files, local_fcs_files), function(x) {
+            tryCatch(
+              expr = {
+                return(flowCore::read.FCSheader(x)[[1]])
+              },
+              error = function(e){
+                return(NULL)
+              }
+            )
+          }, .progress = T)
+          kwl[which(purrr::map_lgl(kwl, ~ !is.null(.x)))]
+          #return(kwl)
+        }
+      )
+
+      local_fcs_files <- fcexpr:::.get_fcs_identities(kwl = kwl, allow_duplicates = T)
       local_fcs_files_df <- stack(local_fcs_files)
       names(local_fcs_files_df) <- c("identity", "LocalFilePath")
       local_fcs_files_df$LocalFilePath <- as.character(local_fcs_files_df$LocalFilePath)
