@@ -38,7 +38,8 @@ wsp_get_gs <- function(wsp,
                        remove_redundant_channels = F,
                        pData = NULL,
                        pData_join_col = "identity",
-                       get_gates = T
+                       get_gates = T,
+                       force_gs_merge = F
 
 ) {
 
@@ -74,6 +75,7 @@ wsp_get_gs <- function(wsp,
   gh_comparison <- compare_gating_hierarchies(wsp = wsp, sample_df = smpl)
   smpl <- dplyr::left_join(smpl, gh_comparison[["dfhashes"]], by = c("identity" = "identity", "wsp" = "wsp"))
 
+
   smpl_list <- split(smpl, smpl$gatinggroup)
   names(smpl_list) <- paste(names(smpl_list),
                             purrr::map_chr(smpl_list, function(x) {
@@ -92,6 +94,30 @@ wsp_get_gs <- function(wsp,
                     remove_redundant_channels = remove_redundant_channels)
   names(gs_list) <- names(smpl_list)
 
+  if (length(gs_list) > 1 && force_gs_merge) {
+    '
+  tt <- purrr::map_dfr(gh_comparison[["gatings_list"]], purrr::pluck, "ps") |>
+    dplyr::left_join(gh_comparison[["dfhashes"]])
+  tt2 <- tt |>
+    dplyr::distinct(gatinggroup, PopulationFullPath, Population)
+  tt3 <- split(tt2$PopulationFullPath, tt2$gatinggroup)
+  common <- Reduce(intersect, tt3)
+  rm_pop <- unique(unlist(purrr::map(tt3, setdiff, common)))'
+
+    gs_pop <- lapply(gs_list, function(x) flowWorkspace::gh_get_pop_paths(x[[1]]))
+    common_pop <- Reduce(intersect, gs_pop)
+    rm_pop <- purrr::map(gs_pop, setdiff, common_pop)
+    for (i in seq_along(gs_list)) {
+      for (j in seq_along(rm_pop[[i]])) {
+        flowWorkspace::gs_pop_remove(gs_list[[i]], rm_pop[[i]][[j]])
+      }
+    }
+    gs_list <- list(flowWorkspace::merge_list_to_gs(gs_list))
+    ## writ messages
+    ## collapse other vars?
+  }
+
+  ## join pData
   if (!is.null(pData)) {
     # which colukmns only have one level per pData_join_col level
     unique_set <-
@@ -110,6 +136,7 @@ wsp_get_gs <- function(wsp,
     })
   }
 
+  ## get gate data frames to avoid extra variables on global env (naming is hard)
   gate_dfs = NULL
   if (get_gates) {
     gate_dfs <- lapply(gs_list, function(x) {
@@ -133,6 +160,9 @@ wsp_get_gs <- function(wsp,
     gatings_compare = gh_comparison[["gatings_df"]]
   ))
 }
+
+
+
 
 
 compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
