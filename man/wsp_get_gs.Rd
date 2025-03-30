@@ -11,7 +11,10 @@ wsp_get_gs(
   invert_groups = F,
   samples = NULL,
   invert_samples = F,
-  remove_redundant_channels = F
+  remove_redundant_channels = F,
+  pData = NULL,
+  pData_join_col = "identity",
+  get_gates = T
 )
 }
 \arguments{

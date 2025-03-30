@@ -35,7 +35,11 @@ wsp_get_gs <- function(wsp,
                        invert_groups = F,
                        samples = NULL,
                        invert_samples = F,
-                       remove_redundant_channels = F
+                       remove_redundant_channels = F,
+                       pData = NULL,
+                       pData_join_col = "identity",
+                       get_gates = T
+
 ) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
@@ -46,6 +50,12 @@ wsp_get_gs <- function(wsp,
   }
   if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
+  }
+
+  if (!is.null(pData)) {
+    if (!pData_join_col %in% names(pData)) {
+      stop("pData_join_col not in pData.")
+    }
   }
 
   smpl <- wsx_get_sample_df(
@@ -82,17 +92,52 @@ wsp_get_gs <- function(wsp,
                     remove_redundant_channels = remove_redundant_channels)
   names(gs_list) <- names(smpl_list)
 
+  if (!is.null(pData)) {
+    # which colukmns only have one level per pData_join_col level
+    unique_set <-
+      pData |>
+      dplyr::group_by(!!rlang::sym(pData_join_col)) |>
+      dplyr::summarise(dplyr::across(.cols = dplyr::everything(), ~dplyr::n_distinct(.x)), .groups = "drop")
+    joincols <- c(pData_join_col, names(which(apply(unique_set == 1, 2, all))))
+    message("pData joinable columns: ", paste(joincols[-1], collapse = ", "))
+    gs_list <- lapply(gs_list, function(x) {
+      pd <- flowCore::pData(x) |>
+        tibble::rownames_to_column(pData_join_col) |>
+        dplyr::left_join(pData |> dplyr::distinct(dplyr::pick(dplyr::all_of(joincols))), by = pData_join_col) |>
+        tibble::column_to_rownames(pData_join_col)
+      flowCore::pData(x) <- pd
+      return(x)
+    })
+  }
+
+  gate_dfs = NULL
+  if (get_gates) {
+    gate_dfs <- lapply(gs_list, function(x) {
+      tryCatch(
+        expr = {
+          gs_get_gates(x, n_bins = 200^2)
+        },
+        error = function(e) {
+          print(x)
+          NULL
+        }
+      )
+    })
+  }
+
   return(list(
     gs_list = gs_list,
+    gate_dfs = gate_dfs,
     FCS_files = smpl,
     gating_hierachies = purrr::map(gh_comparison[["gatings_list"]], purrr::pluck, "gatings_list"),
     gatings_compare = gh_comparison[["gatings_df"]]
   ))
 }
 
+
 compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
   gatings_list <- purrr::map(stats::setNames(wsp, wsp), function(ws) {
-    ps <- wsx_get_popstats(ws = ws, return_stats = F)
+    ps <- wsx_get_popstats(ws = ws, return_stats = F)[["counts"]]
     if (!is.null(sample_df)) {
       ps <- dplyr::filter(ps, identity %in% sample_df$identity)
     }

@@ -176,7 +176,7 @@ get_ff <- function(x,
     inds[which(inds)[!which(inds) %in% s]] <- F
     return(inds)
   }, SIMPLIFY = F)
-#browser()
+  #browser()
   # pull multiple population from flowframe
   ff <- lapply(inds, function(x) {
     for (i in seq_along(ff)) {
@@ -289,7 +289,7 @@ get_ff2 <- function(x,
     # for (i in seq_along(ff)) {
     #   ff[[i]] <- flowCore::Subset(ff[[i]], as.logical(x)) # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
     # }
-     # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
+    # inds may become a 1d array, maybe if inds has 1 column only (when there is 1 population only)
     flowCore::Subset(ff, as.logical(x))
   })
 
@@ -309,7 +309,7 @@ get_gs <- function(x,
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
 
-y[["equal_FileDirs"]] <- F # using filename as subset caused error
+    y[["equal_FileDirs"]] <- F # using filename as subset caused error
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(y[["wsp"]]),
                                       name = unique(y[["FlowJoGroup"]]),
                                       path = dirname(y[["FilePathUse"]]),

@@ -169,6 +169,16 @@ gs_get_gates <- function(gs,
 
   gates$facet_strip <- c(T, rep(F, nrow(gates)-1))
 
+  tryCatch(
+    expr = {
+      descnames <- gs_get_descname_lookup(gs)
+      gates$x_lab <- descnames[gates$x]
+      gates$y_lab <- descnames[gates$y]
+    }, error = function(e) {
+      message("gs_get_descname_lookup failed.")
+      print(e)
+    }
+  )
   return(gates)
 }
 

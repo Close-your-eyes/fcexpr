@@ -36,7 +36,7 @@ wsx_get_popstats <- function(ws,
   lapply_fun <- match.fun(lapply_fun)
 
   ws_raw <- ws
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
 
   group_df <- wsx_get_groups(ws, collapse = NULL)
 
@@ -177,10 +177,10 @@ wsx_get_popstats <- function(ws,
     if (length(unique(y$PopulationFullPath)) != length(y$PopulationFullPath)) {
       stop("PopulationFullPaths not unique which cannot or should not be. Check.")
     }
-    y$PopulationFullPath
+    return(y$PopulationFullPath)
   }))
 
-  auto_paths <- lapply(full_paths, function(y) shortest_unique_path(y))
+  auto_paths <- lapply(full_paths, function(y) fcexpr:::shortest_unique_path(y))
 
   for (y in seq_along(gates_list)) {
     gates_list[[y]][["Population"]] <- auto_paths[[which(sapply(full_paths, function(z) identical(z,  gates_list[[y]][["PopulationFullPath"]])))]]
@@ -191,8 +191,9 @@ wsx_get_popstats <- function(ws,
     group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), FlowJoGroup = list(FlowJoGroup))
   }
   gates_out <- do.call(rbind, gates_list)
-  gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID") # ...
-  gates_out[,"ws"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
+  gates_out <- dplyr::left_join(gates_out, group_df, by = "sampleID")
+  #gates_out[,"wsName"] <- basename(xml2::xml_attr(ws, "nonAutoSaveFileName"))
+  gates_out[,"ws"] <- ws_raw
   gates_out <- gates_out[order(gates_out$FileName, gates_out$gate_level, factor(gates_out$origin, levels = c("root", "Gate", "Dependents"))),]
   rownames(gates_out) = seq(1,nrow(gates_out),1)
 
@@ -244,6 +245,6 @@ wsx_get_popstats <- function(ws,
     }
     return(list(counts = gates_out, stats = stats_out))
   }
-  return(gates_out)
+  return(list(counts = gates_out))
 }
 
