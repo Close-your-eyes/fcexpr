@@ -18,6 +18,12 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
+#' @param pData data frame to join via rownames to pData(gs), this will make meta
+#' data columns available for plotting with fcexpr::plot_gates
+#' @param pData_join_col column name in pData for joining
+#' @param get_gates run fcexpr::gs_get_gates and include results in the return list
+#' @param force_gs_merge try to eliminate non-congruent populations from gating
+#' hierarchies to allow merging of all samples into one gs
 #'
 #' @return list of gatingsets, FCS files used, gating hierarchies
 #' @export
@@ -74,20 +80,9 @@ wsp_get_gs <- function(wsp,
   # check gating trees for equality
   gh_comparison <- compare_gating_hierarchies(wsp = wsp, sample_df = smpl)
   smpl <- dplyr::left_join(smpl, gh_comparison[["dfhashes"]], by = c("identity" = "identity", "wsp" = "wsp"))
+  smpl_list <- make_smpl_list(smpl)
 
 
-  smpl_list <- split(smpl, smpl$gatinggroup)
-  names(smpl_list) <- paste(names(smpl_list),
-                            purrr::map_chr(smpl_list, function(x) {
-                              paste(paste(unique(basename(x$wsp)), collapse = "_"), paste(unique(x$FlowJoGroup), collapse = "_"), sep = "_")
-                            }),
-                            sep = "_")
-  if (length(smpl_list) > 1) {
-    message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.")
-    for (i in smpl_list) {
-      message(paste(i$FlowJoFileName, collapse = ", "), "\n")
-    }
-  }
 
   gs_list <- lapply(smpl_list,
                     get_gs,
@@ -103,18 +98,29 @@ wsp_get_gs <- function(wsp,
   tt3 <- split(tt2$PopulationFullPath, tt2$gatinggroup)
   common <- Reduce(intersect, tt3)
   rm_pop <- unique(unlist(purrr::map(tt3, setdiff, common)))'
+    message("Trying to merge ", length(gs_list), " gs by removing non-common populations.\n")
 
     gs_pop <- lapply(gs_list, function(x) flowWorkspace::gh_get_pop_paths(x[[1]]))
     common_pop <- Reduce(intersect, gs_pop)
     rm_pop <- purrr::map(gs_pop, setdiff, common_pop)
+
+    message("common pops:\n", paste(common_pop, collapse = "\n"))
+    message("\n")
+    message("Non-common pops to be removed: \n", paste(names(rm_pop), rm_pop, collapse = "\n\n", sep = "\n"))
+    message("\n")
     for (i in seq_along(gs_list)) {
       for (j in seq_along(rm_pop[[i]])) {
         flowWorkspace::gs_pop_remove(gs_list[[i]], rm_pop[[i]][[j]])
       }
     }
+
     gs_list <- list(flowWorkspace::merge_list_to_gs(gs_list))
     ## writ messages
     ## collapse other vars?
+    # gatings_list remain what they are
+    smpl$gatinggroup <- 1
+    gh_comparison[["dfhashes"]]$gatinggroup <- 1
+    smpl_list <- make_smpl_list(smpl)
   }
 
   ## join pData
@@ -162,6 +168,25 @@ wsp_get_gs <- function(wsp,
 }
 
 
+
+
+make_smpl_list <- function(smpl) {
+  smpl_list <- split(smpl, smpl$gatinggroup)
+  names(smpl_list) <- paste(names(smpl_list),
+                            purrr::map_chr(smpl_list, function(x) {
+                              paste(paste(unique(basename(x$wsp)), collapse = "_"), paste(unique(x$FlowJoGroup), collapse = "_"), sep = "_")
+                            }),
+                            sep = "_")
+
+  if (length(smpl_list) > 1) {
+    message("Splitting fcs files into ", length(smpl_list), " groups of different gating hierarchies.\n\n")
+    for (i in smpl_list) {
+      message(paste(i$FlowJoFileName, collapse = ", "), "\n")
+    }
+  }
+
+  return(smpl_list)
+}
 
 
 
@@ -216,6 +241,7 @@ compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
     dplyr::mutate(gatinggroup = dplyr::cur_group_id()) |>
     dplyr::ungroup() |>
     tidyr::separate(ind, into = c("identity", "wsp"), sep = seperator) |>
-    dplyr::rename("hash" = values)
+    dplyr::rename("hash" = values) |>
+    dplyr::select(-hash)
   return(list(gatings_list = gatings_list, gatings_df = gatings_df, dfhashes = dfhashes))
 }

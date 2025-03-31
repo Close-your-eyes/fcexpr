@@ -3,9 +3,9 @@
 #' @param gs gs a gatingset, e.g. made with fcexpr::wsp_get_gs
 #' @param n_bins number of bins in total, will be used equally in x and y direction, bin size is adjusted to ranges in x and y direction
 #' @param quantile_lim_filter min,max quantiles of signal intensities to set axis limits to; use quantiles to exclude extreme values
-#' @param min_max_vals min,max required signal intensitiy for fluorescence channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+#' @param min_max_vals min,max required signal intensity for fluorescence channels of one event in order to consider it for axis limit calculation (to filter extreme values);
 #' in logicle transformation
-#' @param min_max_vals_scatter min,max required signal intensitiy for scatter channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+#' @param min_max_vals_scatter min,max required signal intensity for scatter channels of one event in order to consider it for axis limit calculation (to filter extreme values);
 #' in inverse transformation which is equal to logicle transformation (for scatter channels)
 #' @param x_statpos_name x-position for gate name labels
 #' @param y_statpos_name y-position for gate name labels

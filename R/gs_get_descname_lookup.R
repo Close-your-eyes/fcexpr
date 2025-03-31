@@ -11,6 +11,7 @@
 #'
 #' @examples
 gs_get_descname_lookup <- function(gs) {
+
   pars <- purrr::map_dfr(stats::setNames(flowWorkspace::sampleNames(gs), flowWorkspace::sampleNames(gs)), function(x) {
     cf <- flowWorkspace::gh_pop_get_data(gs[[x]])
     pars <- tibble::as_tibble(flowCore::parameters(cf)@data[,c(1,2)])
@@ -37,7 +38,7 @@ gs_get_descname_lookup <- function(gs) {
                        stats::setNames(psel1$desc, psel1$name),
                        stats::setNames(psel2$name, psel2$name))
 
-  return(gs)
+  return(descname_lookup)
 }
 
 
