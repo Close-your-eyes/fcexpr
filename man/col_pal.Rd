@@ -4,7 +4,14 @@
 \alias{col_pal}
 \title{Color palettes}
 \usage{
-col_pal(name = NULL, n = NULL, direction = c(1, -1))
+col_pal(
+  name = NULL,
+  n = NULL,
+  direction = c(1, -1),
+  contrast_filter = F,
+  contrast_ratio_min = 1.5,
+  bg_color = "white"
+)
 }
 \arguments{
 \item{name}{name of the palette}
@@ -13,13 +20,18 @@ col_pal(name = NULL, n = NULL, direction = c(1, -1))
 
 \item{direction}{reverse palette with -1}
 
-\item{nbrew}{number of color from brewer palettes}
+\item{contrast_filter}{remove colors if contrast to bg_color is below contrast_ratio_min.}
+
+\item{contrast_ratio_min}{minimum ration}
+
+\item{bg_color}{background hex color or r color name}
 }
 \value{
 a color palette as character vector
 }
 \description{
-Wrapper function around paletteer and two additional color palettes. See paletteer::palettes_c_names and paletteer::palettes_d_names.
+Wrapper function around paletteer and two additional color palettes.
+See paletteer::palettes_c_names and paletteer::palettes_d_names.
 }
 \examples{
 \dontrun{

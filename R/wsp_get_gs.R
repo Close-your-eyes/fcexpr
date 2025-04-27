@@ -18,12 +18,14 @@
 #' if NULL all samples (from selected groups) are read
 #' @param invert_samples logical whether to invert sample selection
 #' @param remove_redundant_channels remove channels that are not part of the gating tree, mainly to reduce memory load
-#' @param pData data frame to join via rownames to pData(gs), this will make meta
+#' @param pData data frame to join via rownames of pData(gs), this will make meta
 #' data columns available for plotting with fcexpr::plot_gates
-#' @param pData_join_col column name in pData for joining
+#' @param pData_join_col column name in pData for joining; joinable columns
+#' are found with fcexpr:::find_unique_level_columns(pData, pData_join_col)
 #' @param get_gates run fcexpr::gs_get_gates and include results in the return list
 #' @param force_gs_merge try to eliminate non-congruent populations from gating
 #' hierarchies to allow merging of all samples into one gs
+#' @param get_gates_args argument list for get_gates
 #'
 #' @return list of gatingsets, FCS files used, gating hierarchies
 #' @export
@@ -45,6 +47,7 @@ wsp_get_gs <- function(wsp,
                        pData = NULL,
                        pData_join_col = "identity",
                        get_gates = T,
+                       get_gates_args = list(n_bins = 200^2),
                        force_gs_merge = F
 
 ) {
@@ -63,6 +66,9 @@ wsp_get_gs <- function(wsp,
     if (!pData_join_col %in% names(pData)) {
       stop("pData_join_col not in pData.")
     }
+  }
+  if (!is.logical(get_gates)) {
+    stop("get_gates must be T or F (logical).")
   }
 
   smpl <- wsx_get_sample_df(
@@ -126,11 +132,7 @@ wsp_get_gs <- function(wsp,
   ## join pData
   if (!is.null(pData)) {
     # which colukmns only have one level per pData_join_col level
-    unique_set <-
-      pData |>
-      dplyr::group_by(!!rlang::sym(pData_join_col)) |>
-      dplyr::summarise(dplyr::across(.cols = dplyr::everything(), ~dplyr::n_distinct(.x)), .groups = "drop")
-    joincols <- c(pData_join_col, names(which(apply(unique_set == 1, 2, all))))
+    joincols <- find_unique_level_columns(df = pData, refcol = pData_join_col)
     message("pData joinable columns: ", paste(joincols[-1], collapse = ", "))
     gs_list <- lapply(gs_list, function(x) {
       pd <- flowCore::pData(x) |>
@@ -145,10 +147,11 @@ wsp_get_gs <- function(wsp,
   ## get gate data frames to avoid extra variables on global env (naming is hard)
   gate_dfs = NULL
   if (get_gates) {
+    message("running gs_get_gates")
     gate_dfs <- lapply(gs_list, function(x) {
       tryCatch(
         expr = {
-          gs_get_gates(x, n_bins = 200^2)
+          Gmisc::fastDoCall(gs_get_gates, args = c(list(x), get_gates_args))
         },
         error = function(e) {
           print(x)
@@ -167,6 +170,19 @@ wsp_get_gs <- function(wsp,
   ))
 }
 
+
+
+find_unique_level_columns <- function(df, refcol) {
+  if (!refcol %in% names(df)) {
+    stop("refcol not in df")
+  }
+  col_level_df <-
+    df |>
+    dplyr::group_by(!!rlang::sym(refcol)) |>
+    dplyr::summarise(dplyr::across(.cols = dplyr::everything(), ~dplyr::n_distinct(.x)), .groups = "drop")
+  uniquelevelcols <- c(refcol, names(which(apply(col_level_df == 1, 2, all))))
+  return(uniquelevelcols)
+}
 
 
 

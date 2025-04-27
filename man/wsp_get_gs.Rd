@@ -14,7 +14,9 @@ wsp_get_gs(
   remove_redundant_channels = F,
   pData = NULL,
   pData_join_col = "identity",
-  get_gates = T
+  get_gates = T,
+  get_gates_args = list(n_bins = 200^2),
+  force_gs_merge = F
 )
 }
 \arguments{
@@ -34,6 +36,19 @@ if NULL all samples (from selected groups) are read}
 \item{invert_samples}{logical whether to invert sample selection}
 
 \item{remove_redundant_channels}{remove channels that are not part of the gating tree, mainly to reduce memory load}
+
+\item{pData}{data frame to join via rownames of pData(gs), this will make meta
+data columns available for plotting with fcexpr::plot_gates}
+
+\item{pData_join_col}{column name in pData for joining; joinable columns
+are found with fcexpr:::find_unique_level_columns(pData, pData_join_col)}
+
+\item{get_gates}{run fcexpr::gs_get_gates and include results in the return list}
+
+\item{get_gates_args}{argument list for get_gates}
+
+\item{force_gs_merge}{try to eliminate non-congruent populations from gating
+hierarchies to allow merging of all samples into one gs}
 }
 \value{
 list of gatingsets, FCS files used, gating hierarchies

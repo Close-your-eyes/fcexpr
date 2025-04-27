@@ -130,13 +130,28 @@ plot_gates <- function(gs,
 
       }
 
-      p <- ggcyto::ggcyto(gs, subset = gg[1,"Parent"], filter = my.filter, ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])), max_nrow_to_plot = max_nrow_to_plot)
+      p <- ggcyto::ggcyto(
+        gs,
+        subset = gg[1,"Parent"],
+        filter = my.filter,
+        ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])),
+        max_nrow_to_plot = max_nrow_to_plot
+      )
 
       if (geom == "hex") {
         p <-
           p +
-          ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]]) +
-          ggplot2::scale_fill_gradientn(colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)), trans = col_pal_trans)
+          ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]])
+
+        # Remove any scales to avoid message of new fill scale
+        p$scales$scales <- list()
+
+        p <-
+          p +
+          ggplot2::scale_fill_gradientn(
+            colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)),
+            trans = col_pal_trans
+          )
       }
 
       if (geom == "pointdensity") {
@@ -170,16 +185,20 @@ plot_gates <- function(gs,
         p <- p + do.call(scattermore::geom_scattermore, args = temp_dots)
       }
 
-
       if (plot_contours) {
         p <- p + do.call(ggplot2::stat_density_2d, args = contour_args)
       }
-
-      p <-
-        p +
-        ggplot2::xlab(gg[1,"x_lab"]) +
-        ggplot2::ylab(gg[1,"y_lab"]) +
-        ggcyto::ggcyto_par_set(limits = list(x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]), y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"])))
+      # capture.output only to suppress text about coord system
+      bin <- suppressMessages(capture.output(
+        p <-
+          p +
+          ggplot2::xlab(gg[1,"x_lab"]) +
+          ggplot2::ylab(gg[1,"y_lab"]) +
+          ggcyto::ggcyto_par_set(limits = list(
+            x = c(gg[1,"x_lowlim"], gg[1,"x_uplim"]),
+            y = c(gg[1,"y_lowlim"], gg[1,"y_uplim"])
+          ))
+      ))
 
       if (inverse_trans) {
         p <-

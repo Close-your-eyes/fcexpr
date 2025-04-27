@@ -25,10 +25,10 @@ gs_get_gates(
 
 \item{quantile_lim_filter}{min,max quantiles of signal intensities to set axis limits to; use quantiles to exclude extreme values}
 
-\item{min_max_vals}{min,max required signal intensitiy for fluorescence channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+\item{min_max_vals}{min,max required signal intensity for fluorescence channels of one event in order to consider it for axis limit calculation (to filter extreme values);
 in logicle transformation}
 
-\item{min_max_vals_scatter}{min,max required signal intensitiy for scatter channels of one event in order to condider it for axis limit calculation (to filter extreme values);
+\item{min_max_vals_scatter}{min,max required signal intensity for scatter channels of one event in order to consider it for axis limit calculation (to filter extreme values);
 in inverse transformation which is equal to logicle transformation (for scatter channels)}
 
 \item{x_statpos_name}{x-position for gate name labels}

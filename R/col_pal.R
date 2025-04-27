@@ -1,11 +1,14 @@
 #' Color palettes
 #'
-#' Wrapper function around paletteer and two additional color palettes. See paletteer::palettes_c_names and paletteer::palettes_d_names.
+#' Wrapper function around paletteer and two additional color palettes.
+#' See paletteer::palettes_c_names and paletteer::palettes_d_names.
 #'
 #' @param name name of the palette
 #' @param n number of colors to return; may not work for every palette
-#' @param nbrew number of color from brewer palettes
 #' @param direction reverse palette with -1
+#' @param contrast_filter remove colors if contrast to bg_color is below contrast_ratio_min.
+#' @param contrast_ratio_min minimum ration
+#' @param bg_color background hex color or r color name
 #'
 #' @return a color palette as character vector
 #' @export
@@ -19,7 +22,10 @@
 #' }
 col_pal <- function(name = NULL,
                     n = NULL,
-                    direction = c(1,-1)) {
+                    direction = c(1,-1),
+                    contrast_filter = F,
+                    contrast_ratio_min = 1.5,
+                    bg_color = "white") {
 
   if (!requireNamespace("paletteer", quietly = T)) {
     utils::install.packages("paletteer")
@@ -30,7 +36,8 @@ col_pal <- function(name = NULL,
     dplyr::mutate(command = paste0(package, "::", palette))
 
   if (is.null(name)) {
-    message("Select one palette by palette or command. Additional ones are 'custom' and 'ggplot' or 'hue'.")
+    message("Select one palette by palette or command. Additional ones are 'custom', 'ggplot', 'hue', 'material'.")
+    print(paletteers, n = 50)
     return(paletteers)
   }
 
@@ -45,10 +52,21 @@ col_pal <- function(name = NULL,
       pal_return <- rev(pal_return)
     }
   } else if (name == "custom") {
-    pal_return <- c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
-                    "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
-                    "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
-                    "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4")
+    pal_return <- prismatic::color(c("grey65", "darkgoldenrod1", "cornflowerblue", "forestgreen", "tomato2", "mediumpurple1", "turquoise3", "lightgreen", "navy", "plum1",
+                                     "red4", "khaki1", "tan4", "cadetblue1", "olivedrab3", "darkorange2", "burlywood2", "violetred3", "aquamarine3",
+                                     "grey30", "lavender", "yellow", "grey10", "pink3", "turquoise4", "darkkhaki", "magenta", "blue", "green", "blueviolet", "red",
+                                     "darkolivegreen", "orchid1", "springgreen", "dodgerblue4", "deepskyblue", "palevioletred4", "gold4", "maroon1", "lightyellow", "greenyellow", "purple4"))
+    if (!is.null(n)) {
+      pal_return <- pal_return[1:n]
+    }
+    if (direction == -1) {
+      pal_return <- rev(pal_return)
+    }
+  } else if (name == "material") {
+    # bg_col: '#273238'
+    pal_return <- prismatic::color(c("#CC6666", "#DF935F", "#81A3BE","#B5BD68", "#707880", "#B394BB", "#4F5C69", "#CC0000", "#F1CC37",
+                                     "#5787DA", "#25B876", "#5E3582", "#93C5DE", "#B7A7C5", "#2E90B0", "#C5C8C6", "#50C186", "#34312F"))
+
     if (!is.null(n)) {
       pal_return <- pal_return[1:n]
     }
@@ -87,57 +105,45 @@ col_pal <- function(name = NULL,
       pal_return <- paletteer::paletteer_c(pal_select$command, n = n, direction = direction)
     }
   }
+
+  if (contrast_filter) {
+    ratios <- purrr::map_dbl(setNames(pal_return, pal_return), contrast_ratio, color2 = bg_color)
+    ratios <- ratios[which(ratios > contrast_ratio_min)]
+    pal_return <- prismatic::color(names(ratios))
+  }
+
+
   return(pal_return)
 }
 
 
-'
-# https://www.datanovia.com/en/blog/awesome-list-of-657-r-color-names/
-# https://stackoverflow.com/questions/5392061/algorithm-to-check-similarity-of-colors
-library(scales)
-library(tidyverse)
-
-
-tt <- col_pal("custom")
-show_col(tt)
-
-library(schemr)
-
-r_color <- colors()
-out <- as.data.frame(schemr::rgb_to_lab(t(col2rgb(r_color))))
-rownames(out) <- r_color
-r_color <- r_color[which(!grepl("^grey|^gray|black|white", r_color))]
-
-
-euclidean <- function(x, mat) {
-  sqrt(sum((as.numeric(mat[x[1],]) - as.numeric(mat[x[2],]))^2))
-}
-euclidean2 <- function(x, mat) {
-  sqrt(sum((as.numeric(mat[x[1,1],]) - as.numeric(mat[x[1,2],]))^2))
+hex_to_linear_rgb <- function(hex) {
+  rgb <- col2rgb(hex) / 255
+  linear_rgb <- ifelse(rgb <= 0.03928,
+                       rgb / 12.92,
+                       ((rgb + 0.055) / 1.055) ^ 2.4)
+  return(linear_rgb)
 }
 
-for (i in 1:20) {
-  # find max distant color
-  res <- dplyr::bind_rows(pbapply::pblapply(split(expand.grid(setdiff(r_color, tt), tt, stringsAsFactors=F), 1:nrow(expand.grid(setdiff(r_color, tt), tt))), function(x) {
-    data.frame(dist = euclidean2(x, mat = out), col1 = x[1,1], col2 = x[1,2])
-  }))
-  # min dist - best measure?!
-  res2 <- res %>% dplyr::group_by(col1) %>% summarise(mean_dist = mean(dist), min_dist = min(dist))
-  tt <- c(tt, res2 %>% dplyr::filter(min_dist == max(min_dist)) %>% dplyr::slice(1) %>% dplyr::pull(col1))
-  show_col(tt)
+
+relative_luminance <- function(hex) {
+  linear_rgb <- hex_to_linear_rgb(hex)
+  # Apply luminance formula
+  luminance <- 0.2126 * linear_rgb[1] +
+    0.7152 * linear_rgb[2] +
+    0.0722 * linear_rgb[3]
+  return(luminance)
 }
-# distance matrix
-table <- data.frame(dist = unlist(pbapply::pblapply(combn(r_color[1:100], 2, simplify = F), mat = out, euclidean)))
-table$col1 <- sapply(combn(r_color[1:100], 2, simplify = F), "[", 1)
-table$col2 <- sapply(combn(r_color[1:100], 2, simplify = F), "[", 2)
-library(tidyverse)
-library(viridis)
 
-ggplot(table %>% dplyr::filter(col1 != col2), aes(x=col1,y=col2,fill=dist)) +
-  geom_tile() +
-  scale_fill_viridis() +
-  theme_bw() +
-  theme(panel.grid = element_blank(), axis.text = element_blank())
 
-table <- data.frame(dist = unlist(pbapply::pblapply(split(expand.grid(tt, r_color), 1:nrow(expand.grid(tt, r_color))), mat = out, euclidean)))
-'
+contrast_ratio <- function(color1, color2) {
+  L1 <- relative_luminance(color1)
+  L2 <- relative_luminance(color2)
+  if (L1 < L2) { temp <- L1; L1 <- L2; L2 <- temp }
+  ratio <- (L1 + 0.05) / (L2 + 0.05)
+  return(ratio)
+}
+
+#purrr::map_dbl(setNames(col_pal("material"), col_pal("material")), contrast_ratio, color2 = "#273238")
+#purrr::map_dbl(setNames(col_pal("custom"), col_pal("custom")), contrast_ratio, color2 = "white")
+

@@ -305,10 +305,13 @@ get_gs <- function(x,
 
   # split(x, (seq(nrow(x))-1) %/% split_size
 
-  message("tempdir: ", tempdir())
+  message("tempdir: ", tempdir(), "\n")
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
-
+#browser()
+#tt <- fcexpr::wsx_get_keywords(y[["wsp"]])
+#kk <- do.call(rbind, tt)
+#rr <- flowCore::read.FCS("/Volumes/CMS_SSD_2TB/Experiment_data/20210707_IL15_NKG2D_MICAB_target_cell_killing/FCS_files/20220831_Exp.part.21/1126_-_unstim_cond_3_DuDa.fcs")
     y[["equal_FileDirs"]] <- F # using filename as subset caused error
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(y[["wsp"]]),
                                       name = unique(y[["FlowJoGroup"]]),

@@ -226,21 +226,32 @@ get_smpl_df <- function(wsp,
     #   return(NULL)
     # }
 
+    #browser()
     if (!is.null(FCS.file.folder)) {
       local_fcs_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = "\\.fcs$", ignore.case = T)
+
       kwl <- tryCatch(
         expr = {
           # unknown error in c++ with some fcs files once
-          flowCore::read.FCSheader(local_fcs_files)
+
+          flowCore::read.FCSheader(files = local_fcs_files,
+                                   keyword = c("$DATE", "$BTIM", "$ETIM", "$FIL", "$TOT"),
+                                   cpp = T, emptyValue = F)
+          # setting emptyvalue to F avoided errors!
+          # or specifically defining which keywords needed
         },
-        error = function(e){
+        error = function(e) {
+
+          message("Error in reading FCS headers from a FCS files at once:")
           print(e)
+          message("Trying to read headers one by one in order to skip faulty FCS files.")
           kwl <- purrr::map(stats::setNames(local_fcs_files, local_fcs_files), function(x) {
             tryCatch(
               expr = {
-                return(flowCore::read.FCSheader(x)[[1]])
+                flowCore::read.FCSheader(x)[[1]]
               },
-              error = function(e){
+              error = function(e) {
+                #print(e)
                 return(NULL)
               }
             )
