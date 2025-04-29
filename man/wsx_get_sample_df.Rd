@@ -16,9 +16,9 @@ wsx_get_sample_df(
 \arguments{
 \item{ws}{vector of paths to flowjo workspace}
 
-\item{groups}{flowjogroups to consider, one vector for all ws or a list with one vector for each ws}
+\item{groups}{flowjo groups to consider, one vector for all ws or a list with one vector for each ws}
 
-\item{invert_groups}{consider all other flowjogroups found in ws but groups}
+\item{invert_groups}{consider all other flowjo groups found in ws but groups}
 
 \item{samples}{samples (FCS filenames) to consider, one vector for all ws or a list with one vector for each ws}
 

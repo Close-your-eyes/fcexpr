@@ -7,8 +7,8 @@
 #' for explanation of parameters (function arguments).
 #'
 #' @param ws vector of paths to flowjo workspace
-#' @param groups flowjogroups to consider, one vector for all ws or a list with one vector for each ws
-#' @param invert_groups consider all other flowjogroups found in ws but groups
+#' @param groups flowjo groups to consider, one vector for all ws or a list with one vector for each ws
+#' @param invert_groups consider all other flowjo groups found in ws but groups
 #' @param samples samples (FCS filenames) to consider, one vector for all ws or a list with one vector for each ws
 #' @param invert_samples consider all other samples found in ws but samples
 #' @param FCS.file.folder one path to the top local FCS file folder or a vector
@@ -54,7 +54,7 @@ check_wsp_for_samples_and_groups <- function(wsp,
 
   if (missing(wsp) || !methods::is(wsp, "character")) {stop("Please provide a vector of paths to flowjo workspaces.")}
 
-  wsp_data <- lapply(wsp, wsx_get_fcs_paths, split = F, filter_AllSamples = T)
+  wsp_data <- purrr::map(wsp, wsx_get_fcs_paths, split = F, filter_AllSamples = T)
 
   if (!is.null(samples)) {
     if (length(samples) == 0) {
@@ -103,7 +103,7 @@ check_wsp_for_samples_and_groups <- function(wsp,
       }
     }
   } else if (is.null(samples)) {
-    groups <- rep(list("All Samples"), length(wsp))
+    groups <- purrr::map(wsp_data, ~unique(.x$FlowJoGroup))
   } else {
     # pick groups based on samples
     groups <- purrr::map2(wsp_data, samples, function(x,y) {
@@ -154,26 +154,28 @@ get_smpl_df <- function(wsp,
                         samples,
                         invert_samples,
                         FCS.file.folder) {
+
+  fcskeywords <- c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL")
+
   # FlowJoGroup
   # one wsp at a time
   smpl <- do.call(rbind, lapply(seq_along(wsp), function(x) {
     y <- wsx_get_fcs_paths(wsp[x], split = F)
-    names(y)[3] <- "FlowJoFilePath"
-    names(y)[4] <- "FlowJoFileName"
+    names(y)[3:4] <- c("FlowJoFilePath", "FlowJoFileName")
     y$FlowJoFilePath <- URLdecode(y$FlowJoFilePath) # nice !!!
     y$wsp <- wsp[x]
     y$FlowJoFileName <- basename(y$FlowJoFilePath) # redo this after urldecode
 
-    kwl <- wsx_get_keywords(wsp[x], return = "vector", keywords = c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL"))
-    kwldf <- dplyr::bind_rows(wsx_get_keywords(wsp[x], return = "data.frame", keywords = c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL")),
-                              .id = "FlowJoFileName")
-    kwldf <- tidyr::pivot_wider(kwldf, names_from = name, values_from = value)
-    kwldf$`$TOT` <- trimws(kwldf$`$TOT`)
-    fcs_ident <- stack(fcexpr:::.get_fcs_identities(kwl, allow_duplicates = T))
-    names(fcs_ident) <- c("identity", "FlowJoFileName")
-    fcs_ident$FlowJoFileName <- as.character(fcs_ident$FlowJoFileName)
-    y <- dplyr::left_join(y, fcs_ident, by = "FlowJoFileName")
-    y <- dplyr::left_join(y, kwldf, by = "FlowJoFileName")
+    # get keywords from wsp and generate fcs identities
+    kwlist <- wsx_get_keywords(wsp[x], return = c("data.frame", "vector"), keywords = fcskeywords)
+    fcs_ident <-
+      stack(fcexpr:::.get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
+      dplyr::rename("identity" = values, "FlowJoFileName" = ind) |>
+      dplyr::mutate(FlowJoFileName = as.character(FlowJoFileName))
+    y <-
+      y |>
+      dplyr::left_join(fcs_ident, by = "FlowJoFileName") |>
+      dplyr::left_join(kwlist[["df2"]], by = "FlowJoFileName")
 
     if (!is.null(groups)) {
       if (invert_groups) {
@@ -220,56 +222,18 @@ get_smpl_df <- function(wsp,
     # check if files exist under flowjos path
     y$FlowJoFilePathExists <- file.exists(y$FlowJoFilePath)
 
-    # if (anyDuplicated(y$identity)) {
-    #   message("Duplicate fcs identites from FlowJo in one wsp. This should not be. Filter somehow?")
-    #   print(tibble::as_tibble(y[,c("FileName", "identity")]) |> group_by(FileName, identity) |> dplyr::mutate(group = dplyr::cur_group_id()), n = Inf)
-    #   return(NULL)
-    # }
-
-    #browser()
     if (!is.null(FCS.file.folder)) {
       local_fcs_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = "\\.fcs$", ignore.case = T)
+      kwl <- fcs_get_keywords2(file_paths = local_fcs_files,
+                               keywords = fcskeywords)
 
-      kwl <- tryCatch(
-        expr = {
-          # unknown error in c++ with some fcs files once
-
-          flowCore::read.FCSheader(files = local_fcs_files,
-                                   keyword = c("$DATE", "$BTIM", "$ETIM", "$FIL", "$TOT"),
-                                   cpp = T, emptyValue = F)
-          # setting emptyvalue to F avoided errors!
-          # or specifically defining which keywords needed
-        },
-        error = function(e) {
-
-          message("Error in reading FCS headers from a FCS files at once:")
-          print(e)
-          message("Trying to read headers one by one in order to skip faulty FCS files.")
-          kwl <- purrr::map(stats::setNames(local_fcs_files, local_fcs_files), function(x) {
-            tryCatch(
-              expr = {
-                flowCore::read.FCSheader(x)[[1]]
-              },
-              error = function(e) {
-                #print(e)
-                return(NULL)
-              }
-            )
-          }, .progress = T)
-          kwl[which(purrr::map_lgl(kwl, ~ !is.null(.x)))]
-          #return(kwl)
-        }
-      )
-
-      local_fcs_files <- fcexpr:::.get_fcs_identities(kwl = kwl, allow_duplicates = T)
-      local_fcs_files_df <- stack(local_fcs_files)
-      names(local_fcs_files_df) <- c("identity", "LocalFilePath")
-      local_fcs_files_df$LocalFilePath <- as.character(local_fcs_files_df$LocalFilePath)
-      local_fcs_files_df$LocalFileName <- basename(local_fcs_files_df$LocalFilePath)
-      # only consider fcs files that are present in flowjo
       local_fcs_files_df <-
-        local_fcs_files_df |>
-        dplyr::filter(identity %in% y$identity)
+        stack(fcexpr:::.get_fcs_identities(kwl = kwl, allow_duplicates = T)) |>
+        dplyr::rename("identity" = values, "LocalFilePath" = ind) |>
+        dplyr::filter(identity %in% y$identity) |>  # only consider fcs files that are present in flowjo
+        dplyr::mutate(LocalFilePath = as.character(LocalFilePath)) |>
+        dplyr::mutate(LocalFileName = basename(LocalFilePath))
+
       ##test
       #local_fcs_files_df <- rbind(local_fcs_files_df,local_fcs_files_df)
       if (anyDuplicated(local_fcs_files_df$identity)) {
@@ -359,6 +323,13 @@ get_smpl_df <- function(wsp,
     message("Same FCS files found in multiple workspaces. This may cause problems. Provide samples argument as a list of vectors, one for each wsp and filter the duplicate files.")
     message(paste(names(table(smpl$identity))[which(table(smpl$identity) > 1)], collapse = ", "))
   }
+
+  smpl <-
+    smpl |>
+    dplyr::mutate(sampleID = as.numeric(sampleID)) |>
+    dplyr::group_by(wsp) |>
+    dplyr::arrange(sampleID, .by_group = T) |>
+    dplyr::ungroup()
 
   return(as.data.frame(smpl))
 }

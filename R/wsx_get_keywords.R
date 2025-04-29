@@ -42,9 +42,10 @@ wsx_get_keywords <- function(ws,
 
   ws <- check_ws(ws)
   lapply_fun <- match.fun(lapply_fun)
-  return <- match.arg(arg = return, choices = c("data.frame", "vector"))
+  return <- match.arg(arg = return, choices = c("data.frame", "vector"), several.ok = T)
 
   k_return <- lapply_fun(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) {
+
     keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
     keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
 
@@ -56,16 +57,30 @@ wsx_get_keywords <- function(ws,
       keys <- NULL
     }
 
-    if (return == "data.frame" && !is.null(keys)) {
-      keys <- utils::stack(keys)
-      names(keys) <- c("value", "name")
-      keys <- keys[,c(2,1)]
-      keys$name <- as.character(keys$name)
+    keys <- trimws(keys)
+
+    if ("data.frame" %in% return && !is.null(keys)) {
+      keysdf <- utils::stack(keys)
+      names(keysdf) <- c("value", "name")
+      keysdf <- keysdf[,c(2,1)]
+      keysdf$name <- as.character(keysdf$name)
+      if (length(return) == 1) {
+        return(keysdf)
+      } else {
+        return(list(vec = keys, df = keysdf))
+      }
     }
     return(keys)
   }, ...)
 
+
   names(k_return) <- basename(xml2::xml_attr(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "SampleList")), "DataSet"), "uri"))
+  if (length(return) == 2) {
+    k_return <- purrr::list_flatten(k_return, name_spec = "{outer}")
+    k_return <- list(vec = k_return[seq(1,length(k_return),2)],
+                     df = k_return[seq(2,length(k_return),2)])
+    k_return[["df2"]] <- tidyr::pivot_wider(dplyr::bind_rows(k_return[["df"]], .id = "FlowJoFileName"))
+  }
   return(k_return)
 }
 

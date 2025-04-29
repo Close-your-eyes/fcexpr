@@ -304,14 +304,28 @@ get_gs <- function(x,
                    merge_to_gs = T) {
 
   # split(x, (seq(nrow(x))-1) %/% split_size
+  summary <-
+    x |>
+    dplyr::group_by(FlowJoGroup, `$FIL`) |>
+    tidyr::nest(.key = "sample_info") |>
+    dplyr::rowwise() |>
+    dplyr::mutate(FileNames = paste(sample_info$FlowJoFileName, collapse = ", ")) |>
+    dplyr::mutate(n_samples = nrow(sample_info)) |>
+    dplyr::mutate(n_TOT_levels = length(unique(sample_info$`$TOT`))) |>
+    dplyr::mutate(n_FileFolders = length(unique(dirname(sample_info$FilePathUse)))) |>
+    dplyr::ungroup() |>
+    dplyr::select(-sample_info)
+  if (any(summary$n_samples > 1)) {
+    message("Some samples have equal $FIL keywords and are in the same group.")
+    message("Even when FCS files are in different local folders (on disk), a warning may be thrown that one of the FCS does not match.")
+    message("This is save to ignore.")
+    print(summary, n = Inf)
+  }
 
   message("tempdir: ", tempdir(), "\n")
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
-#browser()
-#tt <- fcexpr::wsx_get_keywords(y[["wsp"]])
-#kk <- do.call(rbind, tt)
-#rr <- flowCore::read.FCS("/Volumes/CMS_SSD_2TB/Experiment_data/20210707_IL15_NKG2D_MICAB_target_cell_killing/FCS_files/20220831_Exp.part.21/1126_-_unstim_cond_3_DuDa.fcs")
+
     y[["equal_FileDirs"]] <- F # using filename as subset caused error
     gs <- CytoML::flowjo_to_gatingset(CytoML::open_flowjo_xml(y[["wsp"]]),
                                       name = unique(y[["FlowJoGroup"]]),
@@ -320,6 +334,9 @@ get_gs <- function(x,
                                       truncate_max_range = F,
                                       keywords = c("$FIL", "$ETIM", "$BTIM", "$TOT"),
                                       additional.keys = c("$TOT", "$ETIM", "$BTIM"))
+    if (length(gs) != 1) {
+      message("number of samples in gs is not 1. this should not be.")
+    }
 
     # validity check in flowWorkspace::merge_list_to_gs checks for eqaul names of gs. they have to be unique.
     # so using y[["FlowJoFileName"]] may not be sufficient to avoid ambiguities, use identity
