@@ -304,24 +304,6 @@ get_gs <- function(x,
                    merge_to_gs = T) {
 
   # split(x, (seq(nrow(x))-1) %/% split_size
-  summary <-
-    x |>
-    dplyr::group_by(FlowJoGroup, `$FIL`) |>
-    tidyr::nest(.key = "sample_info") |>
-    dplyr::rowwise() |>
-    dplyr::mutate(FileNames = paste(sample_info$FlowJoFileName, collapse = ", ")) |>
-    dplyr::mutate(n_samples = nrow(sample_info)) |>
-    dplyr::mutate(n_TOT_levels = length(unique(sample_info$`$TOT`))) |>
-    dplyr::mutate(n_FileFolders = length(unique(dirname(sample_info$FilePathUse)))) |>
-    dplyr::ungroup() |>
-    dplyr::select(-sample_info)
-  if (any(summary$n_samples > 1)) {
-    message("Some samples have equal $FIL keywords and are in the same group.")
-    message("Even when FCS files are in different local folders (on disk), a warning may be thrown that one of the FCS does not match.")
-    message("This is save to ignore.")
-    print(summary, n = Inf)
-  }
-
   message("tempdir: ", tempdir(), "\n")
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")

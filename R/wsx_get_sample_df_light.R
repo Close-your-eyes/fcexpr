@@ -6,7 +6,8 @@
 #' have the same $FIL keyword(=name). Because CytoML::flowjo_to_gatingset may
 #' complain that one of these files does not match, if either one is to be
 #' imported. In comparison to wsx_get_sample_df, local FCS file existence (as on
-#' disk on the current machine is not checked).
+#' disk on the current machine is not checked); also no sample selection takes
+#' place here.
 #'
 #' @param ws path to a flowjo workspace
 #'
@@ -39,9 +40,10 @@ wsx_get_sample_df_light <- function(ws) {
     dplyr::group_by(FlowJoGroup, `$FIL`) |>
     tidyr::nest(.key = "sample_info") |>
     dplyr::rowwise() |>
+    dplyr::mutate(FileNames = paste(sample_info$FlowJoFileName, collapse = ", ")) |>
     dplyr::mutate(n_samples = nrow(sample_info)) |>
-    dplyr::mutate(n_TOT_levels = length(unique(sample_info$`$TOT`))) |>
-    dplyr::mutate(n_FileFolders = length(unique(sample_info$FlowJoFileFolder))) |>
+    dplyr::mutate(n_TOT = length(unique(sample_info$`$TOT`))) |>
+    dplyr::mutate(n_folders = length(unique(sample_info$FlowJoFileFolder))) |>
     dplyr::ungroup()
 
   return(list(sampledf = sampledf, summary = fil_summary))
