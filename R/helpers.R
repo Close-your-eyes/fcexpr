@@ -80,17 +80,17 @@ check_ws <- function(ws) {
   return(ws)
 }
 
-get_ff <- function(x,
-                   return_untransformed = T,
+get_ff <- function(gs,
+                   return_untransformed = F,
                    return_transformed = T,
                    population,
                    seed = 42,
                    channels = NULL,
                    leverage_score_for_sampling = F,
-                   return_ind_mat_only = F) {
+                   return_ind_mat = F) {
 
-  if ("downsample" %in% names(attributes(x))) {
-    downsample <- suppressWarnings(as.numeric(attr(x, "downsample"))) # when min --> NA
+  if ("downsample" %in% names(attributes(gs))) {
+    downsample <- suppressWarnings(as.numeric(attr(gs, "downsample"))) # when min --> NA
   } else {
     downsample <- NA
   }
@@ -118,15 +118,34 @@ get_ff <- function(x,
     message("channels are only needed for leverage score aided sampling. since leverage_score_for_sampling = F channels are ignored.")
   }
 
-  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gh = x, y = flowWorkspace::gh_get_pop_paths(x = x))
-  attr(ind_mat, "short_names") <- stats::setNames(shortest_unique_path(colnames(ind_mat)), nm = colnames(ind_mat))
-  attr(ind_mat, "ws") <- attr(x, "ws")
-  attr(ind_mat, "FilePath") <- attr(x, "FilePath")
-
-  if (return_ind_mat_only) {
-    flowWorkspace::gs_cleanup_temp(x)
-    return(ind_mat)
+  ## little unhandy to avoid memory is populated by ind_mat if not needed
+  population2 <-
+    population |>
+    dplyr::filter(FileName == attr(gs, "FlowJoFileName")) |>
+    dplyr::pull(Population)
+  poppaths <- flowWorkspace::gh_get_pop_paths(x = gs)
+  shortpaths <- stats::setNames(shortest_unique_path(poppaths), nm = poppaths)
+  # alter population here by an optional leading forward slash in order to not make changes to ind_mat construction which could
+  # have effects elsewhere. Maybe find a better solution some when
+  # wsx_get_poppaths(x) return population paths without leading fwd slash
+  population3 <- ifelse(population2 %in% shortpaths,
+                        names(shortpaths)[which(shortpaths %in% population2)],
+                        ifelse(grepl("^/", population2), population2, paste0("/", population2)))
+  if (return_ind_mat) {
+    poppaths_return <- poppaths
+    shortpaths_return <- shortpaths
+  } else {
+    poppaths_return <- population3
+    shortpaths_return <- shortpaths[population3]
   }
+  ind_mat <- flowWorkspace::gh_pop_get_indices_mat(gh = gs, y = poppaths_return)
+  attr(ind_mat, "short_names") <- shortpaths_return
+  attr(ind_mat, "ws") <- attr(gs, "ws")
+  attr(ind_mat, "FilePath") <- attr(gs, "FilePath")
+
+  # inds: actually needed populations
+  inds <- ind_mat[,population3,drop=F]
+
 
   if (return_untransformed && !return_transformed) {
     inverse_transform <- stats::setNames(T, "untransformed")
@@ -137,24 +156,14 @@ get_ff <- function(x,
   }
 
   ff <- tryCatch({
-    lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(x, inverse.transform = y)))
+    lapply(inverse_transform, function(y) flowWorkspace::cytoframe_to_flowFrame(flowWorkspace::gh_pop_get_data(gs, inverse.transform = y)))
   }, error = function(err) {
     message(err)
-    message("Do FCS files contain a valid compensation matrix?")
+    stop("Do FCS files contain a valid compensation matrix?")
   })
 
-  population <-
-    population |>
-    dplyr::filter(FileName == attr(x, "FlowJoFileName")) |>
-    dplyr::pull(Population)
-
-  # alter population here by an optional leading forward slash in order to not make changes to ind_mat construction which could
-  # have effects elsewhere. Maybe find a better solution some when
-  # wsx_get_poppaths(x) return population paths without leading fwd slash
-  inds <- ind_mat[,ifelse(population %in% attr(ind_mat, "short_names"),
-                          names(attr(ind_mat, "short_names"))[which(attr(ind_mat, "short_names") %in% population)],
-                          ifelse(grepl("^/", population), population, paste0("/", population))),
-                  drop=F]
+  attr(ff[[1]], "trafolist") <- flowWorkspace:::gs_get_transformlists(gs, inverse = F)
+  attr(ff[[1]], "trafolistinv") <- flowWorkspace:::gs_get_transformlists(gs, inverse = T)
 
   if (leverage_score_for_sampling) {
     message("Calculating leverage scores.")
@@ -166,8 +175,16 @@ get_ff <- function(x,
     lev_scores <- lapply(asplit(inds, 2), function(x) rep(1, length(which(x))))
   }
 
+
   if (downsample != 1) {
-    s <- mapply(sampling_fun, inds_col = asplit(inds, 2), lev_score = lev_scores)
+    s <- mapply(
+      sampling_fun,
+      inds_col = split_mat(inds, colnames(inds), byrow = F),
+      lev_score = lev_scores,
+      seed = seed,
+      downsample = downsample,
+      SIMPLIFY = F
+    )
   } else {
     s <- lapply(asplit(inds, 2), which)
   }
@@ -176,7 +193,7 @@ get_ff <- function(x,
     inds[which(inds)[!which(inds) %in% s]] <- F
     return(inds)
   }, SIMPLIFY = F)
-  #browser()
+
   # pull multiple population from flowframe
   ff <- lapply(inds, function(x) {
     for (i in seq_along(ff)) {
@@ -192,17 +209,31 @@ get_ff <- function(x,
   # attr(ind_mat, "ws") <- x$wsp
   # attr(ind_mat, "FilePath") <- x$FilePath
 
-  flowWorkspace::gs_cleanup_temp(x)
+  flowWorkspace::gs_cleanup_temp(gs)
+  if (!return_ind_mat) {
+    ind_mat <- NULL
+  }
   return(list(ff = ff, ind_mat = ind_mat))
 }
 
-sampling_fun <- function(inds_col, lev_score) {
+sampling_fun <- function(inds_col, lev_score, seed = 42, downsample = 1) {
+
+  if (length(unique(lev_score)) == 1) {
+    prob <- NULL
+  } else {
+    # sampling with prob becomes very slow for large x
+    # dplyr::slice_sample is not much faster
+    message("Sampling with probabilities is slow for large x.")
+    lev_score <- lev_score / sum(lev_score)
+    prob <- lev_score
+  }
+
   set.seed(seed)
   s <- sort(sample(x = which(inds_col),
                    size = ifelse(downsample < 1,
                                  ceiling(length(which(inds_col))*downsample),
                                  min(c(length(which(inds_col)), downsample))),
-                   prob = lev_score))
+                   prob = prob))
 }
 
 get_ff2 <- function(x,
@@ -274,7 +305,13 @@ get_ff2 <- function(x,
   }
 
   if (downsample != 1) {
-    s <- mapply(sampling_fun, inds_col = asplit(inds, 2), lev_score = lev_scores)
+    s <- mapply(
+      sampling_fun,
+      inds_col = split_mat(inds, colnames(inds), byrow = F),
+      lev_score = lev_scores,
+      seed = seed,
+      downsample = downsample
+    )
   } else {
     s <- lapply(asplit(inds, 2), which)
   }

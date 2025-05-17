@@ -19,5 +19,6 @@ which can be used to check whether there are sample in one FlowJoGroup that
 have the same $FIL keyword(=name). Because CytoML::flowjo_to_gatingset may
 complain that one of these files does not match, if either one is to be
 imported. In comparison to wsx_get_sample_df, local FCS file existence (as on
-disk on the current machine is not checked).
+disk on the current machine is not checked); also no sample selection takes
+place here.
 }

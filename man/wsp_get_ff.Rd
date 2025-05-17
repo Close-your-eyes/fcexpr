@@ -8,11 +8,11 @@ wsp_get_ff(
   wsp,
   FCS.file.folder = NULL,
   groups = NULL,
-  population,
+  population = "root",
   invert_groups = F,
   samples = NULL,
   invert_samples = F,
-  return_untransformed = T,
+  return_untransformed = F,
   return_transformed = T,
   downsample = 1,
   remove_redundant_channels = F,
@@ -20,6 +20,7 @@ wsp_get_ff(
   seed = 42,
   channels = NULL,
   leverage_score_for_sampling = F,
+  return_ind_mat = F,
   ...
 )
 }
@@ -60,6 +61,8 @@ value for all FCS files or a vector of same length as FCS files}
 
 \item{leverage_score_for_sampling}{logical whether to use leverage scores for downsampling}
 
+\item{return_ind_mat}{return full index matrix?}
+
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
 \value{
@@ -76,10 +79,6 @@ ind_mats only, without any flow frames of gated populations, are returned by fce
 When reading data with ind_mats from fcs files, compensation needs to be applied manually. One
 has to extract the compensation matrix either from the fcs file or from the flowjo workspace
 where it is usually defined.
-}
-\details{
-If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have both,
-transformed and untransformed, expression values returned.
 }
 \examples{
 \dontrun{

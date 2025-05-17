@@ -11,8 +11,6 @@
 #' has to extract the compensation matrix either from the fcs file or from the flowjo workspace
 #' where it is usually defined.
 #'
-#' If it is intended to pass flowframes to fcexpr::dr_to_fcs, it is recommended to have both,
-#' transformed and untransformed, expression values returned.
 #'
 #' @param wsp vector of paths to flowjo workspaces
 #' @param FCS.file.folder path to folder(s) of FCS files; may be one path for all wsp or a vector of paths, one for each wsp;
@@ -36,6 +34,7 @@
 #' @param seed set a seed to reproduce downsampling
 #' @param channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
 #' @param leverage_score_for_sampling logical whether to use leverage scores for downsampling
+#' @param return_ind_mat return full index matrix?
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
@@ -71,11 +70,11 @@
 wsp_get_ff <- function(wsp,
                        FCS.file.folder = NULL,
                        groups = NULL,
-                       population,
+                       population = "root",
                        invert_groups = F,
                        samples = NULL,
                        invert_samples = F,
-                       return_untransformed = T,
+                       return_untransformed = F,
                        return_transformed = T,
                        downsample = 1,
                        remove_redundant_channels = F,
@@ -83,6 +82,7 @@ wsp_get_ff <- function(wsp,
                        seed = 42,
                        channels = NULL,
                        leverage_score_for_sampling = F,
+                       return_ind_mat = F,
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)) {
@@ -173,8 +173,8 @@ wsp_get_ff <- function(wsp,
                         population = pp,
                         seed = seed,
                         channels = channels,
-                        leverage_score_for_sampling = leverage_score_for_sampling
-  )
+                        leverage_score_for_sampling = leverage_score_for_sampling,
+                        return_ind_mat = return_ind_mat)
   message("temporary .h5 were removed.")
 
   ff.list <- list(flowframes = purrr::map(ff.list, purrr::pluck, "ff"),

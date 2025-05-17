@@ -71,16 +71,18 @@ wsp_get_gs <- function(wsp,
     stop("get_gates must be T or F (logical).")
   }
 
-  all_smpl <- wsx_get_sample_df_light(wsp)
-  summary <-
-    all_smpl[["summary"]] |>
-    dplyr::select(-sample_info) |>
-    dplyr::filter(n_samples > 1)
-  if (nrow(summary) > 0) {
-    message("Some samples have equal $FIL keywords and are in the same group.")
-    message("Even when FCS files are in different local folders (on disk), a warning may be thrown that one of the FCS does not match.")
-    message("This is save to ignore.")
-    print(summary, n = Inf)
+  for (i in wsp) {
+    all_smpl <- wsx_get_sample_df_light(i)
+    summary <-
+      all_smpl[["summary"]] |>
+      dplyr::select(-sample_info) |>
+      dplyr::filter(n_samples > 1)
+    if (nrow(summary) > 0) {
+      message("Some samples have equal $FIL keywords and are in the same group.")
+      message("Even when FCS files are in different local folders (on disk), a warning may be thrown that one of the FCS does not match.")
+      message("This is save to ignore.")
+      print(summary, n = Inf)
+    }
   }
 
   smpl <- wsx_get_sample_df(

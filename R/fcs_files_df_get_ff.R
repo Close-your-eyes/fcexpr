@@ -3,7 +3,7 @@
 #' Read FCS files as flowframes into memory and have them compensated with compensation
 #' matrices from the respective flowjo workspace. This function combines flowCore::read.FCS,
 #' fcexpr::wsx_get_compmat and fcexpr::ff_apply_compensation. The flowframes my then be
-#' subsetted wit index matrices (ind_mat) as returned from fcexpr::wsp_get_ff or
+#' subsetted with index matrices (ind_mat) as returned from fcexpr::wsp_get_ff or
 #' fcexpr::wsp_get_indices.
 #'
 #' @param df dafa frame with information to FCS files; as returned from fcexpr::wsp_get_gs or fcexpr::wsp_get_ff

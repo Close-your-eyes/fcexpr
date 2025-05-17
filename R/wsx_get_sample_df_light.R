@@ -33,7 +33,8 @@ wsx_get_sample_df_light <- function(ws) {
     dplyr::mutate(sampleID = as.numeric(sampleID)) |>
     dplyr::mutate(FileFolder = basename(dirname(FilePath)), .after = FilePath) |>
     dplyr::arrange(sampleID) |>
-    dplyr::rename("FlowJoFilePath" = FilePath, "FlowJoFileName" = FileName, "FlowJoFileFolder" = "FileFolder")
+    dplyr::rename("FlowJoFilePath" = FilePath, "FlowJoFileName" = FileName, "FlowJoFileFolder" = "FileFolder") |>
+    dplyr::filter(!is.na(`$FIL`))
 
   fil_summary <-
     sampledf |>
