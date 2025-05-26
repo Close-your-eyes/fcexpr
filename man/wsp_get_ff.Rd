@@ -21,6 +21,7 @@ wsp_get_ff(
   channels = NULL,
   leverage_score_for_sampling = F,
   return_ind_mat = F,
+  dir = tempdir(),
   ...
 )
 }
@@ -62,6 +63,8 @@ value for all FCS files or a vector of same length as FCS files}
 \item{leverage_score_for_sampling}{logical whether to use leverage scores for downsampling}
 
 \item{return_ind_mat}{return full index matrix?}
+
+\item{dir}{direction to save .h5 files to}
 
 \item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }

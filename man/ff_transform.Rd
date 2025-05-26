@@ -7,7 +7,7 @@
 ff_transform(ff, trafolist)
 }
 \arguments{
-\item{ff}{flow frame}
+\item{ff}{flow frame or a list of flow frames}
 
 \item{trafolist}{matching transformation list}
 }

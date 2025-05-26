@@ -35,6 +35,7 @@
 #' @param channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
 #' @param leverage_score_for_sampling logical whether to use leverage scores for downsampling
 #' @param return_ind_mat return full index matrix?
+#' @param dir direction to save .h5 files to
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
@@ -83,6 +84,7 @@ wsp_get_ff <- function(wsp,
                        channels = NULL,
                        leverage_score_for_sampling = F,
                        return_ind_mat = F,
+                       dir = tempdir(),
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)) {
@@ -164,6 +166,7 @@ wsp_get_ff <- function(wsp,
   gs_list <- lapply(list(smpl),
                     get_gs,
                     remove_redundant_channels = remove_redundant_channels,
+                    dir = dir,
                     merge_to_gs = F)[[1]]
 
   ff.list <- lapply_fun(gs_list,

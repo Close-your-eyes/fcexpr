@@ -338,10 +338,11 @@ get_ff2 <- function(x,
 
 get_gs <- function(x,
                    remove_redundant_channels = F,
+                   dir = tempdir(),
                    merge_to_gs = T) {
 
   # split(x, (seq(nrow(x))-1) %/% split_size
-  message("tempdir: ", tempdir(), "\n")
+  message("tempdir: ", dir, "\n")
   gs_list <- lapply(asplit(x,1), function(y) {
     message(y[["FlowJoFileName"]], ", ", format(as.numeric(y[["$TOT"]]), big.mark = ","), " evts, ", round(file.info(y[["FilePathUse"]])[["size"]]/1000/1000), " Mb")
 
@@ -352,7 +353,8 @@ get_gs <- function(x,
                                       subset = if (y[["equal_FileDirs"]]) {basename(y[["FilePathUse"]])} else {`$FIL` %in% y[["$FIL"]] & `$TOT` %in% y[["$TOT"]] & `$ETIM` %in% y[["$ETIM"]] & `$BTIM` %in% y[["$BTIM"]]},
                                       truncate_max_range = F,
                                       keywords = c("$FIL", "$ETIM", "$BTIM", "$TOT"),
-                                      additional.keys = c("$TOT", "$ETIM", "$BTIM"))
+                                      additional.keys = c("$TOT", "$ETIM", "$BTIM"),
+                                      backend_dir = dir)
     if (length(gs) != 1) {
       message("number of samples in gs is not 1. this should not be.")
     }
@@ -389,16 +391,85 @@ get_gs <- function(x,
 
 }
 
+
+
+get_new_kw_and_pars <- function(exprs,
+                                new_kw,
+                                new_desc = NULL,
+                                new_pars) {
+
+
+  if (is.null(new_desc)) {
+    new_desc <- new_pars@data$desc
+  }
+
+  n <- nrow(new_pars)+1
+  if (n > ncol(exprs)) {
+    # happens when no new column was added to exprs
+    # but one may have been overwritten
+    n <- ncol(exprs)
+  }
+  new_p <- new_pars[1,]
+  new_kw[["$PAR"]] <- as.character(ncol(exprs))
+
+  ## new channels
+  if (n < ncol(exprs)) {
+    for (z in n:ncol(exprs)) {
+
+      rownames(new_p) <- c(paste0("$P", z))
+      new_pars <- BiocGenerics::combine(new_pars, new_p)
+      new_p_name <- colnames(exprs)[z]
+      new_p_desc <- new_desc[z]
+
+      flowCore::pData(new_pars)$name[z] <- new_p_name
+      flowCore::pData(new_pars)$desc[z] <- new_p_desc
+      flowCore::pData(new_pars)$minRange[z] <- as.integer(round(min(exprs[, z])))
+      flowCore::pData(new_pars)$maxRange[z] <- as.integer(round(max(exprs[, z])))
+      flowCore::pData(new_pars)$range[z] <- as.integer(round(max(exprs[, z])))
+
+      #### WRITE KEYWORD WITH 2 BRACKETS!! OTHERWISE FLOWJO DOES NOT READ IT #### ????????????
+      new_kw[[paste0("$P", z, "N")]] <- new_p_name
+      new_kw[[paste0("$P", z, "S")]] <- new_p_desc
+      new_kw[[paste0("$P", z, "E")]] <- "0,0"
+      new_kw[[paste0("$P", z, "G")]] <- "1"
+      new_kw[[paste0("$P", z, "B")]] <- new_kw[["$P1B"]]
+      new_kw[[paste0("$P", z, "R")]] <- as.integer(round(max(exprs[, z])))
+      new_kw[[paste0("$P", z, "V")]] <- "1"
+      new_kw[[paste0("$P", z, "DISPLAY")]] <- "LIN"
+      new_kw[[paste0("flowCore_$P", z, "Rmin")]] <- as.integer(round(min(exprs[, z])))
+      new_kw[[paste0("flowCore_$P", z, "Rmax")]] <- as.integer(round(max(exprs[, z])))
+    }
+  }
+
+  ## previous channels
+  for (z in 1:n) {
+    flowCore::pData(new_pars)$minRange[z] <- as.integer(round(min(exprs[, z])))
+    flowCore::pData(new_pars)$maxRange[z] <- as.integer(round(max(exprs[, z])))
+    flowCore::pData(new_pars)$range[z] <- as.integer(round(max(exprs[, z])))
+    if (!grepl("FSC|SSC", new_kw[paste0("$P", as.character(z), "N")])) {
+      new_kw[[paste0("$P", as.character(z), "R")]] <- as.integer(round(max(exprs[, z])))
+    }
+    new_kw[[paste0("flowCore_$P", as.character(z), "Rmin")]] <- as.integer(round(min(exprs[, z])))
+    new_kw[[paste0("flowCore_$P", as.character(z), "Rmax")]] <- as.integer(round(max(exprs[, z])))
+  }
+  return(list(new_kw = new_kw, new_pars = new_pars))
+}
+
+
 .get.channels <- function(ff,
                           timeChannel = NULL,
                           channels = NULL) {
   if (!is.null(timeChannel)) {
+    timeChannel <- trimws(timeChannel)
     timeChannel <- unlist(lapply(timeChannel, function(x) grep(paste0("^",x,"$"),
                                                                colnames(flowCore::exprs(ff)),
                                                                value = TRUE, ignore.case = TRUE)))
     if (all(is.na(timeChannel))) {
-      stop("None of timeChannels not found in exprs of flowFrame.")
+      message("None of timeChannels not found in exprs of flowFrame. Trying flowCore:::findTimeChannel(ff).")
+      timeChannel <- flowCore:::findTimeChannel(ff)
     }
+  } else {
+    timeChannel <- flowCore:::findTimeChannel(ff)
   }
 
   if (is.null(channels)) {
@@ -411,7 +482,7 @@ get_gs <- function(x,
     notfound <- channels[intersect(which(!channels %in% flowCore::pData(flowCore::parameters(ff))$name),
                                    which(!channels %in% flowCore::pData(flowCore::parameters(ff))$desc))]
     if (length(notfound) > 0) {
-      warning(paste0(paste("These channels were not found in all flowFrames: ", notfound, collapse = ", "), "."))
+      message(paste("These channels were not found in all flowFrames: ", notfound, collapse = ", "), ".")
     }
 
     channels_ff <- stats::setNames(flowCore::pData(flowCore::parameters(ff))$name[inds], nm = flowCore::pData(flowCore::parameters(ff))$desc[inds])
@@ -435,6 +506,7 @@ get_gs <- function(x,
   }
   return(channels)
 }
+
 
 .check.ff.list <- function(ff.list, channels = NULL, strict = T) {
 
@@ -542,5 +614,198 @@ shift.to.positive <- function(x, rm.na = F) {
   }
   #one-liner: apply(x, 2, function(z){ if (min(z) < 0) {z + abs(min(z - 1))} else {z}})
 }
+
+
+.cluster_ordering <- function(ks) {
+  if (methods::is(ks, "matrix")) {
+    ks <- apply(ks, 2, function (x) {
+      new_order <- stats::setNames(names(table(x)), nm = names(sort(table(x), decreasing = T)))
+      return(as.numeric(new_order[as.character(x)]))
+    })
+  } else if (methods::is(ks, "integer")) {
+    new_order <- stats::setNames(names(table(ks)), nm = names(sort(table(ks), decreasing = T)))
+    ks <- as.numeric(new_order[as.character(ks)])
+  } else {
+    new_order <- stats::setNames(names(table(ks)), nm = names(sort(table(ks), decreasing = T)))
+    ks <- unname(new_order[as.character(ks)])
+  }
+
+  return(ks)
+}
+
+.calc.pairwise.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
+  mc.cores <- min(mc.cores, parallel::detectCores() - 1)
+
+  dat_split <- split_mat(x = dat, f = cluster)
+
+  if (is.null(levels)) {
+    levels <- sort(unique(cluster))
+  }
+
+  #all_pairs <- utils::combn(levels, 2, simplify = T)
+  ## redundant calculation is easier for subsequent marker analysis; or one has to think about the logic doing it the non-redundant way
+  all_pairs <- expand.grid(levels, levels)
+  all_pairs <- all_pairs[which(all_pairs$Var1 != all_pairs$Var2),]
+  all_pairs <- t(all_pairs)
+
+  out <- dplyr::bind_rows(parallel::mcmapply(x = as.character(all_pairs[1,]),
+                                             y = as.character(all_pairs[2,]),
+                                             function(x,y) {
+
+                                               out <-
+                                                 presto::wilcoxauc(X = cbind(t(dat_split[[x]]),t(dat_split[[y]])), y = c(rep("y", length(which(as.character(cluster) == x))),
+                                                                                                                         rep("z", length(which(as.character(cluster) == y))))) %>%
+                                                 dplyr::filter(group == "y") %>%
+                                                 dplyr::select(feature, pval) %>%
+                                                 dplyr::rename("pvalue" = pval, "channel" = feature)
+
+                                               out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
+                                               out[,"mean_2"] <- round(matrixStats::colMeans2(dat_split[[y]]), 2)
+                                               out[,"mean_diff"] <- round(out[,"mean_1"] - out[,"mean_2"], 2)
+                                               out[,"diptest_pvalue_1"] <- suppressWarnings(apply(dat_split[[x]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+                                               out[,"diptest_pvalue_2"] <- suppressWarnings(apply(dat_split[[y]], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+                                               out[,"cluster_1"] <- as.character(x) #sapply(strsplit(out$cluster12, "_____"), "[", 1, simplify = T)
+                                               out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
+                                               out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+
+                                               #cluster_sizes <- utils::stack(table(cluster)) %>% dplyr::mutate(ind = as.character(ind))
+                                               out <-
+                                                 out %>%
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_1" = "ind")) %>%
+                                                 #dplyr::rename("cluster_1_events" = "values") %>%
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_2" = "ind")) %>%
+                                                 #dplyr::rename("cluster_2_events" = "values") %>%
+                                                 #, cluster_1_events, cluster_2_events
+                                                 dplyr::select(channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_pvalue_1, diptest_pvalue_2) %>%
+                                                 dplyr::arrange(pvalue)
+
+                                               'tryCatch({
+      out <- suppressWarnings(matrixTests::col_wilcoxon_twosample(dat_split[[x]],
+                                                                  dat_split[[y]])) %>%
+        dplyr::select(pvalue) %>%
+        tibble::rownames_to_column("channel")
+    }, error=function(err) {
+      message("Ran matrixTests::col_wilcoxon_twosample with error in level : ", x, " vs ", y, ": ")
+      message(err)
+      message("Trying presto::wilcoxauc.")
+      out <-
+        presto::wilcoxauc(cbind(t(dat_split[[x]]),t(dat_split[[y]])), c(rep("y", length(which(as.character(cluster) == x))),
+                                                                        rep("z", length(which(as.character(cluster) == y))))) %>%
+        dplyr::filter(group == "y") %>%
+        dplyr::select(feature, pval) %>%
+        dplyr::rename("pvalue" = pval, "channel" = feature)
+    }, warning = function(war) {
+      message("Ran matrixTests::col_wilcoxon_twosample with warning in level : ", x, " vs ", y, ": ")
+      message(war)
+      message("Trying presto::wilcoxauc.")
+      out <-
+        presto::wilcoxauc(cbind(t(dat_split[[x]]),t(dat_split[[y]])), c(rep("y", length(which(as.character(cluster) == x))),
+                                                                        rep("z", length(which(as.character(cluster) == y))))) %>%
+        dplyr::filter(group == "y") %>%
+        dplyr::select(feature, pval) %>%
+        dplyr::rename("pvalue" = pval, "channel" = feature)
+    })'
+
+
+                                               return(out)
+                                             }, mc.cores = mc.cores, SIMPLIFY = F))
+
+  out$cluster_1 <- factor(out$cluster_1, levels = levels)
+  out$cluster_2 <- factor(out$cluster_2, levels = levels)
+  return(out)
+}
+
+.calc.global.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
+
+  #method = c("presto", "matrixTests")
+  #method <- match.arg(method, c("presto", "matrixTests"))
+
+  mc.cores <- min(mc.cores, parallel::detectCores() - 1)
+
+  # cluster is ident for each row in dat
+  if (nrow(dat) != length(cluster)) {
+    stop("nrow(dat) != length(cluster)")
+  }
+  if (is.null(levels)) {
+    levels <- sort(unique(cluster))
+  }
+
+  #levels_out <<- levels
+  #dat_out <<- dat
+  #cluster_out <<- cluster
+
+  ## try matrixStats first and on error run presto which requires transposation though
+  ## matrixStats caused an error once (Integer Overflow with large matrices (approx. 1e6 cells as initial input))
+  out <- dplyr::bind_rows(parallel::mclapply(levels, function(x) {
+    ' tryCatch({
+      out <- matrixTests::col_wilcoxon_twosample(dat[which(cluster == x),,drop = F],
+                                                 dat[which(cluster != x),,drop = F])  |> |>
+        dplyr::select(pvalue) |>
+        tibble::rownames_to_column("channel")
+    }, error=function(err) {
+      message("Ran matrixTests::col_wilcoxon_twosample with error in level : ", x, ": ")
+      message(err)
+      message("Trying presto::wilcoxauc.")
+      out <-
+        presto::wilcoxauc(cbind(t(dat[which(cluster == x),,drop = F]),
+                                t(dat[which(cluster != x),,drop = F])), c(rep("y", length(which(cluster == x))),
+                                                                          rep("z", length(which(cluster != x))))) |>
+        dplyr::filter(group == "y") |>
+        dplyr::select(feature, pval) |>
+        dplyr::rename("pvalue" = pval, "channel" = feature)
+    }, warning = function(war) {
+      message("Ran matrixTests::col_wilcoxon_twosample with warning in level : ", x, ": ")
+      message(war)
+      message("Trying presto::wilcoxauc.")
+      out <-
+        presto::wilcoxauc(cbind(t(dat[which(cluster == x),,drop = F]),
+                                t(dat[which(cluster != x),,drop = F])), c(rep("y", length(which(cluster == x))),
+                                                                          rep("z", length(which(cluster != x))))) |>
+        dplyr::filter(group == "y") |>
+        dplyr::select(feature, pval) |>
+        dplyr::rename("pvalue" = pval, "channel" = feature)
+    })'
+
+
+    out <-
+      presto::wilcoxauc(X = cbind(t(dat[which(cluster == x),,drop = F]),
+                                  t(dat[which(cluster != x),,drop = F])), y = c(rep("y", length(which(cluster == x))),
+                                                                                rep("z", length(which(cluster != x))))) |>
+      dplyr::filter(group == "y") |>
+      dplyr::select(feature, pval) |>
+      dplyr::rename("pvalue" = pval, "channel" = feature)
+
+    out[,"mean_cluster"] <- round(matrixStats::colMeans2(dat[which(cluster == x),,drop = F]), 2)
+    out[,"mean_notcluster"] <- round(matrixStats::colMeans2(dat[which(cluster != x),,drop = F]), 2)
+    out[,"mean_diff"] <- round(out[,"mean_cluster"] - out[,"mean_notcluster"], 2)
+    out[,"diptest_pvalue_cluster"] <- suppressWarnings(apply(dat[which(cluster == x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+    out[,"diptest_pvalue_notcluster"] <- suppressWarnings(apply(dat[which(cluster != x),,drop = F], 2, function(z) diptest::dip.test(x = if(length(z) > 71999) {sample(z,71999)} else {z})[["p.value"]]))
+    out[,"cluster"] <- as.character(x)
+    out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
+
+    out <-
+      out |>
+      #dplyr::left_join(utils::stack(table(cluster)) |> dplyr::mutate(ind = as.character(ind)), by = c("cluster" = "ind")) |>
+      #dplyr::rename("cluster_events" = "values") |>
+      #cluster_eventsdf <-
+      dplyr::select(channel, cluster, pvalue, mean_cluster, mean_notcluster, mean_diff, diff_sign, diptest_pvalue_cluster, diptest_pvalue_notcluster) |>
+      dplyr::arrange(pvalue)
+    return(out)
+  }, mc.cores = mc.cores))
+
+  out <-
+    out |>
+    dplyr::group_by(channel) |>
+    dplyr::mutate(mean_cluster_scale = as.vector(scale(mean_cluster))) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(cluster = factor(cluster, levels = levels))
+
+  out <- heatmap_ordering(df = out,
+                          feature_order = "custom",
+                          group_order = "hclust")
+
+  return(out)
+}
+
 
 

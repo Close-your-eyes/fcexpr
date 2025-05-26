@@ -26,6 +26,7 @@
 #' @param force_gs_merge try to eliminate non-congruent populations from gating
 #' hierarchies to allow merging of all samples into one gs
 #' @param get_gates_args argument list for get_gates
+#' @param dir direction to save .h5 files to
 #'
 #' @return list of gatingsets, FCS files used, gating hierarchies
 #' @export
@@ -48,9 +49,8 @@ wsp_get_gs <- function(wsp,
                        pData_join_col = "identity",
                        get_gates = T,
                        get_gates_args = list(n_bins = 200^2),
-                       force_gs_merge = F
-
-) {
+                       force_gs_merge = F,
+                       dir = tempdir()) {
 
   if (!requireNamespace("BiocManager", quietly = T)){
     utils::install.packages("BiocManager")
@@ -106,7 +106,8 @@ wsp_get_gs <- function(wsp,
 
   gs_list <- lapply(smpl_list,
                     get_gs,
-                    remove_redundant_channels = remove_redundant_channels)
+                    remove_redundant_channels = remove_redundant_channels,
+                    dir = dir)
   names(gs_list) <- names(smpl_list)
 
   if (length(gs_list) > 1 && force_gs_merge) {

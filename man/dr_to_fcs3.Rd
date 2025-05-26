@@ -7,131 +7,113 @@
 dr_to_fcs3(
   ff.list,
   channels = NULL,
-  add.sample.info = NULL,
+  grouplist = NULL,
   scale.whole = c("none", "z.score", "min.max"),
   scale.samples = c("none", "z.score", "min.max"),
   run.pca = 0,
   run.umap = T,
   run.som = T,
-  run.gqtsom = F,
-  find.clusters = T,
-  metacluster_map = c("SOM", "GQTSOM"),
-  metacluster_map_source = c("UMAP", "expr"),
-  clustering.for.marker.calc = c("cutree_5", "cutree_10", "cutree_15"),
-  calc.global.markers = F,
-  calc.pairwise.markers = F,
+  run.find.clusters = T,
+  calc_cluster_marker = F,
   UMAP_args = list(metric = "cosine", verbose = T, scale = T),
   SOM_args = list(),
-  GQTSOM_args = list(),
   EmbedSOM_args = list(),
-  dist_args = list(),
-  hclust_args = list(method = "average"),
-  cutree_args = list(k = c(5, 10, 15)),
-  extra.cols = NULL,
+  FindNeighbors_args = list(),
+  FindClusters_args = list(resolution = c(0.1)),
   mc.cores = 1,
   save.to.disk = c("fcs", "rds"),
   save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
   save.name = NULL,
-  exclude.extra.channels = ifelse(length(ff.list) == 1 && names(ff.list) ==
-    "transformed", "cluster.id", "FSC|SSC|Time|cluster.id"),
   write.transformed.channels.to.FCS = T,
   write.untransformed.channels.to.FCS = T,
-  write.scaled.channels.to.FCS = F,
+  trafoname = "trafolistinv",
   timeChannel = c("Time", "HDR-T"),
-  transformation_name = "trans",
-  return_processed_raw_data_only = F,
-  seed = 42
+  seed = 42,
+  ...
 )
 }
 \arguments{
-\item{ff.list}{a list of flowFrames as received from fcexpr::wsp_get_ff (compensated with Compensation Matrix as defined in FlowJo by default) or
-as received from fcexpr::inds_get_ff (directly from FCS files, not compensated by default)}
+\item{ff.list}{a list of flowFrames as received from fcexpr::wsp_get_ff
+(compensated with Compensation Matrix as defined in FlowJo by default) or
+as received from fcexpr::inds_get_ff (directly from FCS files, not
+compensated by default)}
 
-\item{channels}{a named vector of channels to use for dimension reduction. values can be channel names (v-450LP..., b-520..., or so), or channel descriptions (e.g. CD3 or LAG3-PeCy7 for example)
-names will be used as new description in the fcs file to be written; if no names provided, names of the very first FCS file will be used}
+\item{channels}{channel selection, passed to ff_get_channels}
 
-\item{add.sample.info}{named list of additional channels to identify samples or group them in flowjo;
-e.g. for 9 fcs files to be concatenated: add.sample.info = list(condition = c(1,2,3,1,2,3,1,2,3), donor = c(1,1,1,2,2,2,3,3,3))}
+\item{grouplist}{named list of additional channels to identify samples or
+group them in flowjo; see ff_add_groups}
 
-\item{scale.whole}{if and how to scale channels after concatenation of flowframes in ff.list}
+\item{scale.whole}{if and how to scale channels after concatenation of
+flowframes in ff.list}
 
-\item{scale.samples}{if and how to scale channels of flowframes in ff.list individually before concatenation}
+\item{scale.samples}{if and how to scale channels of flowframes in ff.list
+individually before concatenation}
 
 \item{run.pca}{select number of pcs; if 0 no pca is computed}
 
-\item{run.umap}{logical, whether to calculate UMAP dimension reduction with uwot::umap}
+\item{run.umap}{logical, whether to calculate UMAP dimension reduction
+with uwot::umap}
 
-\item{run.som}{logical, whether to calculate SOM dimension reduction EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
+\item{run.som}{logical, whether to calculate SOM dimension reduction
+EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
 
-\item{run.gqtsom}{logical, whether to calculate GQTSOM dimension reduction EmbedSOM::GQTSOM followed by EmbedSOM::EmbedSOM}
+\item{run.find.clusters}{logical, whether to detect clusters with
+get_louvain_clusters}
 
-\item{find.clusters}{logical, whether to detect clusters with stats::dist, stats::hclust and stats::cutree}
+\item{calc_cluster_marker}{calculate global cluster markers;
+see ff_calc_markers}
 
-\item{metacluster_map}{which map to use for metaclustering; SOM or GQTSOM}
-
-\item{metacluster_map_source}{which source to use for metaclustering; actual expression valueS (fluorescence intensites)
-or UMAP dimension (the latter of which was found to work really well)}
-
-\item{clustering.for.marker.calc}{if NULL nothing is calculated; otherwise marker features (stained markers) are determined by wilcox test
-using \href{https://github.com/immunogenomics/presto}{presto::wilcoxauc}}
-
-\item{calc.global.markers}{logical whether to calculate global cluster markers: so each cluster vs. all other cells}
-
-\item{calc.pairwise.markers}{logical whether to calculate pairwise cluster markers: so each cluster vs. each cluster}
-
-\item{UMAP_args}{arguments to uwot::umap; use pca and scale arguments to have data only modified for UMAP but not for SOM}
+\item{UMAP_args}{arguments to uwot::umap}
 
 \item{SOM_args}{args to EmbedSOM::SOM}
 
-\item{GQTSOM_args}{args to EmbedSOM::GQTSOM}
-
 \item{EmbedSOM_args}{args to EmbedSOM::EmbedSOM}
 
-\item{dist_args}{arguments to stats::dist}
+\item{FindNeighbors_args}{arugments to Seurat function fof louvain clustering}
 
-\item{hclust_args}{arguments to stats::hclust}
+\item{FindClusters_args}{arugments to Seurat function fof louvain clustering}
 
-\item{cutree_args}{arguments to stats::cutree; only k is relevant}
+\item{mc.cores}{number of cores to use for parallel computing of
+cluster markers and multiple cluster resolutions;
+mc.cores is passed to parallel::mclapply or parallel::mcmapply;
+limited to parallel::detectCores()-1}
 
-\item{extra.cols}{numeric vector of an extra column (or matrix of multiple columns) with arbitraty information to add to the final fcs file;
-has to be equal to the number of rows in all flowframes provided; colnames will be the channel names in the FCS file;
-could be a previously calculated dimension reduction or cluster annotation.}
+\item{save.to.disk}{what to save to disk: (concatenated) and appended FCS
+file and/or rds file with several elements in a list}
 
-\item{mc.cores}{number of cores to use for parallel computing of cluster markers and multiple cluster resolutions;
-mc.cores is passed to parallel::mclapply or parallel::mcmapply; limited to parallel::detectCores()-1}
-
-\item{save.to.disk}{what to save to disk: (concatenated) and appended FCS file and/or rds file with several elements in a list}
-
-\item{save.path}{where to save elements specified in save.to.disk; set to NULL to have nothing written to disk}
+\item{save.path}{where to save elements specified in save.to.disk;
+set to NULL to have nothing written to disk}
 
 \item{save.name}{name to use for save rds and or fcs file}
 
-\item{exclude.extra.channels}{when scaled and transform channels are written to FCS file, some channels may be redundant
-and will only occupy disk space, those are specified here; matched with grepl}
+\item{write.transformed.channels.to.FCS}{do save transformed channels
+(e.g. logicle or arcsinh) to FCS file}
 
-\item{write.transformed.channels.to.FCS}{do save transformed channels (e.g. logicle or arcsinh) to FCS file}
+\item{write.untransformed.channels.to.FCS}{do save untransformed channels
+(inverse) to FCS file; requires trafoname in attributes of ff}
 
-\item{write.untransformed.channels.to.FCS}{do save untransformed channels (inverse) to FCS file}
+\item{trafoname}{name of transformatio in attributes of ff}
 
-\item{write.scaled.channels.to.FCS}{do save scaled channels (scale.whole, scale.samples) to FCS file}
-
-\item{timeChannel}{name of the Time channel to exclude from all analyses and calculation; if NULL will be attempted
-to be detected automatically}
-
-\item{transformation_name}{name of the applied transformation (will appear in FCS file as channel desc)}
-
-\item{return_processed_raw_data_only}{do not calculate dimension reduction etc but only return the preprocessed
-data for external calculations or tryouts}
+\item{timeChannel}{name of the Time channel to exclude from all
+analyses and calculation; if NULL will be attempted to be detected
+automatically}
 
 \item{seed}{set a seed for reproduction of dimension reductions}
+
+\item{...}{arugments to ff_get_channels}
 }
 \value{
 A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
 (ii) A character vector of meaningful column names which may be used for the table in R (rather for convenience). (iii) Tables of marker features (each cluster vs all other events and all clusters pairwise).
 }
 \description{
-Calculate dimension reduction and cluster annotation with data from one or more flow frames and add these parameters to a (concatenated) fcs file
+It is expected that ff.list was made with wsp_get_ff with return_transformed
+TRUE and return_untransformed FALSE.
+After optional scaling, this runs ff_calc_pca, ff_calc_umap, ff_calc_som,
+get_louvain_cluster. flow frames from ff.list are joined with ff_merge,
+data from pca, umap etc added with ff_add_columns.
+If write.untransformed.channels.to.FCS is TRUE, ff_transform is called.
 }
 \examples{
 \dontrun{

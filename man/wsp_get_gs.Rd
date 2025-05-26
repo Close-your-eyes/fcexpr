@@ -16,7 +16,8 @@ wsp_get_gs(
   pData_join_col = "identity",
   get_gates = T,
   get_gates_args = list(n_bins = 200^2),
-  force_gs_merge = F
+  force_gs_merge = F,
+  dir = tempdir()
 )
 }
 \arguments{
@@ -49,6 +50,8 @@ are found with fcexpr:::find_unique_level_columns(pData, pData_join_col)}
 
 \item{force_gs_merge}{try to eliminate non-congruent populations from gating
 hierarchies to allow merging of all samples into one gs}
+
+\item{dir}{direction to save .h5 files to}
 }
 \value{
 list of gatingsets, FCS files used, gating hierarchies

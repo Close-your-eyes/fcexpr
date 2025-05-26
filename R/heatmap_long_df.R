@@ -1,0 +1,267 @@
+#' Plot heatmap from data frame in long format
+#'
+#'
+#'
+#' @param df data frame in long format
+#' @param groups column with groups
+#' @param features column with features
+#' @param values column with fill values for color scale
+#' @param dotsizes column for dot sizes, if provided will cause plotting of
+#' dots instead of tiles
+#' @param fill color palette vector for fill of tiles or dots. when auto,
+#' RColorBrewer::RdBu is used
+#' @param color color of stroke (border) around tiles or dots; "NA" means no
+#' stroke is plotted; NA has
+#' to be put in quotation mark ("NA"), such that geom_point accepts it.
+#' other choices may be black, white or any other color code; when "auto",
+#' grey70 is used by default when !is.null(dotsizes) and a the number of
+#' features is below 100.
+#' @param scale how to scale values: not, zscore or from -1 to 1
+#' @param omit_featurelabels do not plot axis text of features, e.g. when
+#' their number is large
+#' @param topn_features only plot the top n features (ordered by value) per
+#' group
+#' @param border_linewidth linewidth of borders (stroke) around tiles or dots
+#' @param legendbreaks a single number, a vector of explicit breaks, or "auto"
+#' for ggplot default or "minmidmax" for three breaks at minimum, middle and
+#' maximum of value range
+#' @param legendlabels labels for breaks, e.g. c("min", "mid", "max")
+#' @param colorsteps NULL to have normal colorbar, auto for default colorsteps,
+#' a single number or a vector of explicit steps; may not work with any number
+#' when nice_colorsteps is TRUE
+#' @param nice_colorsteps heuristic for pretty steps
+#' @param flip_axes do flip them?
+#' @param group_seplines plot lines that separate features belonging to
+#' different groups
+#' @param seplines_args arguments to geom_hline for seplines
+#' @param legend_fill_args arguments to ggplot2::guide_colorsteps or
+#' ggplot2::guide_colorbar, depend upon the color scale
+#' @param legend_size_args arguments to ggplot2::guide_legend to modify the
+#' size legend
+#' @param ... arguments to heatmap_ordering
+#'
+#' @return ggplot2 object
+#' @export
+#'
+#' @examples
+#' df <- system.file("extdata", "heatmap_df.rds", package = "fcexpr")
+#' # everything default
+#' heatmap_long_df(df = df,
+#' groups = "cluster",
+#' features = "channel",
+#' values = "mean_cluster_scale")
+#' # -log10(pvalues) as dot size
+#' heatmap_long_df(df = df,
+#' groups = "cluster",
+#' features = "channel",
+#' values = "mean_cluster_scale",
+#' dotsizes = "pvalue2")
+#' # continuuos color scale, no feature axis text, flipped axes
+#' # only 4 features per group, lines to separate features
+#' heatmap_long_df(df = df,
+#' groups = "cluster",
+#' features = "channel",
+#' values = "mean_cluster_scale",
+#' dotsizes = "pvalue2",
+#' omit_featurelabels = T,
+#' flip_axes = T,
+#' topn_features = 4,
+#' group_seplines = T,
+#' colorsteps = NULL)
+#' # scale in function, alter legend text
+#' heatmap_long_df(df = df,
+#' groups = "cluster",
+#' features = "channel",
+#' values = "mean_cluster",
+#' scale = "zscore",
+#' colorsteps = NULL,
+#' legendlabels = c("min", "mid", "max"),
+#' legendbreaks = "minmidmax")
+heatmap_long_df <- function(df,
+                            groups,
+                            features,
+                            values,
+                            dotsizes = NULL,
+                            fill = "auto",
+                            color = "auto",
+                            scale = c("none", "zscore", "1"),
+                            omit_featurelabels = F,
+                            topn_features = NULL,
+                            border_linewidth = 0.2,
+                            legendbreaks = "auto",
+                            legendlabels = "auto",
+                            colorsteps = "auto",
+                            nice_colorsteps = T,
+                            flip_axes = F,
+                            group_seplines = F,
+                            seplines_args = list(),
+                            legend_fill_args = list(
+                              barwidth = 1,
+                              barheight = 8,
+                              order = 1
+                              #ticks.colour = "black",
+                              #frame.colour = "black",
+                              #frame.linewidth = 0.1
+                            ),
+                            legend_size_args = list(
+                              order = 2,
+                              ncol = NULL,
+                              nrow = NULL,
+                              override.aes = list(color = "black")
+                            ),
+                            ...) {
+
+
+  scale <- rlang::arg_match(scale)
+
+  if (!is.null(topn_features)) {
+    select <-
+      df |>
+      dplyr::group_by(!!rlang::sym(features)) |>
+      dplyr::slice_max(order_by = !!rlang::sym(values), n = 1) |>
+      dplyr::ungroup() |>
+      dplyr::group_by(!!rlang::sym(groups)) |>
+      dplyr::slice_max(order_by = !!rlang::sym(values), n = topn_features) |>
+      dplyr::pull(!!rlang::sym(features))
+    df <- df[which(df[[features]] %in% select),]
+  }
+
+  if (scale == "zscore") {
+    df <-
+      df |>
+      dplyr::group_by(!!rlang::sym(features)) |>
+      dplyr::mutate(values = as.vector(scale(!!rlang::sym(values)))) |>
+      dplyr::ungroup()
+  } else if (scale == "1") {
+    df <-
+      df |>
+      dplyr::group_by(!!rlang::sym(features)) |>
+      dplyr::mutate(values = brathering::scale_min_max(!!rlang::sym(values), min = -1, max = 1)) |>
+      dplyr::ungroup()
+  }
+
+  df <- heatmap_ordering(
+    df = df,
+    features = features,
+    groups = groups,
+    values = values,
+    ...
+  ) # ...
+
+
+  if (color == "auto") {
+    if (!is.null(dotsizes) || nlevels(df[["features"]]) > 100) {
+      color <- "NA"
+    } else {
+      color <- "grey70"
+    }
+  }
+
+
+  if (length(fill) == 1 && fill == "auto") {
+    fill <- colrr::col_pal(name = "RColorBrewer::RdBu", n = 11, direction = -1)
+  } else if (length(fill) == 1) {
+    fill <- colrr::col_pal(name = fill)
+  }
+
+  # check if values are z-scored
+  mat <- brathering::df_long_to_mat(df, to_rows = groups, to_cols = features, values = values)
+  values_zscored <- sum(apply(mat, 2, brathering::is_z_scored)) > 0.75*ncol(mat) # 0.75: arbitrary choice
+
+  scale.max <- as.numeric(format(brathering::floor_any(max(df[[values]]), 0.1), nsmall = 1))
+  scale.min <- as.numeric(format(brathering::ceiling_any(min(df[[values]]), 0.1), nsmall = 1))
+  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
+
+
+  # start ggplot pipeline
+  plot <- ggplot2::ggplot(df, ggplot2::aes(x = !!rlang::sym(groups), y = !!rlang::sym(features), fill = !!rlang::sym(values)))
+  if (flip_axes) {
+    plot <- plot + ggplot2::coord_flip()
+  }
+
+
+  if (!is.null(dotsizes)) {
+    plot <- plot + ggplot2::geom_point(ggplot2::aes(size = !!rlang::sym(dotsizes)), shape = 21, color = color, stroke = border_linewidth)
+  } else {
+    plot <- plot + ggplot2::geom_tile(color = color, linewidth = border_linewidth)
+  }
+
+
+  if (is.null(colorsteps)) {
+    if (length(legendbreaks) == 1 && legendbreaks == "auto") {
+      legendbreaks <- ggplot2::waiver()
+    } else if (length(legendbreaks) == 1 && legendbreaks == "minmidmax") {
+      legendbreaks <- c(scale.min, scale.mid, scale.max)
+    } else if (length(legendbreaks) == 1) {
+      legendbreaks <- seq(scale.min, scale.max, length.out = legendbreaks)
+    } else {
+      # legendbreaks is vector
+    }
+    if (length(legendlabels) == 1 && legendlabels == "auto") {
+      legendlabels <- ggplot2::waiver()
+    } else if (length(legendlabels) != length(legendbreaks)) {
+      message("length(legendlabels) != length(legendbreaks)")
+      legendlabels <- ggplot2::waiver()
+    }
+    plot <- plot +
+      ggplot2::scale_fill_gradientn(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                    colors = fill,
+                                    breaks = legendbreaks,
+                                    labels = legendlabels)
+    guide_fun <- ggplot2::guide_colourbar
+  } else {
+    if (length(colorsteps) == 1 && colorsteps == "auto") {
+      # colorsteps is auto
+      if (values_zscored) {
+        colorsteps <- seq(round(scale.min), round(scale.max), 1)
+      } else {
+        colorsteps <- seq(round(scale.min), round(scale.max), length.out = 6)
+      }
+    }
+    if (length(colorsteps) == 1) {
+      # colorsteps given as one number
+      plot <- plot +
+        ggplot2::scale_fill_stepsn(colors = fill,
+                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                   n.breaks = colorsteps,
+                                   limits = c(scale.min, scale.max),
+                                   show.limits = T,
+                                   nice.breaks = nice_colorsteps)
+    } else {
+      # colorsteps given as a vector
+      plot <- plot +
+        ggplot2::scale_fill_stepsn(colors = fill,
+                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                   breaks = colorsteps,
+                                   limits = c(scale.min, scale.max),
+                                   show.limits = T)
+      #labels = function(x) round(x, legend.decimals))
+    }
+    guide_fun <- ggplot2::guide_colorsteps
+  }
+  plot <- plot +
+    ggplot2::guides(fill = Gmisc::fastDoCall(guide_fun, args = legend_fill_args),
+                    size = Gmisc::fastDoCall(ggplot2::guide_legend, args = legend_size_args))
+
+  if (omit_featurelabels) {
+    if (flip_axes) {
+      plot <- plot + theme(axis.text.x = ggplot2::element_blank(), axis.ticks.x = ggplot2::element_blank())
+    } else {
+      plot <- plot + theme(axis.text.y = ggplot2::element_blank(), axis.ticks.y = ggplot2::element_blank())
+    }
+
+  }
+
+  if (group_seplines) {
+    dfsort <- df |>
+      dplyr::group_by(!!rlang::sym(features)) |>
+      dplyr::slice_max(order_by = !!rlang::sym(values), n = 1) |>
+      dplyr::arrange(!!rlang::sym(groups))
+    hlines <- cumsum(rle(as.character(dfsort[[groups]]))[["lengths"]]) + 0.5
+    hlines <- hlines[-length(hlines)]
+    plot <- plot + Gmisc::fastDoCall(ggplot2::geom_hline, args = c(list(yintercept = hlines), seplines_args))
+  }
+
+  return(plot)
+}
+
