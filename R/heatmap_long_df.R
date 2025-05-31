@@ -44,39 +44,39 @@
 #' @export
 #'
 #' @examples
-#' df <- system.file("extdata", "heatmap_df.rds", package = "fcexpr")
+#' df <- readRDS(system.file("extdata", "heatmap_df.rds", package = "fcexpr"))
 #' # everything default
-#' heatmap_long_df(df = df,
-#' groups = "cluster",
-#' features = "channel",
-#' values = "mean_cluster_scale")
+#' fcexpr::heatmap_long_df(df = df,
+#'                 groups = "cluster",
+#'                 features = "channel",
+#'                 values = "mean_cluster_scale")
 #' # -log10(pvalues) as dot size
-#' heatmap_long_df(df = df,
-#' groups = "cluster",
-#' features = "channel",
-#' values = "mean_cluster_scale",
-#' dotsizes = "pvalue2")
+#' fcexpr::heatmap_long_df(df = df,
+#'                 groups = "cluster",
+#'                 features = "channel",
+#'                 values = "mean_cluster_scale",
+#'                 dotsizes = "pvalue2")
 #' # continuuos color scale, no feature axis text, flipped axes
 #' # only 4 features per group, lines to separate features
-#' heatmap_long_df(df = df,
-#' groups = "cluster",
-#' features = "channel",
-#' values = "mean_cluster_scale",
-#' dotsizes = "pvalue2",
-#' omit_featurelabels = T,
-#' flip_axes = T,
-#' topn_features = 4,
-#' group_seplines = T,
-#' colorsteps = NULL)
+#' fcexpr::heatmap_long_df(df = df,
+#'                 groups = "cluster",
+#'                 features = "channel",
+#'                 values = "mean_cluster_scale",
+#'                 dotsizes = "pvalue2",
+#'                 omit_featurelabels = T,
+#'                 flip_axes = T,
+#'                 topn_features = 4,
+#'                 group_seplines = T,
+#'                 colorsteps = NULL)
 #' # scale in function, alter legend text
-#' heatmap_long_df(df = df,
-#' groups = "cluster",
-#' features = "channel",
-#' values = "mean_cluster",
-#' scale = "zscore",
-#' colorsteps = NULL,
-#' legendlabels = c("min", "mid", "max"),
-#' legendbreaks = "minmidmax")
+#' fcexpr::heatmap_long_df(df = df,
+#'                 groups = "cluster",
+#'                 features = "channel",
+#'                 values = "mean_cluster",
+#'                 scale = "zscore",
+#'                 colorsteps = NULL,
+#'                 legendlabels = c("min", "mid", "max"),
+#'                 legendbreaks = "minmidmax")
 heatmap_long_df <- function(df,
                             groups,
                             features,
@@ -111,9 +111,14 @@ heatmap_long_df <- function(df,
                             ),
                             ...) {
 
+  if (!requireNamespace("brathering", quietly = T)) {
+    devtools::install_github("Close-your-eyes/brathering")
+  }
 
+  stopifnot("df must be a data frame" = is.data.frame(df))
   scale <- rlang::arg_match(scale)
 
+  # optional filter for top n features per group
   if (!is.null(topn_features)) {
     select <-
       df |>
@@ -126,30 +131,28 @@ heatmap_long_df <- function(df,
     df <- df[which(df[[features]] %in% select),]
   }
 
-  if (scale == "zscore") {
-    df <-
-      df |>
-      dplyr::group_by(!!rlang::sym(features)) |>
-      dplyr::mutate(values = as.vector(scale(!!rlang::sym(values)))) |>
-      dplyr::ungroup()
-  } else if (scale == "1") {
-    df <-
-      df |>
-      dplyr::group_by(!!rlang::sym(features)) |>
-      dplyr::mutate(values = brathering::scale_min_max(!!rlang::sym(values), min = -1, max = 1)) |>
-      dplyr::ungroup()
-  }
+  # optional scaling
+  df <-
+    df |>
+    dplyr::group_by(!!rlang::sym(features)) |>
+    dplyr::mutate(!!values := dplyr::case_when(
+      scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
+      scale == "1" ~ brathering::scale2(!!rlang::sym(values), min = -1, max = 1),
+      .default = !!rlang::sym(values)  # fallback (optional)
+    )) |>
+    dplyr::ungroup()
 
-  df <- heatmap_ordering(
+  # assign factors to features and groups
+  df <- fcexpr::heatmap_ordering(
     df = df,
     features = features,
     groups = groups,
     values = values,
     ...
-  ) # ...
+  )
 
 
-  if (color == "auto") {
+  if (color[1] == "auto") { # catch if length(color) > 1
     if (!is.null(dotsizes) || nlevels(df[["features"]]) > 100) {
       color <- "NA"
     } else {
@@ -164,82 +167,56 @@ heatmap_long_df <- function(df,
     fill <- colrr::col_pal(name = fill)
   }
 
-  # check if values are z-scored
-  mat <- brathering::df_long_to_mat(df, to_rows = groups, to_cols = features, values = values)
-  values_zscored <- sum(apply(mat, 2, brathering::is_z_scored)) > 0.75*ncol(mat) # 0.75: arbitrary choice
-
-  scale.max <- as.numeric(format(brathering::floor_any(max(df[[values]]), 0.1), nsmall = 1))
-  scale.min <- as.numeric(format(brathering::ceiling_any(min(df[[values]]), 0.1), nsmall = 1))
-  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
-
-
   # start ggplot pipeline
-  plot <- ggplot2::ggplot(df, ggplot2::aes(x = !!rlang::sym(groups), y = !!rlang::sym(features), fill = !!rlang::sym(values)))
+  plot <- ggplot2::ggplot(df, ggplot2::aes(
+    x = !!rlang::sym(groups),
+    y = !!rlang::sym(features),
+    fill = !!rlang::sym(values)
+  ))
   if (flip_axes) {
     plot <- plot + ggplot2::coord_flip()
   }
 
-
   if (!is.null(dotsizes)) {
-    plot <- plot + ggplot2::geom_point(ggplot2::aes(size = !!rlang::sym(dotsizes)), shape = 21, color = color, stroke = border_linewidth)
+    plot <- plot + ggplot2::geom_point(
+      ggplot2::aes(size = !!rlang::sym(dotsizes)),
+      shape = 21,
+      color = color,
+      stroke = border_linewidth
+    )
   } else {
-    plot <- plot + ggplot2::geom_tile(color = color, linewidth = border_linewidth)
+    plot <- plot + ggplot2::geom_tile(
+      color = color,
+      linewidth = border_linewidth
+    )
   }
 
+  # check if values are z-scored
+  dfmat <- brathering::df_long_to_mat(
+    df,
+    to_rows = groups,
+    to_cols = features,
+    values = values
+  )
+  values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F)) > 0.75*ncol(dfmat) # 0.75: arbitrary choice
 
-  if (is.null(colorsteps)) {
-    if (length(legendbreaks) == 1 && legendbreaks == "auto") {
-      legendbreaks <- ggplot2::waiver()
-    } else if (length(legendbreaks) == 1 && legendbreaks == "minmidmax") {
-      legendbreaks <- c(scale.min, scale.mid, scale.max)
-    } else if (length(legendbreaks) == 1) {
-      legendbreaks <- seq(scale.min, scale.max, length.out = legendbreaks)
-    } else {
-      # legendbreaks is vector
-    }
-    if (length(legendlabels) == 1 && legendlabels == "auto") {
-      legendlabels <- ggplot2::waiver()
-    } else if (length(legendlabels) != length(legendbreaks)) {
-      message("length(legendlabels) != length(legendbreaks)")
-      legendlabels <- ggplot2::waiver()
-    }
-    plot <- plot +
-      ggplot2::scale_fill_gradientn(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                    colors = fill,
-                                    breaks = legendbreaks,
-                                    labels = legendlabels)
-    guide_fun <- ggplot2::guide_colourbar
-  } else {
-    if (length(colorsteps) == 1 && colorsteps == "auto") {
-      # colorsteps is auto
-      if (values_zscored) {
-        colorsteps <- seq(round(scale.min), round(scale.max), 1)
-      } else {
-        colorsteps <- seq(round(scale.min), round(scale.max), length.out = 6)
-      }
-    }
-    if (length(colorsteps) == 1) {
-      # colorsteps given as one number
-      plot <- plot +
-        ggplot2::scale_fill_stepsn(colors = fill,
-                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                   n.breaks = colorsteps,
-                                   limits = c(scale.min, scale.max),
-                                   show.limits = T,
-                                   nice.breaks = nice_colorsteps)
-    } else {
-      # colorsteps given as a vector
-      plot <- plot +
-        ggplot2::scale_fill_stepsn(colors = fill,
-                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                   breaks = colorsteps,
-                                   limits = c(scale.min, scale.max),
-                                   show.limits = T)
-      #labels = function(x) round(x, legend.decimals))
-    }
+  # decide for colorsteps or continuuous colorbar
+  scale_fill <- colorscale_heuristic(colorscale_values = df[[values]],
+                                     values_zscored = values_zscored,
+                                     colorsteps = colorsteps,
+                                     legendbreaks = legendbreaks,
+                                     legendlabels = legendlabels,
+                                     fill = fill,
+                                     nice_colorsteps = nice_colorsteps)
+  if (grepl("scale_fill_stepsn", scale_fill[["call"]][[1]][[3]])) {
     guide_fun <- ggplot2::guide_colorsteps
+  } else {
+    guide_fun <- ggplot2::guide_colorbar
   }
-  plot <- plot +
+
+  plot <-
+    plot +
+    scale_fill +
     ggplot2::guides(fill = Gmisc::fastDoCall(guide_fun, args = legend_fill_args),
                     size = Gmisc::fastDoCall(ggplot2::guide_legend, args = legend_size_args))
 
@@ -265,3 +242,70 @@ heatmap_long_df <- function(df,
   return(plot)
 }
 
+
+
+
+colorscale_heuristic <- function(colorscale_values,
+                                 values_zscored,
+                                 colorsteps,
+                                 legendbreaks,
+                                 legendlabels,
+                                 fill,
+                                 nice_colorsteps) {
+
+  scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 0.1), nsmall = 1))
+  scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 0.1), nsmall = 1))
+  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
+
+  if (is.null(colorsteps)) {
+    if (length(legendbreaks) == 1 && legendbreaks == "auto") {
+      legendbreaks <- ggplot2::waiver()
+    } else if (length(legendbreaks) == 1 && legendbreaks == "minmidmax") {
+      legendbreaks <- c(scale.min, scale.mid, scale.max)
+    } else if (length(legendbreaks) == 1) {
+      legendbreaks <- seq(scale.min, scale.max, length.out = legendbreaks)
+    } else {
+      # legendbreaks is vector
+    }
+    if (length(legendlabels) == 1 && legendlabels == "auto") {
+      legendlabels <- ggplot2::waiver()
+    } else if (length(legendlabels) != length(legendbreaks)) {
+      message("length(legendlabels) != length(legendbreaks), using ggplot2 default")
+      legendlabels <- ggplot2::waiver()
+    }
+    scale_fill <-
+      ggplot2::scale_fill_gradientn(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                    colors = fill,
+                                    breaks = legendbreaks,
+                                    labels = legendlabels)
+  } else {
+    if (length(colorsteps) == 1 && colorsteps == "auto") {
+      # colorsteps is auto
+      if (values_zscored) {
+        colorsteps <- seq(round(scale.min), round(scale.max), 1)
+      } else {
+        colorsteps <- seq(round(scale.min), round(scale.max), length.out = 6)
+      }
+    }
+    if (length(colorsteps) == 1) {
+      # colorsteps given as one number
+      scale_fill <-
+        ggplot2::scale_fill_stepsn(colors = fill,
+                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                   n.breaks = colorsteps,
+                                   limits = c(scale.min, scale.max),
+                                   show.limits = T,
+                                   nice.breaks = nice_colorsteps)
+    } else {
+      # colorsteps given as a vector
+      scale_fill <-
+        ggplot2::scale_fill_stepsn(colors = fill,
+                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                                   breaks = colorsteps,
+                                   limits = c(scale.min, scale.max),
+                                   show.limits = T)
+      #labels = function(x) round(x, legend.decimals))
+    }
+  }
+  return(scale_fill)
+}

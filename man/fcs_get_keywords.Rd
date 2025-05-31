@@ -2,30 +2,24 @@
 % Please edit documentation in R/fcs_get_keywords.R
 \name{fcs_get_keywords}
 \alias{fcs_get_keywords}
-\title{Obtain keywords from a FCS file}
+\title{Obtain keywords from FCS files}
 \usage{
-fcs_get_keywords(file_path)
+fcs_get_keywords(
+  file_paths,
+  keywords = NULL,
+  return = c("data.frame", "vector")
+)
 }
 \arguments{
-\item{file_path}{path to the fcs file}
+\item{file_paths}{paths to fcs files}
+
+\item{keywords}{selection of keywords to extract}
+
+\item{return}{return format}
 }
 \value{
-a data frame of keywords as columns and FCS files as rows
+data frame of list of named vectors
 }
 \description{
-The returned data frame can be used to filter for relevant keywords which may then be joined to the sampledescription.
-Note that if you have defined your keywords in flowjo you have to export the FCS files in order to hard-code the keyword into the FCS file.
-Otherwise it only exists in the flowjo workspace. In order to pull out keywords from flowjo wsx_get_keywords may be used.
-}
-\examples{
-\dontrun{
-# get FCS files in a folder
-files <- list.files(FCS.files.folder, recursive = T, full.names = T)
-# loop through files and extract keywords; only SPILL is
-keys <- lapply(files, function(x) {
-fcs_get_keywords(x)
-})
-# convert the lists of data frames to one wide data frame
-keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
-}
+Simple wrapper around flowCore::read.FCSheader with some error handling.
 }

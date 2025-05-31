@@ -8,6 +8,7 @@ ff_merge(
   ff_list,
   ident_col = "ident",
   grouplist = NULL,
+  keywords_to_channels = NULL,
   add_transformed_channels = F,
   trafoname = "trafolistinv",
   suffix = "_trans",
@@ -24,6 +25,9 @@ ff_merge(
 
 \item{grouplist}{other sample info to add, see ff_add_groups}
 
+\item{keywords_to_channels}{keywords to add as channels; $-signs are
+removed}
+
 \item{add_transformed_channels}{also add transformed channels to final ff;
 all arguments below only become relevant when this is TRUE}
 
@@ -31,9 +35,9 @@ all arguments below only become relevant when this is TRUE}
 
 \item{suffix}{suffix to add to channel names without trafo}
 
-\item{suffix_trafo}{suffix to add to channel names that were traformed}
+\item{suffix_trafo}{suffix to add to channel names that were transformed}
 
-\item{exclude}{channel to exlude from transformation}
+\item{exclude}{channels to exclude from transformation}
 
 \item{exclude_from}{were to exclude those channels from, the transformed
 or not-transformed channels}

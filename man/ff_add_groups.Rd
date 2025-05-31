@@ -4,7 +4,7 @@
 \alias{ff_add_groups}
 \title{Add sample group identifier to a flow frame}
 \usage{
-ff_add_groups(ff, ident_col = "ident", grouplist, overwrite = F)
+ff_add_groups(ff, ident_col = "ident", grouplist = NULL, overwrite = F)
 }
 \arguments{
 \item{ff}{flow frame}

@@ -95,37 +95,37 @@ ggplot2 object
 Plot heatmap from data frame in long format
 }
 \examples{
-df <- system.file("extdata", "heatmap_df.rds", package = "fcexpr")
+df <- readRDS(system.file("extdata", "heatmap_df.rds", package = "fcexpr"))
 # everything default
-heatmap_long_df(df = df,
-groups = "cluster",
-features = "channel",
-values = "mean_cluster_scale")
+fcexpr::heatmap_long_df(df = df,
+                groups = "cluster",
+                features = "channel",
+                values = "mean_cluster_scale")
 # -log10(pvalues) as dot size
-heatmap_long_df(df = df,
-groups = "cluster",
-features = "channel",
-values = "mean_cluster_scale",
-dotsizes = "pvalue2")
+fcexpr::heatmap_long_df(df = df,
+                groups = "cluster",
+                features = "channel",
+                values = "mean_cluster_scale",
+                dotsizes = "pvalue2")
 # continuuos color scale, no feature axis text, flipped axes
 # only 4 features per group, lines to separate features
-heatmap_long_df(df = df,
-groups = "cluster",
-features = "channel",
-values = "mean_cluster_scale",
-dotsizes = "pvalue2",
-omit_featurelabels = T,
-flip_axes = T,
-topn_features = 4,
-group_seplines = T,
-colorsteps = NULL)
+fcexpr::heatmap_long_df(df = df,
+                groups = "cluster",
+                features = "channel",
+                values = "mean_cluster_scale",
+                dotsizes = "pvalue2",
+                omit_featurelabels = T,
+                flip_axes = T,
+                topn_features = 4,
+                group_seplines = T,
+                colorsteps = NULL)
 # scale in function, alter legend text
-heatmap_long_df(df = df,
-groups = "cluster",
-features = "channel",
-values = "mean_cluster",
-scale = "zscore",
-colorsteps = NULL,
-legendlabels = c("min", "mid", "max"),
-legendbreaks = "minmidmax")
+fcexpr::heatmap_long_df(df = df,
+                groups = "cluster",
+                features = "channel",
+                values = "mean_cluster",
+                scale = "zscore",
+                colorsteps = NULL,
+                legendlabels = c("min", "mid", "max"),
+                legendbreaks = "minmidmax")
 }

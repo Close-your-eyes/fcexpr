@@ -15,21 +15,22 @@
 #' }
 ff_add_groups <- function(ff,
                           ident_col = "ident",
-                          grouplist,
+                          grouplist = NULL,
                           overwrite = F) {
 
 
+  if (is.null(grouplist)) {
+    return(ff) #see ff_merge
+  }
   if (!is.list(grouplist)) {
     stop("grouplist has to be a list.")
   }
   if (is.null(names(grouplist))) {
     stop("grouplist has to have names. These names will become channel names in the FCS file.")
   }
-
   if (any(unlist(lapply(grouplist, function(x) is.na(x))))) {
     stop("NA found in sample infos.")
   }
-
   if (!ident_col %in% colnames(flowCore::exprs(ff))) {
     stop("ident_col not found in exprs.")
   }

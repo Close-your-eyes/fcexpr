@@ -48,123 +48,82 @@
 #' @param SOM_args args to EmbedSOM::SOM
 #' @param EmbedSOM_args args to EmbedSOM::EmbedSOM
 #' @param save.name name to use for save rds and or fcs file
-#' @param FindNeighbors_args arugments to Seurat function fof louvain clustering
-#' @param FindClusters_args arugments to Seurat function fof louvain clustering
-#' @param ... arugments to ff_get_channels
+#' @param FindNeighbors_args arguments to Seurat function fof louvain clustering
+#' @param FindClusters_args arguments to Seurat function fof louvain clustering
+#' @param ... arguments to ff_get_channels
 #'
-#' @return
-#' A list with 3 elements: (i) The matrix of fluorescence intensities and appended information (dim red, clustering). This is the table which is written into a newly generated fcs file.
-#' (ii) A character vector of meaningful column names which may be used for the table in R (rather for convenience). (iii) Tables of marker features (each cluster vs all other events and all clusters pairwise).
+#' @return a list with flow frame and optionally global marker and pca results
 #' @export
 #'
 #'
 #' @examples
-#'\dontrun{
-#'############################
-#'### Plot cluster markers ###
-#'############################
-#' dr <- fcexpr::dr_to_fcs(ff.list = ffs,
-#' channels = channels,
-#' louvain__resolution = 0.5,
-#' run.lda = "louvain_0.5",
-#' clustering.for.marker.calc = c("louvain_0.5"),
-#' save.path = NULL)
-#' marker <- dr[[3]][[1]][[1]]
-#'marker$channel_desc2 <- sapply(strsplit(marker$channel_desc, "_"), "[", 1)
-#'marker <-
-#'  marker %>%
-#'  dplyr::mutate(pvalue = ifelse(pvalue == 0, 1e-300, marker$pvalue)) %>%
-#'  dplyr::group_by(channel_desc2) %>%
-#'  dplyr::mutate(mean_scaled = fcexpr:::min.max.normalization(mean))
+#' \dontrun{
+#' ff <- wsp_get_ff(wsp = ws[18],
+#' downsample = 0.05,
+#' FCS.file.folder = file.path(wd, "FCS_files"),
+#' groups = c("blood", "urine_spike"),
+#' population = "193Ir_DNA_2, 127I_DNA_3 subset")
 #'
-#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = -log10(pvalue))) +
-#'  geom_tile(color = "black") +
-#'  theme_bw() +
-#'  geom_text(aes(label = diff_sign)) +
-#'  scale_fill_viridis_c()
+#' ff.list <- ff[[1]]
+#' ff.list <- purrr::list_flatten(ff.list, name_spec = "{outer}")
+#' ff.list <- purrr::list_flatten(ff.list, name_spec = "{outer}")
+#' pars <- ff.list[[1]]@parameters@data
+#' channels <-
+#'   pars |>
+#'   dplyr::filter(grepl("_", desc)) |>
+#'   dplyr::filter(!grepl("Beads|DNA", desc)) |>
+#'   dplyr::pull(name)
 #'
-#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_diff)) +
-#'  geom_tile(color = "black") +
-#'  theme_bw() +
-#'  geom_text(aes(label = diff_sign)) +
-#'  scale_fill_viridis_c()
-#'
-#'ggplot(marker, aes(x = as.factor(cluster), y = channel_desc2, fill = mean_scaled)) +
-#'  geom_tile(color = "black") +
-#'  theme_bw() +
-#'  scale_fill_viridis_c()
-#'
-#'ggplot(marker, aes(x = mean_diff, y = -log10(pvalue), label = channel_desc2)) + #color = channel_desc2,
-#'  geom_point() +
-#'  theme_bw() +
-#'  labs(title = "cluster markers (vs all other cells each)") +
-#'  ggrepel::geom_text_repel(max.overlaps = 20, show.legend = F) +
-#'  theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank(), panel.grid.major.x = element_blank(), strip.background = element_rect(fill = "hotpink2")) +
-#'  geom_vline(xintercept = 0, col = "tomato2", linetype = "dashed") +
-#'  geom_hline(yintercept = 100, col = "tomato2", linetype = "dashed") +
-#'  facet_wrap(vars(cluster))
-#'
-#'  ##############################################
-#'  ### find clusters which may be subject #######
-#'  ### to bi- or multimodality in any channel ###
-#'  ##############################################
-#'  # make one data frame
-#'  marker_all <- purrr::map_dfr(setNames(names(out[["marker"]]), names(out[["marker"]])),
-#'  function(x) out[["marker"]][[x]][["marker_table"]], .id = "clustering")
-#'
-#'  # sort by diptest p value; or low p indicates bi- or multimodality
-#'  marker_all <- dplyr::arrange(marker_all, diptest_p)
-#'  # see ?diptest::dip.test
-#'  # a low p-value indicates bi- or multimodality (multiple peaks)
-#'  # a high p-value (close to 1) indicates unimodality
-#'  # multimodality indicates heterogeneity within in the cluster
-#'  # and may justify to separate that cluster further into sub-clusters
-#'  # this depends on the interpretation of the scientist though
-#'
-#'
-#'  ##############################################
-#'  ### overlay gated populations from flowjo ####
-#'  ### on dimension reduction plot (SOM/UMAP) ###
-#'  ##############################################
-#'
-#' common_cols <- Reduce(intersect, purrr::map(ff[["indices"]], colnames))
-#' ff[["indices"]] <- purrr::map(ff[["indices"]], function(x) x[,which(colnames(x) %in% common_cols)])
-#' ind_mat <- do.call(rbind, ff[["indices"]])
-#'
-#' som <- ggplot(out[["df"]], aes(SOM_1, SOM_2, color = as.factor(cutree_30))) +
-#' geom_point(size = 0.5) +
-#' geom_density2d(data = . %>% dplyr::filter(ind_mat[,which(basename(colnames(ind_mat)) == "NK cells")]), color = "black",
-#' contour_var = "ndensity", breaks = c(0.1, 0.2, 0.4, 0.6, 0.8)) +
-#' guides(color = guide_legend(override.aes = list(size = 2)))
-#'
-#'}
-dr_to_fcs3 <- function(ff.list,
-                       channels = NULL,
-                       grouplist = NULL,
-                       scale.whole = c("none", "z.score", "min.max"),
-                       scale.samples = c("none", "z.score", "min.max"),
-                       run.pca = 0,
-                       run.umap = T,
-                       run.som = T,
-                       run.find.clusters = T,
-                       calc_cluster_marker = F,
-                       UMAP_args = list(metric = "cosine", verbose = T, scale = T),
-                       SOM_args = list(),
-                       EmbedSOM_args = list(),
-                       FindNeighbors_args = list(),
-                       FindClusters_args = list(resolution = c(0.1)),
+#' out <- dr_to_fcs3(
+#'   ff.list = ff.list,
+#'   channels = channels,
+#'   run.pca = 12,
+#'   save.path = "/Users/vonskopnik/Downloads/",
+#'   save.name = "testDR",
+#'   part_match = F)
+#'   marker <- ff_calc_marker(
+#' out[["flowframe"]],
+#' cluster_cols = "res.0.1",
+#' channels = paste0(channels, "_trans")
+#' )
+#' df <- marker[["res.0.1"]][["global"]]
+#' df <-
+#'   df |>
+#'   dplyr::mutate(pvalue2 = -log10(pvalue)) |>
+#'   dplyr::mutate(pvalue2 = ifelse(is.infinite(pvalue2), 304, pvalue2))
+#' heatmap_long_df(df = df,
+#'                 groups = "cluster",
+#'                 features = "channel",
+#'                 values = "mean_cluster_scale",
+#'                 dotsizes = "pvalue2")
+#' }
+dimred_to_fcs <- function(ff.list,
+                          channels = NULL,
+                          grouplist = NULL,
+                          scale.whole = c("none", "z.score", "min.max"),
+                          scale.samples = c("none", "z.score", "min.max"),
+                          run.pca = 0,
+                          run.umap = T,
+                          run.som = T,
+                          run.find.clusters = T,
+                          calc_cluster_marker = F,
+                          UMAP_args = list(metric = "cosine", verbose = T, scale = T),
+                          SOM_args = list(),
+                          EmbedSOM_args = list(),
+                          FindNeighbors_args = list(),
+                          FindClusters_args = list(resolution = c(0.1)),
 
-                       mc.cores = 1,
-                       save.to.disk = c("fcs", "rds"),
-                       save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-                       save.name = NULL,
+                          mc.cores = 1,
+                          save.to.disk = c("fcs", "rds"),
+                          save.path = file.path(getwd(), paste0(substr(gsub("\\.", "", make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
+                          save.name = NULL,
 
-                       write.transformed.channels.to.FCS = T,
-                       write.untransformed.channels.to.FCS = T,
-                       trafoname = "trafolistinv",
-                       timeChannel = c("Time", "HDR-T"),
-                       seed = 42,
-                       ...) {
+                          write.transformed.channels.to.FCS = T,
+                          write.untransformed.channels.to.FCS = T,
+                          trafoname = "trafolistinv",
+                          timeChannel = c("Time", "HDR-T"),
+                          seed = 42,
+                          ...) {
 
 
   ## ---- checks --------

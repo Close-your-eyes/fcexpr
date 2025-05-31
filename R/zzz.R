@@ -1,4 +1,4 @@
-.onLoad <- function(libname = find.package("scexpr"), pkgname = "scexpr") {
+.onLoad <- function(libname = find.package("fcexpr"), pkgname = "fcexpr") {
 
   # https://stackoverflow.com/questions/9439256/how-can-i-handle-r-cmd-check-no-visible-binding-for-global-variable-notes-when
 
@@ -12,6 +12,19 @@
                            "GateLevel", "Parent", "transformation", "transformation_pars", "FCS.file.folder", "ind", "values",
                            "n", "path", "to", "from", "sampleID", ".x", "mean_cluster", "mean_not_cluster", "diptest_pvalue_cluster",
                            "diptest_pvalue_notcluster", "diptest_pvalue_1", "diptest_pvalue_2"))
+  }
+
+  if (!requireNamespace("BiocManager", quietly = T)) {
+    utils::install.packages("BiocManager")
+  }
+  if (!requireNamespace("flowCore", quietly = T)) {
+    BiocManager::install("flowCore")
+  }
+  if (!requireNamespace("CytoML", quietly = T)) {
+    BiocManager::install("CytoML")
+  }
+  if (!requireNamespace("flowWorkspace", quietly = T)) {
+    BiocManager::install("flowWorkspace")
   }
 
 }

@@ -107,11 +107,8 @@ get_ff <- function(gs,
     leverage_score_for_sampling <- F
   }
 
-  if (downsample != 1 && leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
-    if (!requireNamespace("remotes", quietly = T)) {
-      utils::install.packages("remotes")
-    }
-    remotes::install_github("satijalab/seurat", "feat/dictionary")
+  if (downsample != 1 && leverage_score_for_sampling && !requireNamespace("Seurat", quietly = T)) {
+    utils::install.packages("Seurat")
   }
 
   if (!is.null(channels) && !leverage_score_for_sampling) {
@@ -268,11 +265,12 @@ get_ff2 <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T) || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T))) { # || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
     if (!requireNamespace("remotes", quietly = T)) {
       utils::install.packages("remotes")
     }
-    remotes::install_github("satijalab/seurat", "feat/dictionary")
+    install.packages("Seurat")
+    #remotes::install_github("satijalab/seurat", "feat/dictionary")
   }
 
   if (!is.null(channels) && !leverage_score_for_sampling) {
@@ -413,7 +411,9 @@ get_new_kw_and_pars <- function(exprs,
   new_kw[["$PAR"]] <- as.character(ncol(exprs))
 
   ## new channels
-  if (n < ncol(exprs)) {
+
+  if (n < ncol(exprs)) { # or <=
+    # < needed by ff_simulate
     for (z in n:ncol(exprs)) {
 
       rownames(new_p) <- c(paste0("$P", z))
@@ -452,6 +452,8 @@ get_new_kw_and_pars <- function(exprs,
     new_kw[[paste0("flowCore_$P", as.character(z), "Rmin")]] <- as.integer(round(min(exprs[, z])))
     new_kw[[paste0("flowCore_$P", as.character(z), "Rmax")]] <- as.integer(round(max(exprs[, z])))
   }
+
+  new_kw[["$TOT"]] <- nrow(exprs)
   return(list(new_kw = new_kw, new_pars = new_pars))
 }
 
@@ -586,20 +588,6 @@ get_new_kw_and_pars <- function(exprs,
     }
   }
   return(NULL)
-}
-
-
-min.max.normalization <- function (x, min.val = 0, max.val = 1) {
-  if (is.matrix(x) || is.data.frame(x)) {
-    if (is.data.frame(x)) {
-      if (!all(apply(x, 2, is.numeric))) {
-        stop("Please make sure that all columns of the data frame are numeric.")
-      }
-    }
-    return(apply(x, 2, function (y) min.val + ((y- min(y)) * (max.val- min.val) / (max(y)-min(y)))))
-  } else {
-    return(min.val + ((x- min(x)) * (max.val- min.val) / (max(x)-min(x))))
-  }
 }
 
 
@@ -805,6 +793,69 @@ shift.to.positive <- function(x, rm.na = F) {
                           group_order = "hclust")
 
   return(out)
+}
+
+
+
+random_FIL <- function(prefix = "Specimen_001_") {
+
+  num1 <- sample(1:9,1)
+  num2 <- sample(1:999,1)
+  num2 <- sprintf("%03d", num2)
+  FIL <- paste0(prefix, num1, "_", num2)
+  return(FIL)
+}
+
+random_BTIM_ETIM_DATE <- function() {
+
+  # random begin and end time
+  base_time <- as.POSIXct(Sys.time())
+  random_seconds <- runif(1, min = 0, max = 86400) # 24h
+  BTIM <- base_time + random_seconds
+  random_seconds <- runif(1, min = 60, max = 600)
+  ETIM <- BTIM + random_seconds
+  BTIM <- format(BTIM, "%H:%M:%S")
+  ETIM <- format(ETIM, "%H:%M:%S")
+
+  # random date
+  start_date <- as.Date("2015-01-01")
+  end_date <- as.Date(Sys.Date())
+  random_date <- as.Date(runif(1, min = as.numeric(start_date), max = as.numeric(end_date)), origin = "1970-01-01")
+  DATE <- format(random_date, "%d-%b-%Y")
+  DATE <- toupper(formatted_date)
+
+
+  return(c(BTIM, ETIM, DATE))
+}
+
+random_OP <- function() {
+  random_names <- c("Gangolf Eierschmalz",
+                    "Walter Frosch",
+                    "Fled Nanders",
+                    "Dean Norm",
+                    "Francesco Rosinetti",
+                    "Ali Sweidel",
+                    "Frau Kepetry",
+                    "Ken Guru",
+                    "Fresh Dumbledore",
+                    "Mam Bagera",
+                    "Enrico Pallazzo",
+                    "Friedrich Quecksilber",
+                    "Frank Drebin",
+                    "Coward Harpendale",
+                    "Houg Daffernan",
+                    "Rustin Cohle",
+                    "Jens Bloedermann",
+                    "Lasse Samenstroem",
+                    "Baracko Bama",
+                    "Grave Dohl",
+                    "Roland Habeck",
+                    "Man Jarsalek",
+                    "Mark David Chapman",
+                    "Pepe Mujica",
+                    "Aibert Huwanger")
+
+  return(sample(random_names, 1))
 }
 
 

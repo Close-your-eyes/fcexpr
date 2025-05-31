@@ -1,51 +1,63 @@
-#' Obtain keywords from a FCS file
+#' Obtain keywords from FCS files
 #'
-#' The returned data frame can be used to filter for relevant keywords which may then be joined to the sampledescription.
-#' Note that if you have defined your keywords in flowjo you have to export the FCS files in order to hard-code the keyword into the FCS file.
-#' Otherwise it only exists in the flowjo workspace. In order to pull out keywords from flowjo wsx_get_keywords may be used.
+#' Simple wrapper around flowCore::read.FCSheader with some error handling.
 #'
-#' @param file_path path to the fcs file
+#' @param file_paths paths to fcs files
+#' @param keywords selection of keywords to extract
+#' @param return return format
 #'
-#' @return a data frame of keywords as columns and FCS files as rows
+#' @return data frame of list of named vectors
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # get FCS files in a folder
-#' files <- list.files(FCS.files.folder, recursive = T, full.names = T)
-#' # loop through files and extract keywords; only SPILL is
-#' keys <- lapply(files, function(x) {
-#' fcs_get_keywords(x)
-#' })
-#' # convert the lists of data frames to one wide data frame
-#' keys <- tidyr::pivot_wider(do.call(rbind, keys), names_from = keyword, values_from = value)
-#' }
-fcs_get_keywords <- function(file_path) {
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
+fcs_get_keywords <- function(file_paths,
+                             keywords = NULL,
+                             return = c("data.frame", "vector")) {
+
+  return <- rlang::arg_match(return)
+
+  kwl <- tryCatch(
+    expr = {
+      # unknown error in c++ with some fcs files once
+      # setting emptyvalue to F avoided errors
+      # or specifically defining which keywords needed
+      flowCore::read.FCSheader(files = file_paths,
+                               keyword = keywords,
+                               cpp = T, # the cpp function (default) is much quicker
+                               emptyValue = F)
+    },
+    error = function(e) {
+
+      message("Error in reading FCS headers from a FCS files at once:")
+      print(e)
+      message("Trying to read headers one by one in order to skip faulty FCS files.")
+      kwl <- purrr::map(stats::setNames(file_paths, file_paths), function(x) {
+        tryCatch(
+          expr = {
+            flowCore::read.FCSheader(x)[[1]]
+          },
+          error = function(e) {
+            #print(e)
+            return(NULL)
+          }
+        )
+      }, .progress = T)
+      kwl[which(purrr::map_lgl(kwl, ~ !is.null(.x)))]
+      #return(kwl)
+    }
+  )
+  kwl <- purrr::map(kwl, trimws)
+
+  if (return == "data.frame") {
+    kwl <-
+      purrr::map_dfr(kwl, stack, .id = "FilePath") |>
+      dplyr::mutate(FileName = basename(FilePath)) |>
+      dplyr::rename("value" = values, "name" = ind) |>
+      tidyr::pivot_wider()
   }
 
-  if (!file.exists(file_path)) {
-    stop(paste0(file_path, " not found."))
-  }
-
-  k <- flowCore::keyword(flowCore::read.FCS(file_path, which.lines = 1, emptyValue = T, truncate_max_range = F))
-  if ("SPILL" %in% names(k)) {
-    k[["SPILL"]] <- paste(as.character(k[["SPILL"]]), collapse = ",")
-  }
-  kdf <- suppressWarnings(utils::stack(k))
-  names(kdf) <- c("value", "keyword")
-  kdf[,"FileName"] <- basename(file_path)
-  kdf[,"FilePath"] <- dirname(file_path)
-
-  return(kdf)
+  # if ("SPILL" %in% names(k)) {
+  #   k[["SPILL"]] <- paste(as.character(k[["SPILL"]]), collapse = ",")
+  # }
+  return(kwl)
 }
-
-
-
-
-
-

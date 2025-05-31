@@ -224,8 +224,9 @@ get_smpl_df <- function(wsp,
 
     if (!is.null(FCS.file.folder)) {
       local_fcs_files <- list.files(path = FCS.file.folder[x], recursive = T, full.names = T, pattern = "\\.fcs$", ignore.case = T)
-      kwl <- fcs_get_keywords2(file_paths = local_fcs_files,
-                               keywords = fcskeywords)
+      kwl <- fcs_get_keywords(file_paths = local_fcs_files,
+                              keywords = fcskeywords,
+                              return = "vector")
 
       local_fcs_files_df <-
         stack(fcexpr:::.get_fcs_identities(kwl = kwl, allow_duplicates = T)) |>

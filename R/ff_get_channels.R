@@ -25,8 +25,12 @@ ff_get_channels <- function(ff,
                             rm_scatter = T,
                             rm_time = T,
                             rm_wo_desc = F,
-                            replace_NA_desc = F) {
+                            replace_NA_desc = F,
+                            return = c("vector", "data.frame")) {
+
   stopifnot("only one flow frame" = length(ff) == 1)
+
+  return <- rlang::arg_match(return)
 
   if (!is.null(timeChannel)) {
     timeChannel <- trimws(timeChannel)
@@ -99,6 +103,15 @@ ff_get_channels <- function(ff,
   if (replace_NA_desc) {
     names(channels)[which(is.na(names(channels)))] <- channels[which(is.na(names(channels)))]
   }
+
+  if (return == "vector") {
+    channels <- stats::setNames(as.character(channels), names(channels))
+  } else if (return == "data.frame") {
+    channels <- stack(channels)
+    channels$ind <- as.character(channels$ind)
+    names(channels) <- c("name", "desc")
+  }
+
   return(channels)
 }
 

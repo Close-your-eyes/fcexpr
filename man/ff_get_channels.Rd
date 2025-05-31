@@ -12,7 +12,8 @@ ff_get_channels(
   rm_scatter = T,
   rm_time = T,
   rm_wo_desc = F,
-  replace_NA_desc = F
+  replace_NA_desc = F,
+  return = c("vector", "data.frame")
 )
 }
 \arguments{

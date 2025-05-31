@@ -24,8 +24,11 @@ ff_get_exprsdf <- function(ff,
   # replace_NA_desc: if desc is NA then name of channelis used
   channels <- ff_get_channels(ff, channels = channels, replace_NA_desc = T, ...)
   df <- as.data.frame(flowCore::exprs(ff)[,channels])
-  for (i in groupcols) {
-    df[,i] <- names(attr(ff, "grouplist")[[i]][ff@exprs[,i]])
+
+  if ("grouplist" %in% names(attributes(ff))) {
+    for (i in groupcols) {
+      df[,i] <- names(attr(ff, "grouplist")[[i]][ff@exprs[,i]])
+    }
   }
 
   # use desc as colnames

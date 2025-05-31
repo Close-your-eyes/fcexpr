@@ -26,6 +26,7 @@ Imports:
     rlang,
     magrittr
 Suggests: 
+    breathering,
     rmarkdown,
     rstudioapi,
     EmbedSOM,

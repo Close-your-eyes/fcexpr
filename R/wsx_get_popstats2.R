@@ -642,6 +642,9 @@ add_boolean_gate_data <- function(df,
                                   node_details_list,
                                   nodes_name = c("OrNodes", "AndNodes", "NotNodes"),
                                   more_gate_data = F) {
+  if (!requireNamespace("brathering", quietly = T)) {
+    devtools::install_github("Close-your-eyes/brathering")
+  }
 
   nodes_name <- match.arg(nodes_name, c("OrNodes", "AndNodes", "NotNodes"))
 
@@ -697,7 +700,7 @@ add_boolean_gate_data <- function(df,
   names(temp_df)[which(names(temp_df) == "name2")] <- "name"
   names(temp_df)[which(names(temp_df) == "Count2")] <- "Count"
 
-  df <- coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
 
   ## add parent_id to children of OrNodes/AndNodes themselves
@@ -727,7 +730,7 @@ add_boolean_gate_data <- function(df,
     temp_df2 <- temp_df2[,which(names(temp_df2) %in% c("FileName", "name2", "count2", "id"))]
     names(temp_df2)[2:4] <- c("name", "Count", "parent_id")
     # check for duplicate rows (very rare case)
-    df <- coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+    df <- brathering::coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
   }
 
   return(df)
@@ -752,7 +755,7 @@ add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNod
   names(temp_df)[which(names(temp_df) == "ParentFullPath")] <- "PopulationFullPath"
   names(temp_df)[which(names(temp_df) == "id")] <- "parent_id"
   temp_df$PopulationFullPath <- paste0(temp_df$PopulationFullPath, "/", temp_df$name)
-  df <- coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   ## add ids to OrNode
   temp_df <- purrr::map_dfr(sapply(node_details_list, "[", nodes_name), function(x) {
@@ -766,7 +769,7 @@ add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNod
   temp_df <- dplyr::left_join(temp_df, df[,c("FileName", "PopulationFullPath", "id")], by = c("FileName", "PopulationFullPath"))
   temp_df <- dplyr::group_by(temp_df, FileName, name, Count)
   temp_df <- dplyr::summarise(temp_df, id = paste(id, collapse = ","), .groups = "drop")
-  df <- coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   return(df)
 }
