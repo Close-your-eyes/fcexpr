@@ -24,7 +24,8 @@ Imports:
     stringr,
     tibble,
     rlang,
-    magrittr
+    magrittr,
+    BiocManager
 Suggests: 
     breathering,
     rmarkdown,

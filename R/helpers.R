@@ -390,6 +390,164 @@ get_gs <- function(x,
 }
 
 
+get_kw_and_pars <- function(exprs,
+                            ff = NULL,
+                            keywrd,
+                            params = NULL,
+                            insert_neutral_spill = T) {
+
+  if (!is.null(ff)) {
+    # provide the flowframe which was basis for creation of modified/extended exprs
+    keywrd <- flowCore::keyword(ff)
+    params <- flowCore::parameters(ff)
+  }
+
+  if (is.null(params)) {
+    # creation of empty params:
+    # params@data <- data.frame()
+    # saveRDS(params, "/Users/vonskopnik/Documents/R_packages/fcexpr/inst/extdata/ff_params_empty.rds")
+    params <- readRDS(system.file("extdata", "ff_params_empty.rds", package = "fcexpr"))
+    desc <- NA
+  } else {
+    channelmarker <- stats::setNames(as.character(params@data$desc), as.character(params@data$name))
+    desc <- unname(channelmarker[colnames(exprs)])
+  }
+
+  max <- as.integer(ceiling(apply(exprs, 2, max)))
+  # newdata could be generated from scratch with exprs only except for desc from params@data
+  params@data <- data.frame(name = colnames(exprs),
+                            desc = desc,
+                            minRange = as.integer(floor(apply(exprs, 2, min))),
+                            maxRange = max,
+                            range = max,
+                            row.names = paste0("$P", seq(1,ncol(exprs))))
+  #   | Keyword | Meaning                                                              |
+  #   | ------- | -------------------------------------------------------------------- |
+  #   | `$PnN`  | **Name** of the parameter (e.g., `FSC-A`, `CD4`, `FL1-H`).           |
+  #   | `$PnS`  | **Short description** or label of the parameter (optional).          |
+  #   | `$PnB`  | **Bit width** of the parameter data (e.g., `16`, `32`).              |
+  #   | `$PnR`  | **Range** of values for the parameter (e.g., `1024` means 0–1023).   |
+  #   | `$PnE`  | **Amplification type** and exponent (e.g., `0,0` or `4,1`).          |
+  #   | `$PnG`  | **Gain** applied during data acquisition (optional).                 |
+  #   | `$PnV`  | **Detector voltage** applied to the channel (optional, if recorded). |
+  #
+  for (z in rownames(params@data)) {
+    keywrd[[paste0(z, "N")]] <- params@data[z,"name"]
+    keywrd[[paste0(z, "S")]] <- params@data[z,"desc"]
+    keywrd[[paste0(z, "R")]] <- as.character(params@data[z,"range"])
+    keywrd[[paste0(z, "E")]] <- "0,0"
+    if (is.null(keywrd[[paste0(z, "G")]])) {
+      keywrd[[paste0(z, "G")]] <- "1"
+    }
+    if (is.null(keywrd[[paste0(z, "B")]])) {
+      keywrd[[paste0(z, "B")]] <- "32"
+    }
+    if (is.null(keywrd[[paste0(z, "V")]])) {
+      keywrd[[paste0(z, "V")]] <- "1"
+    }
+  }
+
+  keywrd[["$PAR"]] <- as.character(ncol(exprs))
+  keywrd[["$TOT"]] <- as.character(nrow(exprs))
+
+  # correctly added by flowCore::write.FCS()
+  keywrd[["$BEGINDATA"]] <- ""
+  keywrd[["$ENDDATA"]] <- ""
+
+  # create or fix spill mat
+  # when a spill mat is there but channels were compensated already (Comp- as leading txt in channel name)
+  # then creating a matched spill mat does not make sense as repeated application of spill by flowjo
+  # would be a second round of compensation
+  try(
+    expr = {
+      fluo_channels <- get_fluo_channels(colnames(exprs))
+      # check cytof - somewhen
+      if (is.null(keywrd[["SPILL"]]) || insert_neutral_spill) {
+        # create new spill kw
+        spill_mat <- diag(nrow = length(fluo_channels))
+        colnames(spill_mat) <- fluo_channels
+        keywrd[["SPILL"]] <- spill_mat
+      } else if (!is.null(keywrd[["SPILL"]])) {
+        matches <- match_channels_and_spill(spillcols = colnames(keywrd[["SPILL"]]), channels = fluo_channels, strict = F)
+        if (ncol(keywrd[["SPILL"]]) != length(fluo_channels)) {
+          # fix spill: remove cols and rows if respective channels were removed
+          spillcol_to_rm <- which(matches$lv_dist > 1)
+          keywrd[["SPILL"]] <- keywrd[["SPILL"]][-spillcol_to_rm,-spillcol_to_rm]
+        }
+        # fix colnames of spill keyword
+        colnames(keywrd[["SPILL"]]) <- matches[which(matches$lv_dist <= 1),"channels"]
+        # make spill neutral when compensated channels are found
+        if (any(grepl("^Comp-", channels))) {
+          spill_mat <- diag(nrow = length(keywrd[["SPILL"]]))
+          colnames(spill_mat) <- colnames(keywrd[["SPILL"]])
+          keywrd[["SPILL"]] <- spill_mat
+        }
+      }
+    }, silent = T
+  )
+
+  return(list(keywrd = keywrd, params = params))
+}
+
+
+
+#fix_spill_kw <- function()
+
+get_fluo_channels <- function(channels, ff = NULL) {
+
+  if (is.null(ff)) {
+    # use channels argument
+    channels <- channels[which(!grepl("FSC|SSC|Time|HDR-T", channels, ignore.case = T))]
+  } else {
+    # use ff
+    channels <- flowCore::pData(flowCore::parameters(ff))[["name"]]
+    if (is.null(flowCore::keyword(ff)[["SPILL"]])) {
+      message("inferring fluo channel names from flowCore::pData(flowCore::parameters(ff)).")
+      channels <- channels[which(!grepl("FSC|SSC|Time|HDR-T", channels, ignore.case = T))]
+    } else {
+      spillcols <- colnames(flowCore::keyword(ff2)[["SPILL"]])
+      matches <- match_spill_and_channels(spillcols = spillcols, channels = channels)
+      if (is.null(matches)) {
+        message("inferring fluo channel names from SPILL keyword.")
+        channels <- matches[["channels"]]
+      } else {
+        message("inferring fluo channel names from flowCore::pData(flowCore::parameters(ff)).")
+        channels <- channels[which(!grepl("FSC|SSC|Time|HDR-T", channels, ignore.case = T))]
+      }
+
+    }
+  }
+  return(channels)
+}
+
+match_spill_and_channels <- function(spillcols, channels) {
+  # optionally removing leading comp was neccessary for adist to work properly
+  # these two modification to spillcols and channels should allow a near-perfect match
+  channels <- get_fluo_channels(channels)
+  dists <- adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
+  min_inds <- apply(dists, 1, which.min)
+  min_dist <- apply(dists, 1,  min)
+  if (length(unique(min_inds)) != length(min_inds)) {
+    message("spillcols and channels not match unambiguously.")
+    return(NULL)
+  }
+  return(data.frame(spillcols = spillcols[min_inds], channels = channels, lv_dist = min_dist))
+}
+
+
+match_channels_and_spill <- function(spillcols, channels, strict = T) {
+  # optionally removing leading comp was neccessary for adist to work properly
+  # these two modification to spillcols and channels should allow a near-perfect match
+  channels <- get_fluo_channels(channels)
+  dists <- adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
+  min_inds <- apply(dists, 1, which.min)
+  min_dist <- apply(dists, 1,  min)
+  if (length(unique(min_inds)) != length(min_inds) && strict) {
+    message("spillcols and channels not match unambiguously.")
+    return(NULL)
+  }
+  return(data.frame(spillcols = spillcols, channels = channels[min_inds], lv_dist = min_dist))
+}
 
 get_new_kw_and_pars <- function(exprs,
                                 new_kw,
@@ -411,7 +569,7 @@ get_new_kw_and_pars <- function(exprs,
   new_kw[["$PAR"]] <- as.character(ncol(exprs))
 
   ## new channels
-
+  browser()
   if (n < ncol(exprs)) { # or <=
     # < needed by ff_simulate
     for (z in n:ncol(exprs)) {
@@ -797,8 +955,8 @@ shift.to.positive <- function(x, rm.na = F) {
 
 
 
-random_FIL <- function(prefix = "Specimen_001_") {
-
+random_FIL <- function(prefix = "Specimen_001_", seed = 1) {
+  set.seed(seed)
   num1 <- sample(1:9,1)
   num2 <- sample(1:999,1)
   num2 <- sprintf("%03d", num2)
@@ -806,56 +964,30 @@ random_FIL <- function(prefix = "Specimen_001_") {
   return(FIL)
 }
 
-random_BTIM_ETIM_DATE <- function() {
+random_BTIM_ETIM_DATE <- function(seed = 1) {
 
+  set.seed(seed)
   # random begin and end time
   base_time <- as.POSIXct(Sys.time())
   random_seconds <- runif(1, min = 0, max = 86400) # 24h
   BTIM <- base_time + random_seconds
-  random_seconds <- runif(1, min = 60, max = 600)
+  random_seconds <- as.integer(runif(1, min = 60, max = 600))
   ETIM <- BTIM + random_seconds
-  BTIM <- format(BTIM, "%H:%M:%S")
-  ETIM <- format(ETIM, "%H:%M:%S")
 
   # random date
   start_date <- as.Date("2015-01-01")
   end_date <- as.Date(Sys.Date())
   random_date <- as.Date(runif(1, min = as.numeric(start_date), max = as.numeric(end_date)), origin = "1970-01-01")
   DATE <- format(random_date, "%d-%b-%Y")
-  DATE <- toupper(formatted_date)
+  DATE <- toupper(random_date)
 
 
-  return(c(BTIM, ETIM, DATE))
+  return(c(format(BTIM, "%H:%M:%S"), format(ETIM, "%H:%M:%S"), DATE, random_seconds))
 }
 
-random_OP <- function() {
-  random_names <- c("Gangolf Eierschmalz",
-                    "Walter Frosch",
-                    "Fled Nanders",
-                    "Dean Norm",
-                    "Francesco Rosinetti",
-                    "Ali Sweidel",
-                    "Frau Kepetry",
-                    "Ken Guru",
-                    "Fresh Dumbledore",
-                    "Mam Bagera",
-                    "Enrico Pallazzo",
-                    "Friedrich Quecksilber",
-                    "Frank Drebin",
-                    "Coward Harpendale",
-                    "Houg Daffernan",
-                    "Rustin Cohle",
-                    "Jens Bloedermann",
-                    "Lasse Samenstroem",
-                    "Baracko Bama",
-                    "Grave Dohl",
-                    "Roland Habeck",
-                    "Man Jarsalek",
-                    "Mark David Chapman",
-                    "Pepe Mujica",
-                    "Aibert Huwanger")
-
-  return(sample(random_names, 1))
+random_OP <- function(seed = 1) {
+  set.seed(seed)
+  return(sample(fcexpr:::random_operators, 1))
 }
 
 

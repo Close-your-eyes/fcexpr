@@ -78,10 +78,10 @@ ff_merge <- function(ff_list,
   new_desc <- ff_get_common_desc(ff_list)
   new_pars <- flowCore::parameters(ff_list[[1]])
 
-  kw_par <- fcexpr:::get_new_kw_and_pars(exprs = exprs,
-                                         new_kw = new_kw,
-                                         new_desc = new_desc,
-                                         new_pars = new_pars)
+  kw_par <- fcexpr:::get_kw_and_pars(exprs = exprs,
+                                     new_kw = new_kw,
+                                     new_desc = new_desc,
+                                     new_pars = new_pars)
 
 
   # add desc to channels with suffix

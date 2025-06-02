@@ -11,11 +11,11 @@ ff_model_GMM(
   leverage_sampling = T,
   scale_for_sampling = T,
   scale_for_modelling = T,
-  mclustBIC_args = list(model_names = NULL, G = NULL),
+  mclustBIC_args = list(modelNames = NULL, G = NULL),
   keywords = c("$BEGINANALYSIS", "$BEGINDATA", "$BEGINSTEXT", "$BYTEORD", "$DATATYPE",
     "$ENDANALYSIS", "$ENDDATA", "$ENDSTEXT", "$MODE", "$NEXTDATA", "$PAR", "$TOT",
     "$CYT", "$DATE", "$FIL", "$SRC", "$INST", "$OP", "$SYS", "$TIMESTEP", "$UNICODE",
-    "$BTIM", "$ETIM", "SPILL", "SPILLOVER", "FCSversion"),
+    "$BTIM", "$ETIM", "SPILL", "SPILLOVER", "FCSversion", "GUID"),
   seed = 42,
   source_file = "$FIL",
   ...
@@ -36,7 +36,7 @@ leverage_sampling)}
 
 \item{scale_for_modelling}{scale (z-score) before modelling}
 
-\item{mclustBIC_args}{arugments to mclust::mclustBIC}
+\item{mclustBIC_args}{arguments to mclust::mclustBIC}
 
 \item{seed}{seed for reproducing random results}
 
@@ -53,4 +53,36 @@ Functions from mclust package are used for modelling: mclust::mclustBIC and
 mclust::mclustModel. GMMs_BIC is the result from mclust::mclustBIC showing
 goodness of different model types. Model from the return list can be used by
 fcexpr::ff_simulate to generate a flow frame with modelled exprs data.
+}
+\examples{
+\dontrun{
+library(fcexpr)
+library(mclust)
+ws <- "path/to/your/flowjo.wsp"
+
+# check samples, groups, populations
+groups <- fcexpr::wsx_get_groups(ws)
+paths <- fcexpr::wsx_get_fcs_paths(ws, filter_AllSamples = T)
+samplenames <- basename(grep("AnKr", paths$Exp_part_1, value = T))
+pops <- fcexpr::wsx_get_poppaths(ws, groups = "Exp_part_1")
+
+# read flow frames
+fflist <- fcexpr::wsp_get_ff(wsp = ws,
+                             FCS.file.folder = "path/to/your/FCS_files",
+                             population = "Single Cells",
+                             samples = samplenames[1])
+ff <- purrr::list_flatten(fflist[["flowframes"]], name_spec = "{outer}")
+ff <- purrr::list_flatten(ff, name_spec = "{outer}")
+
+# create model, define MmdelNames and/or G to speed modelling up
+# mclustBIC_args <- list()
+# mclustBIC_args <- list(modelNames = "VVV", G = 8:10)
+modellist <- ff_model_GMM(ff = ff[[1]],
+                          sample_n = 50000,
+                          mclustBIC_args = mclustBIC_args,
+                          source_file = names(ff)[1])
+
+flowframe <- ff_simulate(model = modellist[[2]])
+flowCore::write.FCS(flowframe[[1]], "fcs/save/path.fcs")
+}
 }

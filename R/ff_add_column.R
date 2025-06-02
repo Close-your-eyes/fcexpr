@@ -31,9 +31,9 @@ ff_add_columns <- function(ff,
   new_kw <- flowCore::keyword(ff)
   new_pars <- flowCore::parameters(ff)
 
-  kw_par <- get_new_kw_and_pars(exprs = exprs,
-                                new_kw = new_kw,
-                                new_pars = new_pars)
+  kw_par <- getkw_and_pars(exprs = exprs,
+                           new_kw = new_kw,
+                           new_pars = new_pars)
 
   # save previous attr
   ff_default_attr <- c("exprs", "parameters", "description", "class")

@@ -2,13 +2,60 @@
 % Please edit documentation in R/ff_simulate.R
 \name{ff_simulate}
 \alias{ff_simulate}
-\title{Title}
+\title{Generate random flow frame from Gaussian mixture model (GMM)}
 \usage{
-ff_simulate(model, path, n = 50000, m = 1, seed = 42)
+ff_simulate(model, path = NULL, n = 50000, m = 1, seed = 42)
 }
 \arguments{
-\item{seed}{}
+\item{model}{GMM and accesorry information from fcexpr::ff_model_GMM}
+
+\item{path}{path to folder with multiple models on disk as .rds files to
+choose randomly from}
+
+\item{n}{number of evts to simulate}
+
+\item{m}{number of flow frames to simulate, if path is given every flow frame
+uses a randomly picked model}
+
+\item{seed}{seed for mclust::sim}
+}
+\value{
+list of flow frame(s)
 }
 \description{
-Title
+mclust::sim is used to generate an expression matrix based on a GMM
+generated with fcexpr::ff_model_GMM. The matrix is decorated with
+parameters and keywords to form a flow frame.
+}
+\examples{
+\dontrun{
+library(fcexpr)
+library(mclust)
+ws <- "path/to/your/flowjo.wsp"
+
+# check samples, groups, populations
+groups <- fcexpr::wsx_get_groups(ws)
+paths <- fcexpr::wsx_get_fcs_paths(ws, filter_AllSamples = T)
+samplenames <- basename(grep("AnKr", paths$Exp_part_1, value = T))
+pops <- fcexpr::wsx_get_poppaths(ws, groups = "Exp_part_1")
+
+# read flow frames
+fflist <- fcexpr::wsp_get_ff(wsp = ws,
+                             FCS.file.folder = "path/to/your/FCS_files",
+                             population = "Single Cells",
+                             samples = samplenames[1])
+ff <- purrr::list_flatten(fflist[["flowframes"]], name_spec = "{outer}")
+ff <- purrr::list_flatten(ff, name_spec = "{outer}")
+
+# create model, define MmdelNames and/or G to speed modelling up
+# mclustBIC_args <- list()
+# mclustBIC_args <- list(modelNames = "VVV", G = 8:10)
+modellist <- ff_model_GMM(ff = ff[[1]],
+                          sample_n = 50000,
+                          mclustBIC_args = mclustBIC_args,
+                          source_file = names(ff)[1])
+
+flowframe <- ff_simulate(model = modellist[[2]])
+flowCore::write.FCS(flowframe[[1]], "fcs/save/path.fcs")
+}
 }

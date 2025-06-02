@@ -51,7 +51,7 @@ ff_get_channels <- function(ff,
       channels <- channels[which(!channels %in% timeChannel)]
     }
     if (rm_scatter) {
-      channels <- channels[which(!grepl("FSC|SSC", channels))]
+      channels <- channels[which(!grepl("FSC|SSC", channels, ignore.case = T))]
     }
     if (rm_wo_desc) {
       channels <- channels[!is.na(names(channels))]
