@@ -10,28 +10,34 @@ ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate_differentGatingTrees.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_sameGatingTrees.wsp" # one full path missing - check why; same id assigned to different AndNodes?!; check what happens if one of the multiple nodes is removed
-ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_differentGatingTrees.wsp"
+ws <- "/Volumes/CMS_SSD_2TB 1/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_differentGatingTrees.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp" # NotNodes of OrNodes or AndNodes are different! - check if code lines are compatible with ordinary NotNodes
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_with_children_sameDims_sameGatingTrees.wsp"
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/OrAndNodes_from_different_Dims_sameGatingTrees.wsp" # some gate types missing
-ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp"
+ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp" # large ws
+
+
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp" # error
 
-system.time(df1 <- fcexpr::wsx_get_popstats(ws, strip_data = F)[["counts"]])
-system.time(df2 <- wsx_get_popstats2(ws, more_gate_data = T)[["counts"]])
+system.time(df1 <- wsx_get_popstats(ws, strip_data = T)[["counts"]])
+system.time(df2 <- wsx_get_popstats2(ws, strip_data = T)[["counts"]])
 
 #fix columns of df2 a bit
 
-## compare even more columns!
+comcols <- intersect(colnames(df1), colnames(df2))
+df1 <- dplyr::arrange(df1, FileName, Count)
+df2 <- dplyr::arrange(df2, FileName, Count)
 
 df1_sub <- df1[,which(names(df1) %in% c("FileName", "PopulationFullPath", "Population", "Count"))]#, "gate_id", "parentgate_id"))]
-names(df1_sub)[which(names(df1_sub) == "gate_id")] <- "id"
-names(df1_sub)[which(names(df1_sub) == "parentgate_id")] <- "parent_id"
 df2_sub <- df2[,which(names(df2) %in% c("FileName", "PopulationFullPath", "Population", "Count"))]# "id", "parent_id"))]
 
-tt <- dplyr::anti_join(df1_sub, df2_sub)
-tt2 <- dplyr::anti_join(df2_sub, df1_sub)
+waldo::compare(df1_sub, df2_sub)
+
+
+
+# tt <- dplyr::anti_join(df1_sub, df2_sub)
+# tt2 <- dplyr::anti_join(df2_sub, df1_sub)
 
 
 

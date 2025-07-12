@@ -1,0 +1,64 @@
+ind	N	lasername	lasernm	machinename	$CYT	detector_low	detector_high	note
+P7	b-LP502 530/30-E-A	b	488	Animal	CantoII	515	545	
+P8	PE-A	b	488	Animal	CantoII	564	606	
+P9	b-LP655 LP670-B-A	b	488	Animal	CantoII	670	Inf	
+P10	b-LP735 780/60-A-A	b	488	Animal	CantoII	750	810	
+P11	r-660/20-C-A	r	633	Animal	CantoII	650	670	
+P12	r-LP685 720/30-A-A	r	633	Animal	CantoII	750	810	N does not tell the real filter
+P13	v-450/50-B-A	v	405	Animal	CantoII	425	475	
+P14	v-LP502 510/50-A-A	v	405	Animal	CantoII	485	535	
+P7	b-505LP 530/30-E-A	b	488	Symphony	LSRFortessa	515	545	
+P8	b-600LP 610/20-D-A	b	488	Symphony	LSRFortessa	600	620	
+P9	b-635LP 670/30-C-A	b	488	Symphony	LSRFortessa	655	685	
+P10	b-685LP 710/50-B-A	b	488	Symphony	LSRFortessa	685	735	
+P11	b-750LP 780/60-A-A	b	488	Symphony	LSRFortessa	750	810	
+P12	r-670/30-C-A	r	633	Symphony	LSRFortessa	655	685	
+P13	r-690LP 730/45-B-A	r	633	Symphony	LSRFortessa	707.5	752.5	
+P14	r-750LP 780/60-A-A	r	633	Symphony	LSRFortessa	750	810	
+P15	v-450/50-H-A	v	405	Symphony	LSRFortessa	425	475	
+P16	v-505LP 525/50-G-A	v	405	Symphony	LSRFortessa	500	550	
+P17	v-550LP 586/15-F-A	v	405	Symphony	LSRFortessa	578.5	593.5	
+P18	v-595LP 605/40-E-A	v	405	Symphony	LSRFortessa	585	625	
+P19	v-635LP 677/20-D-A	v	405	Symphony	LSRFortessa	667	687	
+P20	v-685LP 710/20-C-A	v	405	Symphony	LSRFortessa	700	730	
+P21	v-735LP 750/30-B-A	v	405	Symphony	LSRFortessa	735	765	
+P22	v-750LP 780/60-A-A	v	405	Symphony	LSRFortessa	750	810	
+P23	uv-379/28-G-A	uv	355	Symphony	LSRFortessa	365	393	
+P24	uv-450LP 515/30-F-A	uv	355	Symphony	LSRFortessa	500	530	
+P25	uv-550LP 580/20-E-A	uv	355	Symphony	LSRFortessa	570	590	
+P26	uv-595LP 605/20-D-A	uv	355	Symphony	LSRFortessa	595	615	
+P27	uv-630LP 670/25-C-A	uv	355	Symphony	LSRFortessa	657.5	682.5	
+P28	uv-690LP 735/30-B-A	uv	355	Symphony	LSRFortessa	720	750	
+P29	uv-770LP 810/40-A-A	uv	355	Symphony	LSRFortessa	790	830	
+P30	yg-586/15-E-A	yg	561	Symphony	LSRFortessa	578.5	593.5	
+P31	yg-600LP 610/20-D-A	yg	561	Symphony	LSRFortessa	600	620	
+P32	yg-635LP 670/30-C-A	yg	561	Symphony	LSRFortessa	655	685	
+P33	yg-685LP 710/50-B-A	yg	561	Symphony	LSRFortessa	685	735	
+P34	yg-750/LP 780/60-A-A	yg	561	Symphony	LSRFortessa	750	810	
+P7	b-LP505 525/50-B-A	b	488	Wayne	LSRFortessa	500	550	
+P8	b-LP685 710/50-A-A	b	488	Wayne	LSRFortessa	685	735	
+P9	v-450/50-F-A	v	405	Wayne	LSRFortessa	425	475	
+P10	v-LP505 525/50-E-A	v	405	Wayne	LSRFortessa	500	550	
+P11	v-LP600 610/20-D-A	v	405	Wayne	LSRFortessa	600	620	
+P12	v-LP650 660/20-C-A	v	405	Wayne	LSRFortessa	650	670	
+P13	v-LP685 710/50-B-A	v	405	Wayne	LSRFortessa	685	735	
+P14	v-LP750 800/60-A-A	v	405	Wayne	LSRFortessa	770	830	
+P15	r-670/30-C-A	r	633	Wayne	LSRFortessa	655	685	
+P16	r-LP685 720/30-B-A	r	633	Wayne	LSRFortessa	705	735	
+P17	r-LP750 780/60-A-A	r	633	Wayne	LSRFortessa	750	810	
+P18	yg-582/15-D-A	yg	561	Wayne	LSRFortessa	574.5	589.5	
+P19	yg-LP600 610/20-C-A	yg	561	Wayne	LSRFortessa	600	620	
+P20	yg-LP635 670/30-B-A	yg	561	Wayne	LSRFortessa	655	685	
+P21	yg-LP750 780/60-A-A	yg	561	Wayne	LSRFortessa	750	810	
+FL1	FL1			SonyMA900	LE-MA900FP			
+FL2	FL2			SonyMA900	LE-MA900FP			
+FL3	FL3			SonyMA900	LE-MA900FP			
+FL4	FL4			SonyMA900	LE-MA900FP			
+FL5	FL5			SonyMA900	LE-MA900FP			
+FL6	FL6			SonyMA900	LE-MA900FP			
+FL7	FL7			SonyMA900	LE-MA900FP			
+FL8	FL8			SonyMA900	LE-MA900FP			
+FL9	FL9			SonyMA900	LE-MA900FP			
+FL10	FL10			SonyMA900	LE-MA900FP			
+FL11	FL11			SonyMA900	LE-MA900FP			
+FL12	FL12			SonyMA900	LE-MA900FP			

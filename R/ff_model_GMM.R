@@ -18,6 +18,7 @@
 #' @param source_file name of ff to be added to model list, if $FIL then the
 #' keyword from ff is used
 #' @param ... arguments to fcexpr::ff_get_channels
+#' @param keywords keywords to retain from ff
 #'
 #' @return list of model data
 #' @export

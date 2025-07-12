@@ -4,10 +4,10 @@
 #' generated with fcexpr::ff_model_GMM. The matrix is decorated with
 #' parameters and keywords to form a flow frame.
 #'
-#' @param model GMM and accesorry information from fcexpr::ff_model_GMM
+#' @param model GMM and accessory information from fcexpr::ff_model_GMM
 #' @param path path to folder with multiple models on disk as .rds files to
 #' choose randomly from
-#' @param n number of evts to simulate
+#' @param n number of events to simulate
 #' @param m number of flow frames to simulate, if path is given every flow frame
 #' uses a randomly picked model
 #' @param seed seed for mclust::sim

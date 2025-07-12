@@ -7,12 +7,12 @@
 ff_simulate(model, path = NULL, n = 50000, m = 1, seed = 42)
 }
 \arguments{
-\item{model}{GMM and accesorry information from fcexpr::ff_model_GMM}
+\item{model}{GMM and accessory information from fcexpr::ff_model_GMM}
 
 \item{path}{path to folder with multiple models on disk as .rds files to
 choose randomly from}
 
-\item{n}{number of evts to simulate}
+\item{n}{number of events to simulate}
 
 \item{m}{number of flow frames to simulate, if path is given every flow frame
 uses a randomly picked model}

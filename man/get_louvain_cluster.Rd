@@ -7,7 +7,7 @@
 get_louvain_cluster(
   exprs,
   FindNeighbors_args = list(),
-  FindClusters_args = list(resolution = c(0.1, 0.2, 0.3, 0.4)),
+  FindClusters_args = list(resolution = c(0.1)),
   mc.cores = 1
 )
 }

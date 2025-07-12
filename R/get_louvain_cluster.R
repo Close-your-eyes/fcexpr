@@ -11,7 +11,7 @@
 #' @examples
 get_louvain_cluster <- function(exprs,
                                 FindNeighbors_args = list(),
-                                FindClusters_args = list(resolution = c(0.1, 0.2, 0.3, 0.4)),
+                                FindClusters_args = list(resolution = c(0.1)),
                                 mc.cores = 1) {
   mc.cores <- min(mc.cores, parallel::detectCores()-1)
   rownames(exprs) <- 1:nrow(exprs)

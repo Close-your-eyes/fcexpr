@@ -55,12 +55,12 @@ match_fcs_and_wsp <- function(FCS.file.folder = NULL,
   }
 
 
-  fcs_file_idents <-  utils::stack(.get_fcs_identities(kwl = flowCore::read.FCSheader(FCS.file.paths, emptyValue = F)))
+  fcs_file_idents <-  utils::stack(get_fcs_identities(kwl = flowCore::read.FCSheader(FCS.file.paths, emptyValue = F)))
   fcs_file_idents <- dplyr::rename(fcs_file_idents, "identity" = values, "disk_file_path" = ind)
   fcs_file_idents$disk_file_path <- as.character(fcs_file_idents$disk_file_path)
   fcs_file_idents$disk_file_name <- basename(fcs_file_idents$disk_file_path)
 
-  fcs_file_idents_wsp <- purrr::map_df(stats::setNames(wsp, wsp), function(x) utils::stack(.get_fcs_identities(kwl = wsx_get_keywords(ws = x, return = "vector"))), .id = "wsp_path")
+  fcs_file_idents_wsp <- purrr::map_df(stats::setNames(wsp, wsp), function(x) utils::stack(get_fcs_identities(kwl = wsx_get_keywords(ws = x, return = "vector"))), .id = "wsp_path")
   fcs_file_idents_wsp <- dplyr::rename(fcs_file_idents_wsp, "identity" = values, "flowjo_file_path" = ind)
   fcs_file_idents_wsp$flowjo_file_path <- as.character(fcs_file_idents_wsp$flowjo_file_path)
   fcs_file_idents_wsp$wsp_file <- basename(fcs_file_idents_wsp$wsp_path)

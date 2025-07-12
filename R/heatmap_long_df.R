@@ -208,7 +208,7 @@ heatmap_long_df <- function(df,
                                      legendlabels = legendlabels,
                                      fill = fill,
                                      nice_colorsteps = nice_colorsteps)
-  if (grepl("scale_fill_stepsn", scale_fill[["call"]][[1]][[3]])) {
+  if (grepl("coloursteps", scale_fill[["guide"]])) {
     guide_fun <- ggplot2::guide_colorsteps
   } else {
     guide_fun <- ggplot2::guide_colorbar
@@ -251,10 +251,23 @@ colorscale_heuristic <- function(colorscale_values,
                                  legendbreaks,
                                  legendlabels,
                                  fill,
-                                 nice_colorsteps) {
+                                 nice_colorsteps,
+                                 type = c("fill", "color"),
+                                 col_na = "grey50",
+                                 qmin = 0,
+                                 qmax = 1,
+                                 scale.max = NULL,
+                                 scale.min = NULL) {
 
-  scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 0.1), nsmall = 1))
-  scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 0.1), nsmall = 1))
+  #qmin, qmax for featureplot2 from scexpr, for correct limits of colorsteps, colorsteps must be auto or vector
+  # scale.min: provided from scexpr featureplot2 but exclude non expressers (=0)
+  type <- rlang::arg_match(type)
+  if (is.null(scale.max)) {
+    scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 0.1), nsmall = 1))
+  }
+  if (is.null(scale.min)) {
+    scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 0.1), nsmall = 1))
+  }
   scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
 
   if (is.null(colorsteps)) {
@@ -273,11 +286,18 @@ colorscale_heuristic <- function(colorscale_values,
       message("length(legendlabels) != length(legendbreaks), using ggplot2 default")
       legendlabels <- ggplot2::waiver()
     }
+
+    if (type == "fill") {
+      scalefun <- ggplot2::scale_fill_gradientn
+    } else {
+      scalefun <- ggplot2::scale_color_gradientn
+    }
     scale_fill <-
-      ggplot2::scale_fill_gradientn(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                    colors = fill,
-                                    breaks = legendbreaks,
-                                    labels = legendlabels)
+      scalefun(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+               colors = fill,
+               breaks = legendbreaks,
+               labels = legendlabels,
+               na.value = col_na)
   } else {
     if (length(colorsteps) == 1 && colorsteps == "auto") {
       # colorsteps is auto
@@ -287,23 +307,52 @@ colorscale_heuristic <- function(colorscale_values,
         colorsteps <- seq(round(scale.min), round(scale.max), length.out = 6)
       }
     }
+    if (type == "fill") {
+      scalefun <- ggplot2::scale_fill_stepsn
+    } else {
+      scalefun <- ggplot2::scale_color_stepsn
+    }
     if (length(colorsteps) == 1) {
       # colorsteps given as one number
       scale_fill <-
-        ggplot2::scale_fill_stepsn(colors = fill,
-                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                   n.breaks = colorsteps,
-                                   limits = c(scale.min, scale.max),
-                                   show.limits = T,
-                                   nice.breaks = nice_colorsteps)
+        scalefun(colors = fill,
+                 values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                 n.breaks = colorsteps,
+                 limits = c(scale.min, scale.max),
+                 show.limits = T,
+                 nice.breaks = nice_colorsteps,
+                 na.value = col_na)
     } else {
       # colorsteps given as a vector
-      scale_fill <-
-        ggplot2::scale_fill_stepsn(colors = fill,
-                                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                                   breaks = colorsteps,
-                                   limits = c(scale.min, scale.max),
-                                   show.limits = T)
+      if (qmin > 0 || qmax < 1) {
+        # only to alter limit labels
+        colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
+        if (qmin > 0) {min.lab <- paste0(scale.min, " (q", round(qmin*100, 0), ")")} else {min.lab <- scale.min}
+        if (qmax < 1) {max.lab <- paste0(scale.max, " (q", round(qmax*100, 0), ")")} else {max.lab <- scale.max}
+
+       colorstepbreaks <- colorsteps
+       if (dplyr::near(colorstepbreaks[1], scale.min)) {
+         colorstepbreaks <- colorstepbreaks[-1]
+       }
+       if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
+         colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
+       }
+        scale_fill <-
+          scalefun(colors = fill,
+                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                   breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
+                   limits = c(scale.min, scale.max),
+                   labels = c(min.lab, colorstepbreaks, max.lab),
+                   na.value = col_na)
+      } else {
+        scale_fill <-
+          scalefun(colors = fill,
+                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+                   breaks = colorsteps,
+                   limits = c(scale.min, scale.max),
+                   show.limits = T,
+                   na.value = col_na)
+      }
       #labels = function(x) round(x, legend.decimals))
     }
   }

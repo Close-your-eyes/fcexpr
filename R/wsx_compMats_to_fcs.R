@@ -65,13 +65,13 @@ wsx_compMats_to_fcs <- function(ws,
     # get identity from keyword entries in wsp file below
     # make this a separate functions some when
 
-    fcs_identities <- .get_fcs_identities(kwl = wsx_get_keywords(ws = ws, return = "vector"))
+    fcs_identities <- get_fcs_identities(kwl = wsx_get_keywords(ws = ws, return = "vector"))
 
     'k <- wsx_get_keywords(ws = ws, return_type = "vector")
     kk <- do.call(rbind, k)
     kk$FileName <- rep(names(k), sapply(k,nrow))
     kk <- dplyr::distinct(kk)
-    ## taken from .check.FCS.files - made analogous
+    ## taken from check.FCS.files - made analogous
     filenames <- unique(kk$FileName)
     dd <- kk[which(kk$name == "$DATE"), "value"]
     tt <- kk[which(kk$name == "$BTIM"), "value"]
@@ -97,7 +97,7 @@ wsx_compMats_to_fcs <- function(ws,
                                                                                                                                        duplicated(fcs.files, fromLast = T)]), collapse = "\n")))
     }'
 
-    alt_fcs_files <- .check.FCS.files(alt_FCS_file_folder)
+    alt_fcs_files <- check.FCS.files(alt_FCS_file_folder)
     # replace paths with identity
     names(compMats) <- unname(fcs_identities[basename(names(compMats))])
     alt_fcs_files <- alt_fcs_files[which(alt_fcs_files %in% names(compMats))] # actually not needed

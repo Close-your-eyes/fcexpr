@@ -13,42 +13,45 @@
 #' }
 new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
 
-    if (base::is.null(path)) {
-        stop("Please provide a directory (path) to create the folder in.")
-    }
+  if (is.null(path)) {
+    stop("Please provide a directory (path) to create the folder in.")
+  }
 
-    if (date_prefix) {
-        if (base::is.null(name)) {
-            name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_experiment")
-        } else {
-            name <- base::paste0(base::gsub("-", "", base::Sys.Date()), "_", name)
-        }
+  path <- path.expand(path)
+
+  if (date_prefix) {
+    if (is.null(name)) {
+      name <- paste0(gsub("-", "", Sys.Date()), "_experiment")
     } else {
-        if (base::is.null(name)) {
-            name <- "experiment"
-        }
+      name <- paste0(gsub("-", "", Sys.Date()), "_", name)
     }
-
-    if (dir.exists(base::file.path(path, name))) {
-        stop(paste0(base::file.path(path, name), " already exists."))
+  } else {
+    if (is.null(name)) {
+      name <- "experiment"
     }
+  }
 
-    utils::untar(base::system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
-    base::file.rename(base::file.path(path, "template_folder"), base::file.path(path, name))
+  if (dir.exists(file.path(path, name))) {
+    stop(paste0(file.path(path, name), " already exists."))
+  }
 
-    if (getOS() == "Windows") {
-        files <- list.files(base::file.path(path, name), all.files = T, recursive = T, full.names = T)
-        file.remove(files[which(grepl("^\\.", basename(files)))])
-    }
+  utils::untar(system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
+  file.rename(file.path(path, "template_folder"), file.path(path, name))
 
-    base::message(base::paste0(base::file.path(path, name), " created."))
+  if (getOS() == "Windows") {
+    files <- list.files(file.path(path, name), all.files = T, recursive = T, full.names = T)
+    file.remove(files[which(grepl("^\\.", basename(files)))])
+  }
+
+  message(paste0(file.path(path, name), " created."))
+  invisible(file.path(path, name))
 }
 
 
 getOS <- function() {
-    machine <- switch(Sys.info()[["sysname"]],
-                      Windows= "Windows",
-                      Linux  = "Linux",
-                      Darwin = "Mac")
-    return(machine)
+  machine <- switch(Sys.info()[["sysname"]],
+                    Windows= "Windows",
+                    Linux  = "Linux",
+                    Darwin = "Mac")
+  return(machine)
 }

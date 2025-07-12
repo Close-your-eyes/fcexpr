@@ -38,6 +38,8 @@ leverage_sampling)}
 
 \item{mclustBIC_args}{arguments to mclust::mclustBIC}
 
+\item{keywords}{keywords to retain from ff}
+
 \item{seed}{seed for reproducing random results}
 
 \item{source_file}{name of ff to be added to model list, if $FIL then the
@@ -81,8 +83,11 @@ modellist <- ff_model_GMM(ff = ff[[1]],
                           sample_n = 50000,
                           mclustBIC_args = mclustBIC_args,
                           source_file = names(ff)[1])
+model <- modellist[[2]]
+# save model
+saveRDS(model, file.path("your/path", paste0(names(ff)[2], "_mclustmodel.rds")))
 
-flowframe <- ff_simulate(model = modellist[[2]])
+flowframe <- ff_simulate(model = model)
 flowCore::write.FCS(flowframe[[1]], "fcs/save/path.fcs")
 }
 }

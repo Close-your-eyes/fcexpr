@@ -169,7 +169,7 @@ get_smpl_df <- function(wsp,
     # get keywords from wsp and generate fcs identities
     kwlist <- wsx_get_keywords(wsp[x], return = c("data.frame", "vector"), keywords = fcskeywords)
     fcs_ident <-
-      stack(fcexpr:::.get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
+      stack(fcexpr:::get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
       dplyr::rename("identity" = values, "FlowJoFileName" = ind) |>
       dplyr::mutate(FlowJoFileName = as.character(FlowJoFileName))
     y <-
@@ -229,7 +229,7 @@ get_smpl_df <- function(wsp,
                               return = "vector")
 
       local_fcs_files_df <-
-        stack(fcexpr:::.get_fcs_identities(kwl = kwl, allow_duplicates = T)) |>
+        stack(fcexpr:::get_fcs_identities(kwl = kwl, allow_duplicates = T)) |>
         dplyr::rename("identity" = values, "LocalFilePath" = ind) |>
         dplyr::filter(identity %in% y$identity) |>  # only consider fcs files that are present in flowjo
         dplyr::mutate(LocalFilePath = as.character(LocalFilePath)) |>

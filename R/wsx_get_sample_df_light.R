@@ -20,7 +20,7 @@ wsx_get_sample_df_light <- function(ws) {
   paths <- wsx_get_fcs_paths(ws, split = F, filter_AllSamples = T)
   kwlist <- wsx_get_keywords(ws, return = c("data.frame", "vector"), keywords = c("$DATE", "$FIL", "$TOT", "$ETIM", "$BTIM"))
   fcs_ident <-
-    stack(fcexpr:::.get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
+    stack(fcexpr:::get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
     dplyr::rename("identity" = values, "FlowJoFileName" = ind) |>
     dplyr::mutate(FlowJoFileName = as.character(FlowJoFileName))
   keys <-

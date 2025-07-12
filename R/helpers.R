@@ -44,6 +44,7 @@ wsp_xml_get_samples <- function(x) {
 }
 
 shortest_unique_path <- function(p) {
+  p <- unique(p)
   p_rev <- sapply(strsplit(p, "/"), rev)
   p_rev <- lapply(seq_along(p_rev), function(x) {
     i<-1
@@ -54,6 +55,7 @@ shortest_unique_path <- function(p) {
     }
     return(p_rev[[x]][1:i])
   })
+  names(p_rev) <- p
   p <- sapply(sapply(p_rev, rev), function(x) paste(x, collapse = "/"))
   return(p)
 }
@@ -392,7 +394,7 @@ get_gs <- function(x,
 
 get_kw_and_pars <- function(exprs,
                             ff = NULL,
-                            keywrd,
+                            keywrd = list(),
                             params = NULL,
                             insert_neutral_spill = T) {
 
@@ -431,6 +433,7 @@ get_kw_and_pars <- function(exprs,
   #   | `$PnG`  | **Gain** applied during data acquisition (optional).                 |
   #   | `$PnV`  | **Detector voltage** applied to the channel (optional, if recorded). |
   #
+
   for (z in rownames(params@data)) {
     keywrd[[paste0(z, "N")]] <- params@data[z,"name"]
     keywrd[[paste0(z, "S")]] <- params@data[z,"desc"]
