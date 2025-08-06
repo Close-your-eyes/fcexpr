@@ -1,4 +1,4 @@
-get_group_df <- function(ws, groups) {
+get_group_df <- function(ws, groups, invert_groups) {
   group_df <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])

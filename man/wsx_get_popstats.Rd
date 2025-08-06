@@ -2,15 +2,16 @@
 % Please edit documentation in R/wsx_get_popstats.R
 \name{wsx_get_popstats}
 \alias{wsx_get_popstats}
-\title{Import data from a wsp file}
+\title{Read data from a flowjo wsp file}
 \usage{
 wsx_get_popstats(
   ws,
   groups = NULL,
   invert_groups = F,
-  return_stats = T,
+  return_stats = F,
   lapply_fun = lapply,
   strip_data = T,
+  skip_legacy = F,
   ...
 )
 }
@@ -21,28 +22,18 @@ wsx_get_popstats(
 
 \item{invert_groups}{logical whether to exclude the selected groups}
 
-\item{return_stats}{logical (T,F) whether to return statistics next to cells counts}
+\item{return_stats}{logical whether to return statistics}
 
-\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
+\item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply
+or parallel::mclapply are suggested; only for legacy method}
 
-\item{...}{additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
-}
-\value{
-data frame with cells counts or a list with counts and statistics if return_stats = T
+\item{strip_data}{remove extensive internal data of wsp from count data frame}
+
+\item{skip_legacy}{do not run the legacy method?}
+
+\item{...}{additional argument to the lapply function;
+mainly mc.cores when parallel::mclapply is chosen}
 }
 \description{
-Flowjo wsp files contain many information like gated event counts, statistics and keywords
-from FCS files. These may be accessed without a dongle and can be read completely independent of
-the respective FCS files once the gating has been conducted.
-}
-\examples{
-\dontrun{
-# When the script is saved to R_scripts in the experiment folder,
-# get the absolute path to the folder
-wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
-# find workspaces
-ws <- list.files(path = wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
-# import the population counts:
-wsx_get_popstats(ws = ws[[1]])
-}
+Read data from a flowjo wsp file
 }

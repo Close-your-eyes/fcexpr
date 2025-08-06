@@ -36,6 +36,7 @@ heatmap_ordering <- function(df,
                         to_rows = rows,
                         to_cols = cols,
                         values = values)
+
   clust_rows <- cluster_mat(mat = mat)
   clust_cols <- cluster_mat(mat = t(mat))
 
@@ -93,14 +94,13 @@ cluster_mat = function(mat,
   method <- rlang::arg_match(method)
   distance <- rlang::arg_match(distance)
 
-
   if (distance == "correlation"){
-    d = as.dist(1 - cor(t(mat)))
+    d = stats::as.dist(1 - cor(t(mat)))
   } else{
-    d = dist(mat, method = distance)
+    d = stats::dist(mat, method = distance)
   }
 
-  return(hclust(d, method = method))
+  return(stats::hclust(d, method = method))
 }
 
 df_long_to_mat <- function(df, to_rows, to_cols, values) {

@@ -1,13 +1,15 @@
-#' Title
+#' Read data from a flowjo wsp file
 #'
-#' @param ws
-#' @param groups
-#' @param invert_groups
-#' @param return_stats
-#' @param lapply_fun
-#' @param strip_data
-#' @param ...
-#' @param skip_legacy
+#' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
+#' @param return_stats logical whether to return statistics
+#' @param groups vector of flowjo group names to consider
+#' @param invert_groups logical whether to exclude the selected groups
+#' @param lapply_fun function name without quotes; lapply, pbapply::pblapply
+#' or parallel::mclapply are suggested; only for legacy method
+#' @param strip_data remove extensive internal data of wsp from count data frame
+#' @param skip_legacy do not run the legacy method?
+#' @param ... additional argument to the lapply function;
+#' mainly mc.cores when parallel::mclapply is chosen
 #'
 #' @return
 #' @export
@@ -45,7 +47,7 @@ wsx_get_popstats <- function(ws,
   })
 
   cols <- c("FileName", "PopulationFullPath", "Population", "Count", "ParentCount", "identity")
-  res <- waldo::compare(dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPat, Count),
+  res <- waldo::compare(dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath, Count),
                         dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))
 
   if (!length(res)) {

@@ -71,9 +71,10 @@ check_ws <- function(ws) {
     if (!grepl("\\.", basename(ws))) {
       stop("Did you pass a directory as ws? Please pass the full path to the wsp-file.")
     }
-    if (rev(strsplit(ws, "\\.")[[1]])[1] != "wsp") {
-      stop("ws has to be a file path that ends with .wsp.")
+    if (!gsub(tools::file_path_sans_ext(ws, compression = T), "", ws) %in% c(".wsp", ".wsp.gz")) {
+      stop("ws has to be a file path that ends with .wsp or wsp.gz.")
     }
+
     ws <- xml2::read_xml(ws)
   }
   if (!any(class(ws) == "xml_document")) {

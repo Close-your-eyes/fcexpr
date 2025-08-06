@@ -5,29 +5,26 @@
 #' the respective FCS files once the gating has been conducted.
 #'
 #' @param ws path to flowjo workspace or a parsed xml-document (xml2::read_xml(ws))
-#' @param return_stats logical (T,F) whether to return statistics next to cells counts
+#' @param return_stats logical whether to return statistics
 #' @param groups vector of flowjo group names to consider
 #' @param invert_groups logical whether to exclude the selected groups
 #' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #'
-#' @return data frame with cells counts or a list with counts and statistics if return_stats = T
+#' @return list of data frames: counts and optionally stats
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # When the script is saved to R_scripts in the experiment folder,
-#' # get the absolute path to the folder
-#' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 #' # find workspaces
 #' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
-#' # import the population counts:
-#' wsx_get_popstats(ws = ws[[1]])
+#' # read population counts
+#' counts <- wsx_get_popstats_legacy(ws = ws[[1]])[["counts"]]
 #' }
 wsx_get_popstats_legacy <- function(ws,
                                     groups = NULL,
                                     invert_groups = F,
-                                    return_stats = T,
+                                    return_stats = F,
                                     lapply_fun = lapply,
                                     strip_data = T,
                                     ...) {
@@ -37,8 +34,8 @@ wsx_get_popstats_legacy <- function(ws,
 
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
-  group_df <- get_group_df(ws, groups) #fcexpr:::
-  samples <- get_sample_nodes(ws, group_df) #fcexpr:::
+  group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
+  samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
 
 
   gates_list <- do.call(rbind, lapply_fun(xml2::xml_find_all(samples, ".//Gate|.//Dependents"), function(n) {
@@ -144,7 +141,8 @@ wsx_get_popstats_legacy <- function(ws,
   if (any(dplyr::count(pop_df, FileName, PopulationFullPath)$n >1)) {
     stop("PopulationFullPaths not unique which cannot or should not be. Check.")
   }
-  auto_paths <- shortest_unique_path(pop_df$PopulationFullPath) #fcexpr:::
+  ## add short paths
+  auto_paths <- fcexpr:::shortest_unique_path(pop_df$PopulationFullPath) #fcexpr:::
   pop_df$Population <- unname(auto_paths[pop_df$PopulationFullPath])
 
   pop_df <-
@@ -168,7 +166,7 @@ wsx_get_popstats_legacy <- function(ws,
   message("FileName is as in FlowJo wsp file. Join counts to sampledescription (sd) via FileName and identity.")
   message("dplyr::left_join(counts, sd, by = c('FileName', 'identity'))")
   # check for equal file names on hdd
-  check_filenames_hdd(pop_df = pop_df)
+  fcexpr:::check_filenames_hdd(pop_df = pop_df)
 
   # dup_files <- fcs_idents[duplicated(fcs_idents$identity),]
   # if (nrow(dup_files) > 1) {
@@ -178,7 +176,7 @@ wsx_get_popstats_legacy <- function(ws,
   #   dup_files <- NULL
   # }
 
-
+  stats_out <- NULL
   if (return_stats) {
     stats_out <- do.call(rbind, lapply_fun(seq_along(samples), function(n) {
       node <- samples[n]
@@ -210,11 +208,13 @@ wsx_get_popstats_legacy <- function(ws,
 
       return(stats_df)
     }))
-    if (anyNA(stats_out$value)) {
-      print(tibble::as_tibble(stats_out) |> dplyr::filter(is.na(value)), n = Inf)
+    if (!is.null(stats_out)) {
+      stats_out <- tibble::as_tibble(stats_out)
+      if (anyNA(stats_out$value)) {
+        print(dplyr::filter(stats_out, is.na(value)), n = Inf)
+      }
     }
-    return(list(counts = tibble::as_tibble(pop_df), stats = tibble::as_tibble(stats_out)))
   }
 
-  return(list(counts = tibble::as_tibble(pop_df), stats = NULL))
+  return(list(counts = tibble::as_tibble(pop_df), stats = stats_out))
 }

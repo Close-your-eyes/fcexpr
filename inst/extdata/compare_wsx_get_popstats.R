@@ -10,19 +10,33 @@ ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/noOrAndGates_1D_gates_range_and_2Sector_with_NotGate_differentGatingTrees.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_sameGatingTrees.wsp" # one full path missing - check why; same id assigned to different AndNodes?!; check what happens if one of the multiple nodes is removed
-ws <- "/Volumes/CMS_SSD_2TB 1/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_differentGatingTrees.wsp"
+ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_sameDims_differentGatingTrees.wsp"
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp" # NotNodes of OrNodes or AndNodes are different! - check if code lines are compatible with ordinary NotNodes
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_with_children_sameDims_sameGatingTrees.wsp"
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/OrAndNodes_from_different_Dims_sameGatingTrees.wsp" # some gate types missing
 ws <- "/Users/vonskopnik/Desktop/example_workspaces/Exp_part_20_21.wsp" # large ws
-
-
 ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp" # error
 
-system.time(df1 <- wsx_get_popstats(ws, strip_data = T)[["counts"]])
-system.time(df2 <- wsx_get_popstats2(ws, strip_data = T)[["counts"]])
+library(fcexpr)
+wd <- dirname(rstudioapi::getActiveDocumentContext()$path)
+# wslist <- list.files(file.path(wd, "example_wsp"), full.names = T)
+# purrr::map(wslist, R.utils::gunzip, remove = F)
+wslist <- list.files(file.path(wd, "example_wsp"), full.names = T)
 
+## run new and old method sequentially and have results compared
+# errors: index 2
+# very long: index 3
+# diffs: index 6
+out <- wsx_get_popstats(wslist[6])
+
+wsx_get_popstats2(wslist[2], strip_data = T)
+### manual comparison of new and old method
+system.time(out1 <- wsx_get_popstats_legacy(wslist[6], strip_data = T))
+system.time(out2 <- wsx_get_popstats2(wslist[6], strip_data = T))
+
+df1 <- out1[["counts"]]
+df2 <- out2[["counts"]]
 #fix columns of df2 a bit
 
 comcols <- intersect(colnames(df1), colnames(df2))
@@ -35,15 +49,3 @@ df2_sub <- df2[,which(names(df2) %in% c("FileName", "PopulationFullPath", "Popul
 waldo::compare(df1_sub, df2_sub)
 
 
-
-# tt <- dplyr::anti_join(df1_sub, df2_sub)
-# tt2 <- dplyr::anti_join(df2_sub, df1_sub)
-
-
-
-dup_id <- unique(pop_df$id[duplicated(df2$id)])
-df22 <- df2[which(df2$id %in% dup_id),]
-df2$GateDef[which(is.null(df2$GateDef[[1]]))] <- NA
-out <- df2$GateDef
-df2$GateDef[which(sapply(df2$GateDef, is.null))] <- NA
-df2$GateDef[[2]]

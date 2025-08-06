@@ -26,7 +26,7 @@
 wsx_get_popstats2 <- function(ws,
                               groups = NULL,
                               invert_groups = F,
-                              return_stats = T,
+                              return_stats = F,
                               strip_data = T) {
 
 
@@ -39,8 +39,8 @@ wsx_get_popstats2 <- function(ws,
   show_progress = F
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
-  group_df <- get_group_df(ws, groups) #fcexpr:::
-  samples <- get_sample_nodes(ws, group_df) #fcexpr:::
+  group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
+  samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
 
   # jannis wsp: multiple samples from same FCS file
 
@@ -198,7 +198,7 @@ wsx_get_popstats2 <- function(ws,
 
   # sample wise or for whole pop_df at once?
   pop_df$PopulationFullPath[which(pop_df$name_root == "root")] <- "root"
-  auto_paths <- shortest_unique_path(pop_df$PopulationFullPath) #fcexpr:::
+  auto_paths <- fcexpr:::shortest_unique_path(pop_df$PopulationFullPath) #fcexpr:::
   pop_df$Population <- unname(auto_paths[pop_df$PopulationFullPath])
 
   # harmonize with previous? compare? - with dplyr::anti_join
@@ -217,6 +217,7 @@ wsx_get_popstats2 <- function(ws,
     dplyr::left_join(group_df, by = c("sampleID")) |>
     dplyr::left_join(file_paths, by = c("sampleID")) |>
     dplyr::mutate(FlowJoWsp = ws_raw)
+  browser()
   pop_df <- pop_df[order(pop_df$FileName, pop_df$GateDepth),]
 
 
@@ -261,7 +262,7 @@ wsx_get_popstats2 <- function(ws,
   message("FileName is as in FlowJo wsp file. Join counts to sampledescription (sd) via FileName and identity.")
   message("dplyr::left_join(counts, sd, by = c('FileName', 'identity'))")
   # check for equal file names on hdd
-  check_filenames_hdd(pop_df = pop_df)
+  fcexpr:::check_filenames_hdd(pop_df = pop_df)
 
   ## check duplicated files
   dup_files <- fcs_idents[duplicated(fcs_idents$identity),]
@@ -273,34 +274,17 @@ wsx_get_popstats2 <- function(ws,
   }
 
   if (!strip_data) {
-    pop_df <- pop_df[,cols] |> dplyr::rename("ID" = id, "ParentID" = parent_id, "GrandparentID" = grandparent_id)
+    pop_df <- dplyr::rename(pop_df[,cols], "ID" = id, "ParentID" = parent_id, "GrandparentID" = grandparent_id)
   } else {
     pop_df <- pop_df[,cols]
   }
 
-  return(list(
-    counts = tibble::as_tibble(pop_df),
-    graph = gate_graph,
-    graph_sample = gate_graph_samples,
-    duplicate_FCS_files = dup_files
-  ))
-  # stats
-
-  # matrix/df with all parent gates as ref and FractionOfXXX
-
-
-  stats <- xml2::xml_find_all(ws, ".//Statistic")
-
-  '  if (strip_data) {
-    gates_out <- gates_out[,which(!names(gates_out) %in% c("gate_id", "parentgate_id", "sampleID", "origin", "n", "gate_level"))]
-  }'
-
-  'if (return_stats) {
-    stats_out <- do.call(dplyr::bind_rows, lapply_fun(seq_along(rel_nodes), function(n) {
-      node <- rel_nodes[n]
+  stats_out <- NULL
+  if (return_stats) {
+    stats_out <- do.call(rbind, lapply(seq_along(samples), function(n) {
+      node <- samples[n]
       stats <- xml2::xml_find_all(node, ".//Statistic")
-
-      stats_df <- do.call(dplyr::bind_rows, lapply(stats, function(x) {
+      stats_df <- do.call(rbind, lapply(stats, function(x) {
         prnts <- xml2::xml_parents(x)
         p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
 
@@ -309,22 +293,40 @@ wsx_get_popstats2 <- function(ws,
         FileName <- basename(FilePath)
         PopulationFullPath <- if (length(p_nodes) == 0) {"root"} else {paste(rev(xml2::xml_attr(p_nodes, "name")), collapse = "/")}
 
-
-        data.frame(FileName = FileName,
-                   PopulationFullPath = PopulationFullPath,
-                   statistic = xml2::xml_attr(x, "name"),
-                   channel = xml2::xml_attr(x, "id"),
-                   value = as.numeric(xml2::xml_attr(x, "value")),
-                   FilePath = FilePath,
-                   stringsAsFactors = F)
+        df <- data.frame(FileName = FileName,
+                         PopulationFullPath = PopulationFullPath,
+                         statistic = xml2::xml_attr(x, "name"),
+                         channel = xml2::xml_attr(x, "id"),
+                         value = suppressWarnings(as.numeric(xml2::xml_attr(x, "value"))),
+                         FilePath = FilePath,
+                         stringsAsFactors = F)
+        if (is.na(df$value)) {
+          message("stats: statistic not a number.")
+          print(df)
+        }
+        return(df)
       }))
 
       return(stats_df)
-    }, ...))
-    return(list(counts = gates_out, stats = stats_out))
+    }))
+    if (!is.null(stats_out)) {
+      stats_out <- tibble::as_tibble(stats_out)
+      if (anyNA(stats_out$value)) {
+        print(dplyr::filter(stats_out, is.na(value)), n = Inf)
+      }
+    }
   }
-  return(gates_out)'
 
+  return(list(
+    counts = tibble::as_tibble(pop_df),
+    stats = stats_out,
+    graph = gate_graph,
+    graph_sample = gate_graph_samples,
+    duplicate_FCS_files = dup_files
+  ))
+  # stats
+
+  # matrix/df with all parent gates as ref and FractionOfXXX
 }
 
 

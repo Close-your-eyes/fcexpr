@@ -13,14 +13,14 @@ heatmap_long_df(
   fill = "auto",
   color = "auto",
   scale = c("none", "zscore", "1"),
-  omit_featurelabels = F,
-  topn_features = NULL,
-  border_linewidth = 0.2,
+  featurelabels_omit = F,
+  features_topn = NULL,
+  color_linewidth = 0.2,
   legendbreaks = "auto",
   legendlabels = "auto",
   colorsteps = "auto",
-  nice_colorsteps = T,
-  flip_axes = F,
+  colorsteps_nice = T,
+  axes_flip = F,
   group_seplines = F,
   seplines_args = list(),
   legend_fill_args = list(barwidth = 1, barheight = 8, order = 1),
@@ -53,13 +53,13 @@ features is below 100.}
 
 \item{scale}{how to scale values: not, zscore or from -1 to 1}
 
-\item{omit_featurelabels}{do not plot axis text of features, e.g. when
+\item{featurelabels_omit}{do not plot axis text of features, e.g. when
 their number is large}
 
-\item{topn_features}{only plot the top n features (ordered by value) per
+\item{features_topn}{only plot the top n features (ordered by value) per
 group}
 
-\item{border_linewidth}{linewidth of borders (stroke) around tiles or dots}
+\item{color_linewidth}{linewidth of borders (stroke) around tiles or dots}
 
 \item{legendbreaks}{a single number, a vector of explicit breaks, or "auto"
 for ggplot default or "minmidmax" for three breaks at minimum, middle and
@@ -69,11 +69,11 @@ maximum of value range}
 
 \item{colorsteps}{NULL to have normal colorbar, auto for default colorsteps,
 a single number or a vector of explicit steps; may not work with any number
-when nice_colorsteps is TRUE}
+when colorsteps_nice is TRUE}
 
-\item{nice_colorsteps}{heuristic for pretty steps}
+\item{colorsteps_nice}{heuristic for pretty steps}
 
-\item{flip_axes}{do flip them?}
+\item{axes_flip}{do flip them?}
 
 \item{group_seplines}{plot lines that separate features belonging to
 different groups}
@@ -114,9 +114,9 @@ fcexpr::heatmap_long_df(df = df,
                 features = "channel",
                 values = "mean_cluster_scale",
                 dotsizes = "pvalue2",
-                omit_featurelabels = T,
-                flip_axes = T,
-                topn_features = 4,
+                featurelabels_omit = T,
+                axes_flip = T,
+                features_topn = 4,
                 group_seplines = T,
                 colorsteps = NULL)
 # scale in function, alter legend text
