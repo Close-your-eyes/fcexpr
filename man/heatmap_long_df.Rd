@@ -10,11 +10,16 @@ heatmap_long_df(
   features,
   values,
   dotsizes = NULL,
+  dotsize_range = c(2, 7),
   fill = "auto",
   color = "auto",
   scale = c("none", "zscore", "1"),
-  featurelabels_omit = F,
   features_topn = NULL,
+  topn_cols = values,
+  topn_ties = F,
+  featurelabels = "auto",
+  featurelabels_repel = F,
+  featuresitalic = F,
   color_linewidth = 0.2,
   legendbreaks = "auto",
   legendlabels = "auto",
@@ -23,9 +28,12 @@ heatmap_long_df(
   axes_flip = F,
   group_seplines = F,
   seplines_args = list(),
+  theme = ggplot2::theme_classic(),
   legend_fill_args = list(barwidth = 1, barheight = 8, order = 1),
   legend_size_args = list(order = 2, ncol = NULL, nrow = NULL, override.aes = list(color
     = "black")),
+  theme_args = list(panel.grid = element_blank()),
+  repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
   ...
 )
 }
@@ -41,6 +49,8 @@ heatmap_long_df(
 \item{dotsizes}{column for dot sizes, if provided will cause plotting of
 dots instead of tiles}
 
+\item{dotsize_range}{range for dot size}
+
 \item{fill}{color palette vector for fill of tiles or dots. when auto,
 RColorBrewer::RdBu is used}
 
@@ -48,16 +58,29 @@ RColorBrewer::RdBu is used}
 stroke is plotted; NA has
 to be put in quotation mark ("NA"), such that geom_point accepts it.
 other choices may be black, white or any other color code; when "auto",
-grey70 is used by default when !is.null(dotsizes) and a the number of
+grey70 is used by default when is.null(dotsizes) and a the number of
 features is below 100.}
 
 \item{scale}{how to scale values: not, zscore or from -1 to 1}
 
-\item{featurelabels_omit}{do not plot axis text of features, e.g. when
-their number is large}
-
 \item{features_topn}{only plot the top n features (ordered by value) per
 group}
+
+\item{topn_cols}{columns in df to use for ordering when selecting
+features_topn with dplyr::slice_max. hint: p-values have to multiplied
+by -1 to make this work properly}
+
+\item{topn_ties}{break ties for features_topn? if TRUE, more then
+features_topn may be plotted}
+
+\item{featurelabels}{subset of feature labels to plot; NULL to plot all,
+"" to plot none; can be a named vector with names being aliases to use for
+plotting e.g. c("CD20" = "MS4A1", "CD3", "KLRG1") to only alter MS4A1;
+auto to omit labels by default when more than 100 features are there}
+
+\item{featurelabels_repel}{do repel feature axis labels?}
+
+\item{featuresitalic}{shorthand to plot feature labels in italic}
 
 \item{color_linewidth}{linewidth of borders (stroke) around tiles or dots}
 
@@ -80,13 +103,21 @@ different groups}
 
 \item{seplines_args}{arguments to geom_hline for seplines}
 
+\item{theme}{ggplot2 theme}
+
 \item{legend_fill_args}{arguments to ggplot2::guide_colorsteps or
 ggplot2::guide_colorbar, depend upon the color scale}
 
 \item{legend_size_args}{arguments to ggplot2::guide_legend to modify the
-size legend}
+size legend; e.g. use override.aes = list(size = c(1,3,5)) to adjust dot size
+in legend in contrast to dotsize_range, one number for each dot in legend
+needed}
 
-\item{...}{arguments to heatmap_ordering}
+\item{theme_args}{arguments to ggplot2::theme}
+
+\item{repel_args}{fine tuning for featurelabel repelling}
+
+\item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }
 \value{
 ggplot2 object

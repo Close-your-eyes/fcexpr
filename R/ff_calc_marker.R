@@ -30,13 +30,23 @@ ff_calc_marker <- function(ff,
     if (!is.matrix(exprs)) {
       stop("exprs has to be matrix.")
     }
-    channels <- channels[which(channels %in% colnames(exprs))]
+    if (!is.numeric(exprs)) {
+      stop("exprs is not numeric. e.g. use exprs <- matrix(as.numeric(exprs), nrow = nrow(exprs), ncol = ncol(exprs))")
+    }
+    if (!is.null(channels)) {
+      channels <- channels[which(channels %in% colnames(exprs))]
+    }
+
   } else {
     channels <- ff_get_channels(ff, channels = channels, ...)
     exprs <- flowCore::exprs(ff)
   }
 
   cluster_cols <- cluster_cols[which(cluster_cols %in% colnames(exprs))]
+  if (is.null(channels)) {
+    # wehn exprs provided but no channels
+    channels <- colnames(exprs)[which(!colnames(exprs) %in% cluster_cols)]
+  }
 
   if (length(cluster_cols) == 0) {
     stop("cluster_cols not found.")

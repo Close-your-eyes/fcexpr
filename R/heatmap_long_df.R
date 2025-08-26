@@ -129,7 +129,7 @@ heatmap_long_df <- function(df,
                               ncol = NULL,
                               nrow = NULL,
                               override.aes = list(color = "black")
-                                                  #size = c(2, 7))
+                              #size = c(2, 7))
                             ),
                             theme_args = list(
                               panel.grid = element_blank()
@@ -269,7 +269,7 @@ heatmap_long_df <- function(df,
 
 
   if (!is.null(featurelabels) && featurelabels[1] == "auto") {
-    if (nrow(df) > 100) {
+    if (length(unique(df[[features]])) > 100) {
       featurelabels <- ""
       names(featurelabels) <- featurelabels
       theme_args[[if (determine_feature_axis(plot) == "x") "axis.ticks.x" else "axis.ticks.y"]] <- ggplot2::element_blank()
@@ -335,7 +335,15 @@ colorscale_heuristic <- function(colorscale_values,
   }
   scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
 
+  colorsteps <- sort(unique(colorsteps))
   if (is.null(colorsteps)) {
+    ## colorbar legend
+    if (type == "fill") {
+      scalefun <- ggplot2::scale_fill_gradientn
+    } else {
+      scalefun <- ggplot2::scale_color_gradientn
+    }
+
     if (length(legendbreaks) == 1 && legendbreaks == "auto") {
       legendbreaks <- ggplot2::waiver()
     } else if (length(legendbreaks) == 1 && legendbreaks == "minmidmax") {
@@ -352,11 +360,6 @@ colorscale_heuristic <- function(colorscale_values,
       legendlabels <- ggplot2::waiver()
     }
 
-    if (type == "fill") {
-      scalefun <- ggplot2::scale_fill_gradientn
-    } else {
-      scalefun <- ggplot2::scale_color_gradientn
-    }
     scale_fill <-
       scalefun(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
                colors = fill,
@@ -364,62 +367,113 @@ colorscale_heuristic <- function(colorscale_values,
                labels = legendlabels,
                na.value = col_na)
   } else {
-    if (length(colorsteps) == 1 && colorsteps == "auto") {
-      # colorsteps is auto
-      if (values_zscored) {
-        colorsteps <- seq(round(scale.min), round(scale.max), 1)
-      } else {
-        colorsteps <- seq(round(scale.min), round(scale.max), length.out = 6)
-      }
-    }
+    ## colorstep legend
     if (type == "fill") {
       scalefun <- ggplot2::scale_fill_stepsn
     } else {
       scalefun <- ggplot2::scale_color_stepsn
     }
+
+
     if (length(colorsteps) == 1) {
-      # colorsteps given as one number
+      # colorsteps is auto or one number
+      if (values_zscored) {
+        n <- ifelse(colorsteps == "auto", 1, colorsteps)
+        colorsteps <- seq(round(scale.min), round(scale.max), n)
+      } else {
+        n <- ifelse(colorsteps == "auto", 6, colorsteps)
+        if (colorsteps_nice) {
+          colorsteps <- scales:::extended_breaks(n = n)(c(round(scale.min), round(scale.max)))
+        } else {
+          colorsteps <- seq(round(scale.min), round(scale.max), length.out = n)
+          # make semi nice breaks?
+         # round_auto_any(colorsteps)
+        }
+      }
+      # remove limits as they appear anyway
+      colorsteps <- colorsteps[-c(1,length(colorsteps))]
+    } else {
+      # colorsteps is a vector
+    }
+
+    scale_fill <-
+      scalefun(colors = fill,
+               values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+               breaks = colorsteps,
+               limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
+               show.limits = T,
+               nice.breaks = F, # is done above
+               na.value = col_na)
+
+    # change limits
+    if (qmin > 0 || qmax < 1) {
+      # only to alter limit labels
+
+      #colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
+      min.lab <- ifelse(qmin > 0, paste0(scale.min, " (q", round(qmin*100, 0), ")"), scale.min)
+      max.lab <- ifelse(qmax < 1, paste0(scale.max, " (q", round(qmax*100, 0), ")"), scale.max)
+
+      colorstepbreaks <- colorsteps
+      if (dplyr::near(colorstepbreaks[1], scale.min)) {
+        colorstepbreaks <- colorstepbreaks[-1]
+      }
+      if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
+        colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
+      }
+
       scale_fill <-
         scalefun(colors = fill,
                  values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                 n.breaks = colorsteps,
-                 limits = c(scale.min, scale.max),
-                 show.limits = T,
-                 nice.breaks = colorsteps_nice,
+                 breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
+                 limits = c(scale.min, scale.max), # limit must be he same as outer breaks
+                 labels = c(min.lab, colorstepbreaks, max.lab),
                  na.value = col_na)
-    } else {
-      # colorsteps given as a vector
-      if (qmin > 0 || qmax < 1) {
-        # only to alter limit labels
-        colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
-        if (qmin > 0) {min.lab <- paste0(scale.min, " (q", round(qmin*100, 0), ")")} else {min.lab <- scale.min}
-        if (qmax < 1) {max.lab <- paste0(scale.max, " (q", round(qmax*100, 0), ")")} else {max.lab <- scale.max}
-
-        colorstepbreaks <- colorsteps
-        if (dplyr::near(colorstepbreaks[1], scale.min)) {
-          colorstepbreaks <- colorstepbreaks[-1]
-        }
-        if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
-          colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
-        }
-        scale_fill <-
-          scalefun(colors = fill,
-                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                   breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
-                   limits = c(scale.min, scale.max),
-                   labels = c(min.lab, colorstepbreaks, max.lab),
-                   na.value = col_na)
-      } else {
-        scale_fill <-
-          scalefun(colors = fill,
-                   values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                   breaks = colorsteps,
-                   limits = c(scale.min, scale.max),
-                   show.limits = T,
-                   na.value = col_na)
-      }
-      #labels = function(x) round(x, legend.decimals))
     }
+    #browser()
+
+    # if (length(colorsteps) == 1) {
+    #   # colorsteps given as one number
+    #   scale_fill <-
+    #     scalefun(colors = fill,
+    #              values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+    #              n.breaks = colorsteps,
+    #              limits = c(scale.min, scale.max),
+    #              show.limits = T,
+    #              nice.breaks = colorsteps_nice,
+    #              na.value = col_na)
+    # } else {
+    #   # colorsteps given as a vector
+    #   if (qmin > 0 || qmax < 1) {
+    #     # only to alter limit labels
+    #     colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
+    #     if (qmin > 0) {min.lab <- paste0(scale.min, " (q", round(qmin*100, 0), ")")} else {min.lab <- scale.min}
+    #     if (qmax < 1) {max.lab <- paste0(scale.max, " (q", round(qmax*100, 0), ")")} else {max.lab <- scale.max}
+    #
+    #     colorstepbreaks <- colorsteps
+    #     if (dplyr::near(colorstepbreaks[1], scale.min)) {
+    #       colorstepbreaks <- colorstepbreaks[-1]
+    #     }
+    #     if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
+    #       colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
+    #     }
+    #     scale_fill <-
+    #       scalefun(colors = fill,
+    #                values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+    #                breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
+    #                limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
+    #                labels = c(min.lab, colorstepbreaks, max.lab),
+    #                na.value = col_na)
+    #   } else {
+    #     scale_fill <-
+    #       scalefun(colors = fill,
+    #                values = scales::rescale(c(scale.min, scale.mid, scale.max)),
+    #                breaks = colorsteps,
+    #                limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
+    #                show.limits = T,
+    #                na.value = col_na)
+    #   }
+    #   #labels = function(x) round(x, legend.decimals))
+    # }
   }
   return(scale_fill)
 }
@@ -478,3 +532,29 @@ determine_feature_axis <- function(plot) {
     return("y")
   }
 }
+
+
+round_auto_any <- function(x,
+                           start_at = 100,               # start magnitude-based rounding at |x| >= this
+                           method = c("nearest","up","down")) {
+  method <- match.arg(method)
+  ax <- abs(x)
+
+  # base = 10^(floor(log10(|x|))) when |x| >= start_at; otherwise 1
+  base <- ifelse(ax >= start_at, 10^floor(log10(ax)), 1)
+
+  # helpers to do up/down as "away/toward zero"
+  scale <- x / base
+  up_scaled   <- ifelse(scale >= 0, ceiling(scale), floor(scale))   # away from zero
+  down_scaled <- ifelse(scale >= 0, floor(scale), ceiling(scale))   # toward zero
+
+  res <- switch(method,
+                nearest = round(scale) * base,
+                up      = up_scaled * base,
+                down    = down_scaled * base
+  )
+  # keep NAs and zeros as-is
+  res[is.na(x)] <- NA
+  res
+}
+

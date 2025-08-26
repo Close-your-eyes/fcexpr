@@ -919,8 +919,9 @@ shift.to.positive <- function(x, rm.na = F) {
 
     out <-
       presto::wilcoxauc(X = cbind(t(dat[which(cluster == x),,drop = F]),
-                                  t(dat[which(cluster != x),,drop = F])), y = c(rep("y", length(which(cluster == x))),
-                                                                                rep("z", length(which(cluster != x))))) |>
+                                  t(dat[which(cluster != x),,drop = F])),
+                        y = c(rep("y", length(which(cluster == x))),
+                              rep("z", length(which(cluster != x))))) |>
       dplyr::filter(group == "y") |>
       dplyr::select(feature, pval) |>
       dplyr::rename("pvalue" = pval, "channel" = feature)
