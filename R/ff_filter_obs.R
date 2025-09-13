@@ -37,21 +37,23 @@ ff_filter_obs <- function(ff,
   summary <- purrr::map_dfr(ff, ~ data.frame(n_before = nrow(.x@exprs)), .id = "ff")
 
   ff <- purrr::map(ff, function(f) {
-    for (i in channels) {
+    chann <- ff_get_channels(ff = f, channels = channels)
+    for (i in chann) {
       f@exprs <- f@exprs[which(compareMin(f@exprs[, i], min(limits)) & compareMax(f@exprs[, i], max(limits))), ]
     }
-    return(f)
-  })
 
-  ff <- purrr::map(ff, function(f) {
     f@exprs <- brathering::quantile_filter2(
       x = f@exprs,
-      columns = channels,
+      columns = chann,
       columns_select = channels_select,
       quantiles = quantiles
     )
+
     return(f)
   })
+
+
+  ff <- ff_update(ff)
 
 
   summary <- summary |>

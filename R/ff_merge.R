@@ -74,7 +74,17 @@ ff_merge <- function(ff_list,
     colnames(exprs)[ncol(exprs)] <- ident_col
   }
 
-  kw_par <- fcexpr:::get_kw_and_pars(exprs = exprs)
+  kw_par <- fcexpr:::get_kw_and_pars(exprs = exprs,
+                                     # get params from first ff
+                                     params = ff_list[[1]]@parameters)
+
+  # if in dimred_to_fcs _trans channels are there: add desc to them
+  if (any(grepl("trans", kw_par$params@data$name)) && any(!is.na(ff_list[[1]]@parameters@data$desc))) {
+    conv <- stats::setNames(ff_list[[1]]@parameters@data$desc, ff_list[[1]]@parameters@data$name)
+    inds <- which(grepl("trans", kw_par$params@data$name))
+    name <- gsub("_trans$", "", kw_par$params@data$name[inds])
+    kw_par$params@data$desc[inds] <- conv[name]
+  }
 
   # add desc to channels with suffix
   if (add_transformed_channels && any(!is.na(kw_par[["params"]]@data$desc))) {

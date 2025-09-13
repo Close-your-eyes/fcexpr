@@ -437,7 +437,9 @@ get_kw_and_pars <- function(exprs,
 
   for (z in rownames(params@data)) {
     keywrd[[paste0(z, "N")]] <- params@data[z,"name"]
-    keywrd[[paste0(z, "S")]] <- params@data[z,"desc"]
+    if (!is.na(params@data[z,"desc"])) {
+      keywrd[[paste0(z, "S")]] <- params@data[z,"desc"]
+    }
     keywrd[[paste0(z, "R")]] <- as.character(params@data[z,"range"])
     keywrd[[paste0(z, "E")]] <- "0,0"
     if (is.null(keywrd[[paste0(z, "G")]])) {
@@ -446,10 +448,16 @@ get_kw_and_pars <- function(exprs,
     if (is.null(keywrd[[paste0(z, "B")]])) {
       keywrd[[paste0(z, "B")]] <- "32"
     }
-    if (is.null(keywrd[[paste0(z, "V")]])) {
+    if (is.null(keywrd[[paste0(z, "V")]]) && !params@data[z,"name"] %in% c("Time", "HDR-T")) {
       keywrd[[paste0(z, "V")]] <- "1"
     }
   }
+
+  # rm unecessary keys of channel infos
+  inds <- which(grepl("^\\$P[[:digit:]]", names(keywrd)))
+  name <- names(keywrd[inds])
+  name_rm <- name[!grepl(paste(paste0("^\\", rownames(params@data), "[[:alpha:]]$"), collapse = "|"), name)]
+  keywrd[name_rm] <- NULL
 
   keywrd[["$PAR"]] <- as.character(ncol(exprs))
   keywrd[["$TOT"]] <- as.character(nrow(exprs))

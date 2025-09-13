@@ -254,15 +254,15 @@ dimred_to_fcs <- function(ff.list,
   ## ---- prepare final fcs file -------
 
   if (write.transformed.channels.to.FCS && write.untransformed.channels.to.FCS) {
-    ff <- ff_merge(ff.list,
+    ff <- ff_merge(ff_list = ff.list,
                    grouplist = grouplist,
                    add_transformed_channels = T)
   } else if (write.transformed.channels.to.FCS) {
-    ff <- ff_merge(ff.list,
+    ff <- ff_merge(ff_list = ff.list,
                    grouplist = grouplist,
                    add_transformed_channels = F)
   } else if (write.untransformed.channels.to.FCS) {
-    ff <- ff_merge(ff_transform(ff.list, trafolist = trafoname),
+    ff <- ff_merge(ff_list = ff_transform(ff = ff.list, trafolist = trafoname),
                    grouplist = grouplist,
                    add_transformed_channels = F)
   }
@@ -272,6 +272,11 @@ dimred_to_fcs <- function(ff.list,
                                                      som.dims,
                                                      clust_idents)))
 
+  # no empty desc. may overload fcs, but easier for desc transfer to colnames of exprs
+  desc <- ff@parameters@data$desc
+  desc_na <- which(is.na(desc))
+  desc[desc_na] <- ff@parameters@data$name[desc_na]
+  ff@parameters@data$desc <- desc
 
   # prepare channel desc
   # name.desc <- stats::setNames(ff.list[[1]]@parameters@data[["desc"]], ff.list[[1]]@parameters@data[["name"]])

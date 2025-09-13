@@ -21,7 +21,7 @@ ff_plot_quantiles <- function(ff,
   qdf <- purrr::map(ff, function(x) {
     chann <- ff_get_channels(x, channels = channels)
     qu <- apply(
-      flowCore::exprs(x)[,names(chann)],
+      flowCore::exprs(x)[,chann],
       2,
       quantile,
       probs = quantiles,

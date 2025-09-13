@@ -23,12 +23,15 @@ ff_transform <- function(ff, trafolist) {
     if (!all(purrr::map_lgl(ff, ~trafolist %in% names(attributes(.x))))) {
       stop("trafolist not found in all attributes of ff list.")
     }
+
     ff <- mapply(FUN = ff_transform,
                  ff = ff,
                  trafolist = lapply(ff, attr, which = trafolist))
     return(ff)
   } else {
+
     # from internal flowWorkspace::gh_pop_get_data
+    trafolist[[1]]@transforms <- trafolist[[1]]@transforms[colnames(ff@exprs)]
     cf <- flowWorkspace:::flowFrame_to_cytoframe(ff)
     cs <- flowWorkspace::cytoset()
     flowWorkspace::cs_add_cytoframe(cs, names(trafolist), cf)
