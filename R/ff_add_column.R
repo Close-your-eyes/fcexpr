@@ -26,21 +26,26 @@ ff_add_columns <- function(ff,
 
   # removing existing colnames from exprs(ff) equals overwrite
 
-  exprs <- cbind(flowCore::exprs(ff)[,which(!colnames(flowCore::exprs(ff)) %in% colnames(mat)), drop = F], mat)
+  exprs <- cbind(
+    flowCore::exprs(ff)[,which(!colnames(flowCore::exprs(ff)) %in% colnames(mat)), drop = F],
+    mat
+  )
   #exprs <- cbind(flowCore::exprs(ff), mat)
-  new_kw <- flowCore::keyword(ff)
-  new_pars <- flowCore::parameters(ff)
 
-  kw_par <- getkw_and_pars(exprs = exprs,
-                           new_kw = new_kw,
-                           new_pars = new_pars)
+  kw_par <- get_kw_and_pars(exprs = exprs,
+                            ff = ff)
 
   # save previous attr
   ff_default_attr <- c("exprs", "parameters", "description", "class")
   prev_attr <- attributes(ff)[which(!names(attributes(ff)) %in% ff_default_attr)]
 
   # new ff
-  ff <- methods::new("flowFrame", exprs = exprs, parameters = kw_par[["new_pars"]], description = kw_par[["new_kw"]])
+  ff <- methods::new(
+    "flowFrame",
+    exprs = exprs,
+    parameters = kw_par[["params"]],
+    description = kw_par[["keywrd"]]
+  )
 
   # add previous attributes
   if (length(prev_attr) > 0) {

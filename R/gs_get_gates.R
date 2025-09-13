@@ -24,7 +24,7 @@
 #' gates <- gs_get_gates(gs)
 #' }
 gs_get_gates <- function(gs,
-                         n_bins = 50^2,
+                         n_bins = 200^2,
                          quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
                          min_max_vals_scatter = c(0, 250000),

@@ -117,32 +117,31 @@ If write.untransformed.channels.to.FCS is TRUE, ff_transform is called.
 \examples{
 \dontrun{
 ff <- wsp_get_ff(wsp = ws[18],
-downsample = 0.05,
-FCS.file.folder = file.path(wd, "FCS_files"),
-groups = c("blood", "urine_spike"),
-population = "193Ir_DNA_2, 127I_DNA_3 subset")
+                 downsample = 0.05,
+                 FCS.file.folder = file.path(wd, "FCS_files"),
+                 groups = c("blood", "urine_spike"),
+                 population = "193Ir_DNA_2, 127I_DNA_3 subset")
 
-ff.list <- ff[[1]]
-ff.list <- purrr::list_flatten(ff.list, name_spec = "{outer}")
-ff.list <- purrr::list_flatten(ff.list, name_spec = "{outer}")
-pars <- ff.list[[1]]@parameters@data
+# select population and trafo
+ffs <- purrr::map(ff, ~.x[["transformed"]][[1]])
+pars <- ffs[[1]]@parameters@data
 channels <-
   pars |>
   dplyr::filter(grepl("_", desc)) |>
   dplyr::filter(!grepl("Beads|DNA", desc)) |>
   dplyr::pull(name)
 
-out <- dr_to_fcs3(
-  ff.list = ff.list,
+out <- dimred_to_fcs(
+  ff.list = ffs,
   channels = channels,
   run.pca = 12,
   save.path = "/Users/vonskopnik/Downloads/",
   save.name = "testDR",
   part_match = F)
-  marker <- ff_calc_marker(
-out[["flowframe"]],
-cluster_cols = "res.0.1",
-channels = paste0(channels, "_trans")
+marker <- ff_calc_marker(
+  out[["flowframe"]],
+  cluster_cols = "res.0.1",
+  channels = paste0(channels, "_trans")
 )
 df <- marker[["res.0.1"]][["global"]]
 df <-

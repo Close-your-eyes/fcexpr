@@ -77,6 +77,7 @@ wsx_get_popstats2 <- function(ws,
                                   .f = get_node_details2,
                                   .progress = show_progress,
                                   more_gate_data = !strip_data)
+
   node_details_df <- bind_rows_chunked(df_list = sapply(node_details_list, "[", "df"))
   if (anyDuplicated(node_details_df[which(!is.na(node_details_df$id)), "id"]) != 0) {
     stop("Duplicate gate id detected. FlowJo wsp needs fixing?!")
@@ -152,7 +153,7 @@ wsx_get_popstats2 <- function(ws,
     pop_df$id <- make.unique(pop_df$id)
   }
 
-  keys_list <- fcexpr::wsx_get_keywords(ws = ws) # return = "data.frame"
+  keys_list <- fcexpr::wsx_get_keywords(ws = ws, samples = unique(pop_df$FileName)) # return = "data.frame"
   fcs_idents <-
     stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>
@@ -217,7 +218,7 @@ wsx_get_popstats2 <- function(ws,
     dplyr::left_join(group_df, by = c("sampleID")) |>
     dplyr::left_join(file_paths, by = c("sampleID")) |>
     dplyr::mutate(FlowJoWsp = ws_raw)
-  browser()
+
   pop_df <- pop_df[order(pop_df$FileName, pop_df$GateDepth),]
 
 
@@ -406,11 +407,13 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   }
   df[,"id"] <- id
 
+  ind <- grepl("\\.fcs", df$name, ignore.case = T)
+
   df$count <- as.numeric(df$count)
-  df$name_root <- ifelse(df$count == max(df$count), "root", df$name)
-  df$id <- ifelse(df$count == max(df$count), paste0("root_", df$name), df$id)
+  df$name_root <- ifelse(ind, "root", df$name) # df$count == max(df$count)
+  df$id <- ifelse(ind, paste0("root_", df$name), df$id) # df$count == max(df$count)
   df$sampleID <- sampleID
-  df$FileName <- df[df$count == max(df$count), "name"]
+  df$FileName <- df$name[which(ind)]# grep("\\.fcs", df$name, value = T, ignore.case = T)[1] #df[df$count == max(df$count), "name"]
   df$NodeType <- node_types
   names(df)[which(names(df) == "count")] <- "Count"
   depend_list <- xml2::xml_find_all(pops, ".//Dependents", flatten = T) #|.//Dependents

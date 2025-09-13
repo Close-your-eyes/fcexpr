@@ -82,10 +82,10 @@ plot_gates <- function(gs,
                        col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
                        col_pal_trans = "pseudo_log",
                        theme = ggplot2::theme_bw(),
-                       theme_args = list(panel.grid = element_blank(),
-                                         strip.background = element_rect(fill = "grey95", color = "white"),
-                                         axis.text = element_blank(),
-                                         axis.ticks = element_blank(),
+                       theme_args = list(panel.grid = ggplot2::element_blank(),
+                                         strip.background = ggplot2::element_rect(fill = "grey95", color = "white"),
+                                         axis.text = ggplot2::element_blank(),
+                                         axis.ticks = ggplot2::element_blank(),
                                          legend.position = "none"),
                        ...) {
 
@@ -127,14 +127,13 @@ plot_gates <- function(gs,
                                    "hex" = 5e4,
                                    "pointdensity" = 2000,
                                    "scattermore" = 2e6)
-
-      }
+        }
 
       p <- ggcyto::ggcyto(
-        gs,
+        data = gs,
         subset = gg[1,"Parent"],
         filter = my.filter,
-        ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])),
+        mapping = ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])),
         max_nrow_to_plot = max_nrow_to_plot
       )
 

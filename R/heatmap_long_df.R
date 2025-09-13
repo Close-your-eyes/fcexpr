@@ -376,6 +376,7 @@ colorscale_heuristic <- function(colorscale_values,
 
 
     if (length(colorsteps) == 1) {
+     # browser()
       # colorsteps is auto or one number
       if (values_zscored) {
         n <- ifelse(colorsteps == "auto", 1, colorsteps)
@@ -400,7 +401,7 @@ colorscale_heuristic <- function(colorscale_values,
       scalefun(colors = fill,
                values = scales::rescale(c(scale.min, scale.mid, scale.max)),
                breaks = colorsteps,
-               limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
+               limits = c(scale.min, scale.max), #c(scale.min, scale.max), # what about relevant decimals?
                show.limits = T,
                nice.breaks = F, # is done above
                na.value = col_na)

@@ -45,7 +45,9 @@
 #' @examples
 #'\dontrun{
 #' ff_list <- fcexpr::wsp_get_ff(wsp = "mypath/my.wsp", population = c("CD8+", "CD4+"), groups = "Compensation", invert_groups = TRUE)
-#' # ff.list[[1]] may be passed to fcexpr::dr_to_fcs for instance
+#' # ffs <- purrr::map(ff_list[[1]], ~.x[[1]][[1]])
+#' # ffs may be passed to fcexpr::dimred_to_fcs
+#' # consider fcexpr::ff_filter_obs before that
 #' ## how to to work with the returned nested list
 #' # ignore ind_mats and create one big data.frame w/o any filtering from flow frames
 #' ff1 <- purrr::list_flatten(x = purrr::list_flatten(x = ff.list[["flowframes"]],

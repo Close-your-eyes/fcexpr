@@ -573,7 +573,7 @@ get_new_kw_and_pars <- function(exprs,
   new_kw[["$PAR"]] <- as.character(ncol(exprs))
 
   ## new channels
-  browser()
+
   if (n < ncol(exprs)) { # or <=
     # < needed by ff_simulate
     for (z in n:ncol(exprs)) {

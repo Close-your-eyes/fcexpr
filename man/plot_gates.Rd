@@ -22,9 +22,10 @@ plot_gates(
   col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
   col_pal_trans = "pseudo_log",
   theme = ggplot2::theme_bw(),
-  theme_args = list(panel.grid = element_blank(), strip.background = element_rect(fill =
-    "grey95", color = "white"), axis.text = element_blank(), axis.ticks =
-    element_blank(), legend.position = "none"),
+  theme_args = list(panel.grid = ggplot2::element_blank(), strip.background =
+    ggplot2::element_rect(fill = "grey95", color = "white"), axis.text =
+    ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(), legend.position =
+    "none"),
   ...
 )
 }

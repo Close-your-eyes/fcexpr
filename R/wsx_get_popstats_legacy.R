@@ -35,7 +35,7 @@ wsx_get_popstats_legacy <- function(ws,
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
-  samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
+  samples <- get_sample_nodes(ws, group_df) #fcexpr:::
 
 
   gates_list <- do.call(rbind, lapply_fun(xml2::xml_find_all(samples, ".//Gate|.//Dependents"), function(n) {
@@ -155,8 +155,9 @@ wsx_get_popstats_legacy <- function(ws,
     pop_df <- pop_df[,which(!names(pop_df) %in% c("ID", "ParentID", "sampleID", "origin", "n", "GateDepth"))]
   }
 
+
   ## get keywords to derive identity of fcs files
-  keys_list <- fcexpr::wsx_get_keywords(ws = ws) # return = "data.frame"
+  keys_list <- wsx_get_keywords(ws = ws, samples = unique(pop_df$FileName)) # return = "data.frame"
   fcs_idents <-
     stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>

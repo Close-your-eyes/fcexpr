@@ -74,24 +74,16 @@ ff_merge <- function(ff_list,
     colnames(exprs)[ncol(exprs)] <- ident_col
   }
 
-  new_kw <- ff_get_common_kw(ff_list)
-  new_desc <- ff_get_common_desc(ff_list)
-  new_pars <- flowCore::parameters(ff_list[[1]])
-
-  kw_par <- fcexpr:::get_kw_and_pars(exprs = exprs,
-                                     new_kw = new_kw,
-                                     new_desc = new_desc,
-                                     new_pars = new_pars)
-
+  kw_par <- fcexpr:::get_kw_and_pars(exprs = exprs)
 
   # add desc to channels with suffix
-  if (add_transformed_channels && any(!is.na(kw_par[["new_pars"]]@data$desc))) {
-    dat <- kw_par[["new_pars"]]@data
+  if (add_transformed_channels && any(!is.na(kw_par[["params"]]@data$desc))) {
+    dat <- kw_par[["params"]]@data
     descs <- stats::setNames(dat$desc, dat$name)
     descs <- descs[which(!is.na(descs))]
     names_strip <- gsub(suffix_trafo, "", gsub(suffix, "", dat$name))
     dat$desc <- descs[names_strip]
-    kw_par[["new_pars"]]@data <- dat
+    kw_par[["params"]]@data <- dat
   }
 
   ## carry on attributes?
@@ -99,8 +91,8 @@ ff_merge <- function(ff_list,
   ff <- methods::new(
     "flowFrame",
     exprs = exprs,
-    parameters = kw_par[["new_pars"]],
-    description = kw_par[["new_kw"]]
+    parameters = kw_par[["params"]],
+    description = kw_par[["keywrd"]]
   )
 
   if (!is.null(ident_col) && !is.null(names(ff_list))) {

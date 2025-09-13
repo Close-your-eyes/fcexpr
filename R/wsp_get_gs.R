@@ -223,7 +223,7 @@ make_smpl_list <- function(smpl) {
 
 compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
   gatings_list <- purrr::map(stats::setNames(wsp, wsp), function(ws) {
-    ps <- wsx_get_popstats(ws = ws, return_stats = F)[["counts"]]
+    ps <- wsx_get_popstats_legacy(ws = ws, return_stats = F)[["counts"]]
     if (!is.null(sample_df)) {
       ps <- dplyr::filter(ps, identity %in% sample_df$identity)
     }

@@ -27,7 +27,9 @@ get_sample_nodes <- function(ws, group_df) {
   samples <- xml2::xml_children(xml2::xml_child(ws, "SampleList"))
   sample_ids <- which(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "sampleID") %in% ids)
   if (anyDuplicated(basename(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "uri"))) != 0) {
-    message("Duplicate filenames detected.")
+    message("Duplicate filenames detected in workspace:")
+    x <- basename(sapply(xml2::xml_attrs(xml2::xml_child(samples, "DataSet")), "[[", "uri"))
+    message(paste(x[which(duplicated(x))], collapse = ", "))
   }
   samples <- samples[sample_ids]
   return(samples)

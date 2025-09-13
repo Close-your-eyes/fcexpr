@@ -11,6 +11,7 @@
 #' @param lapply_fun function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested
 #' @param keywords which keywords to return
 #' @param ... ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
+#' @param samples FileName as on disk
 #'
 #' @return a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword
 #' @export
@@ -38,6 +39,7 @@ wsx_get_keywords <- function(ws,
                              keywords = NULL,
                              return = c("data.frame", "vector"),
                              lapply_fun = lapply,
+                             samples = NULL,
                              ...) {
 
   ws <- check_ws(ws)
@@ -75,6 +77,15 @@ wsx_get_keywords <- function(ws,
 
 
   names(k_return) <- basename(xml2::xml_attr(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "SampleList")), "DataSet"), "uri"))
+  if (!is.null(samples)) {
+    k_return <- k_return[samples]
+  }
+
+  if (anyDuplicated(names(k_return)) != 0) {
+    message("wsx_get_keywords: duplicate filenames. returning unique only.")
+    k_return <- k_return[which(!duplicated(names(k_return)))]
+  }
+
   if (length(return) == 2) {
     k_return <- purrr::list_flatten(k_return, name_spec = "{outer}")
     k_return <- list(vec = k_return[seq(1,length(k_return),2)],

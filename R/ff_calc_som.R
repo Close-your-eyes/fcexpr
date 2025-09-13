@@ -43,6 +43,11 @@ ff_calc_som <- function(ff,
   }
 
   set.seed(seed)
+  # ?EmbedSOM::MapDataToCodes()
+  # tt <- EmbedSOM::SOM(exprs, noMapping = T)
+  # noMapping = T may be needed on Apple Silicon and exprs with many rows
+  # Error in MapDataToCodes(codes, data, parallel = parallel, threads = threads) :
+  #   NA/NaN/Inf in foreign function call (arg 3)
   som.map.dr <- Gmisc::fastDoCall(som_fun, args = c(list(data = exprs), som_args))
   set.seed(seed)
   som.dims <- Gmisc::fastDoCall(EmbedSOM::EmbedSOM, args = c(list(data = exprs, map = som.map.dr), embedsom_args))

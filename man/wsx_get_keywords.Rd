@@ -9,6 +9,7 @@ wsx_get_keywords(
   keywords = NULL,
   return = c("data.frame", "vector"),
   lapply_fun = lapply,
+  samples = NULL,
   ...
 )
 }
@@ -20,6 +21,8 @@ wsx_get_keywords(
 \item{return}{how to return keywords: data.frame with 2 column or named vector?}
 
 \item{lapply_fun}{function name without quotes; lapply, pbapply::pblapply or parallel::mclapply are suggested}
+
+\item{samples}{FileName as on disk}
 
 \item{...}{... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen}
 }
