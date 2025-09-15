@@ -119,23 +119,9 @@ wsp_get_gs <- function(wsp,
   tt3 <- split(tt2$PopulationFullPath, tt2$gatinggroup)
   common <- Reduce(intersect, tt3)
   rm_pop <- unique(unlist(purrr::map(tt3, setdiff, common)))'
-    message("Trying to merge ", length(gs_list), " gs by removing non-common populations.\n")
 
-    gs_pop <- lapply(gs_list, function(x) flowWorkspace::gh_get_pop_paths(x[[1]]))
-    common_pop <- Reduce(intersect, gs_pop)
-    rm_pop <- purrr::map(gs_pop, setdiff, common_pop)
+    gs_list <- gslist_try_merge(gs_list)
 
-    message("common pops:\n", paste(common_pop, collapse = "\n"))
-    message("\n")
-    message("Non-common pops to be removed: \n", paste(names(rm_pop), rm_pop, collapse = "\n\n", sep = "\n"))
-    message("\n")
-    for (i in seq_along(gs_list)) {
-      for (j in seq_along(rm_pop[[i]])) {
-        flowWorkspace::gs_pop_remove(gs_list[[i]], rm_pop[[i]][[j]])
-      }
-    }
-
-    gs_list <- list(flowWorkspace::merge_list_to_gs(gs_list))
     ## writ messages
     ## collapse other vars?
     # gatings_list remain what they are
