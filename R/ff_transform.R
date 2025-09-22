@@ -31,7 +31,7 @@ ff_transform <- function(ff, trafolist) {
   } else {
 
     # from internal flowWorkspace::gh_pop_get_data
-    trafolist[[1]]@transforms <- trafolist[[1]]@transforms[colnames(ff@exprs)]
+    trafolist[[1]]@transforms <- trafolist[[1]]@transforms[intersect(names(trafolist[[1]]@transforms), colnames(ff@exprs))]
     cf <- flowWorkspace:::flowFrame_to_cytoframe(ff)
     cs <- flowWorkspace::cytoset()
     flowWorkspace::cs_add_cytoframe(cs, names(trafolist), cf)

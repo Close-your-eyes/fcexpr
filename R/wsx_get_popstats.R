@@ -11,10 +11,16 @@
 #' @param ... additional argument to the lapply function;
 #' mainly mc.cores when parallel::mclapply is chosen
 #'
-#' @return
+#' @return list of data frames of counts and stats
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # find workspaces
+#' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
+#' # read counts
+#' counts <- wsx_get_popstats(ws = ws[[1]])[["counts"]]
+#' }
 wsx_get_popstats <- function(ws,
                              groups = NULL,
                              invert_groups = F,
@@ -47,13 +53,17 @@ wsx_get_popstats <- function(ws,
   })
 
   cols <- c("FileName", "PopulationFullPath", "Population", "Count", "ParentCount", "identity")
-  res <- waldo::compare(dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath, Count),
-                        dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))
+  res <- waldo::compare(x <- dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath, Count),
+                        y <- dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))
+
+  # zz <- dplyr::left_join(dplyr::filter(x, grepl("0022", FileName)),
+  #                        dplyr::filter(y, grepl("0022", FileName)), by = c("FileName", "identity", "Count"))
 
   if (!length(res)) {
     return(out)
   } else {
-    message("Found differences between new and legacy method. Returning legacy.")
+    message("Found differences between new and legacy method. Returning legacy.
+            You may report that workspace to vonskopnik@pm.me.")
     return(out_legacy)
   }
 }

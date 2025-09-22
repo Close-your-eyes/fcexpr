@@ -5,11 +5,16 @@
 #'
 #' @param sd_path path to sampledescription.xlsx
 #' @param keywords keywords to read from FCS files and write to sd
+#' @param FCS.file.folder folder name with FCS files in dirname(sd_path)
 #'
-#' @return nothing, sampledescription is updated on disk
+#' @return nothing, sampledescription file is updated on disk
 #' @export
 #'
 #' @examples
+#'\dontrun{
+#' keywords_to_sampledescription(sd_path = "path/sampledescription.xlsx",
+#'                               keywords = c("$TOT", "$OP"))
+#'}
 keywords_to_sampledescription <- function(sd_path,
                                           keywords,
                                           FCS.file.folder = "FCS_files") {

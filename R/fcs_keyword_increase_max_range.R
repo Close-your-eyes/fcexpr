@@ -17,7 +17,7 @@ fcs_keyword_increase_max_range <- function(fcs_file_path,
   ff <- flowCore::read.FCS(fcs_file_path, truncate_max_range = F, emptyValue = F)
 
   ## TODO
-  ## problem with %P15R names etc. - no matching with grepl
+  ## problem with $P15R names etc. - no matching with grepl
   if (is.null(channel_reg_expr)) {
    stop("channel_reg_expr missing.")
   }

@@ -24,6 +24,12 @@
 #' @param pct_digits how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats
 #' @param col_pal color palette to use for color gradient generation
 #' @param col_pal_trans argument passed as 'trans' in scale_fill_gradientn
+#' @param plot_title do plot titles?
+#' @param title title format
+#' @param contour_args arguments to stat_density_2d
+#' @param theme ggplot theme
+#' @param theme_args arguments to ggplot2::theme
+#' @param ... arguments to geom
 #'
 #' @return a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
 #' @export
@@ -72,6 +78,8 @@ plot_gates <- function(gs,
                        gate_stats_color = "black",
                        pct_digits = 1,
                        plot_contours = F,
+                       plot_title = T,
+                       title = c("full_path", "short_path", "final_node"),
                        contour_args = list(fill = "white",
                                            geom = "polygon",
                                            color = "black",
@@ -79,14 +87,20 @@ plot_gates <- function(gs,
                                            breaks = seq(0.05,0.95,0.1),
                                            alpha = 0.8,
                                            linewidth = 0.2),
-                       col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
+                       col_pal = colrr::col_pal("Spectral", direction = -1),
                        col_pal_trans = "pseudo_log",
                        theme = ggplot2::theme_bw(),
                        theme_args = list(panel.grid = ggplot2::element_blank(),
                                          strip.background = ggplot2::element_rect(fill = "grey95", color = "white"),
                                          axis.text = ggplot2::element_blank(),
                                          axis.ticks = ggplot2::element_blank(),
-                                         legend.position = "none"),
+                                         axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")),
+                                         axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 2, unit = "pt")),
+                                         legend.position = "none",
+                                         strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2,0,2,0, unit = "pt")),
+                                         strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
+                                         plot.margin = grid::unit(c(1,1,1,1), "pt"),
+                                         panel.spacing = grid::unit(2, "pt")),
                        ...) {
 
   if (!requireNamespace("grDevices", quietly = T)) {
@@ -101,19 +115,17 @@ plot_gates <- function(gs,
   if (!requireNamespace("ggcyto", quietly = T)) {
     BiocManager::install("ggcyto")
   }
-  if (!requireNamespace("purrr", quietly = T)) {
-    utils::install.packages("purrr")
-  }
 
   dots <- list(...)
 
-  geom <- match.arg(geom, c("hex", "pointdensity", "scattermore"))
+  geom <- rlang::arg_match(geom)
+  title <- rlang::arg_match(title)
 
   if (plot_contours) {
-    message("Caution: Contour lines are affected across multiple facets.")
+    message("Caution: Contour lines are calculated across multiple facets.")
   }
 
-  out <- purrr::flatten(lapply(unique(gates_df$GateLevel), function (z) {
+  out <- purrr::flatten(lapply(sort(unique(gates_df$GateLevel)), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
 
     p <- lapply(split(g, paste(g$GateLevel, g$Parent, g$x, g$y, sep = "__")), function(gg) {
@@ -127,7 +139,7 @@ plot_gates <- function(gs,
                                    "hex" = 5e4,
                                    "pointdensity" = 2000,
                                    "scattermore" = 2e6)
-        }
+      }
 
       p <- ggcyto::ggcyto(
         data = gs,
@@ -148,7 +160,7 @@ plot_gates <- function(gs,
         p <-
           p +
           ggplot2::scale_fill_gradientn(
-            colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)),
+            colours =col_pal,
             trans = col_pal_trans
           )
       }
@@ -168,7 +180,7 @@ plot_gates <- function(gs,
         p <-
           p +
           do.call(ggpointdensity::geom_pointdensity, args = temp_dots) +
-          ggplot2::scale_color_gradientn(colours = rev(grDevices::colorRampPalette(col_pal, interpolate = "linear")(100)), trans = col_pal_trans)
+          ggplot2::scale_color_gradientn(colours = col_pal, trans = col_pal_trans)
       }
 
       if (geom == "scattermore") {
@@ -200,8 +212,7 @@ plot_gates <- function(gs,
       ))
 
       if (inverse_trans) {
-        p <-
-          p +
+        p <- p +
           ggcyto::axis_x_inverse_trans() +
           ggcyto::axis_y_inverse_trans()
       }
@@ -214,30 +225,65 @@ plot_gates <- function(gs,
       }
 
       if (all(!gg$facet_strip)) {
-        p <- p + ggplot2::theme(strip.background = ggplot2::element_blank(), strip.text = ggplot2::element_blank())
+        p <- p + ggplot2::theme(strip.background = ggplot2::element_blank(),
+                                strip.text.x = ggplot2::element_blank(),
+                                strip.text.y = ggplot2::element_blank())
       }
 
       if (plot_gates) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_gate(gg[i,"PopulationFullPath"], colour = gate_color)
+          p <- p + ggcyto::geom_gate(
+            gg[i,"PopulationFullPath"],
+            colour = gate_color
+          )
         }
       }
       if (plot_gate_names) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], type = "gate_name", size = gg[i,"statsize_name"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_name"], gg[i,"y_statpos_name"]), fill = scales::alpha(c("white"),0.5))
+          p <- p + ggcyto::geom_stats(
+            gg[i,"PopulationFullPath"],
+            type = "gate_name",
+            size = gg[i,"statsize_name"],
+            colour = gate_stats_color,
+            adjust = c(gg[i,"x_statpos_name"], gg[i,"y_statpos_name"]),
+            fill = scales::alpha(c("white"),0.5)
+          )
         }
       }
       if (plot_gate_pct) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_stats(gg[i,"PopulationFullPath"], digits = pct_digits, type = "percent", size = gg[i,"statsize_pct"], colour = gate_stats_color, adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]), fill = scales::alpha(c("white"),0.5))
+          p <- p + ggcyto::geom_stats(
+            gg[i,"PopulationFullPath"],
+            digits = pct_digits,
+            type = "percent",
+            size = gg[i,"statsize_pct"],
+            colour = gate_stats_color,
+            adjust = c(gg[i,"x_statpos_pct"], gg[i,"y_statpos_pct"]),
+            fill = scales::alpha(c("white"),0.5)
+          )
         }
       }
+
+      if (!plot_title) {
+        p <- p + ggplot2::labs(title = NULL)
+      } else {
+        if (title == "short_path") {
+          p <- p + ggplot2::labs(title = gg$Population)
+        } else if (title == "final_node") {
+          p <- p + ggplot2::labs(title = rev(strsplit(gg$Population, "/")[[1]])[1])
+        }
+      }
+      attr(p, "Population") <- paste(gg$Population, collapse = "__")
+
       return(p)
     })
     return(p)
   }))
 
+  popattr <- purrr::map_chr(out, attr, "Population")
+  out <- purrr::map(out, ggcyto::as.ggplot)
+  attr(out, "Population") <- popattr
 
-  return(lapply(out, function(x) ggcyto::as.ggplot(x)))
+  return(out)
 }
 

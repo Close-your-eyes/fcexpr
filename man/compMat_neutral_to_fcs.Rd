@@ -25,3 +25,8 @@ This will overwrite an existing compensation matrix in a FCS file so that
 there are ones on the diagonal and else zeros. This is handy in order to
 not having to type this manually in flow jo or so.
 }
+\examples{
+\dontrun{
+compMap_neutral_to_fcs(fcs_file_path = "my/path/to/FCSfile.fcs")
+}
+}

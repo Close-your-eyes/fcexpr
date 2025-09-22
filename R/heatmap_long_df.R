@@ -326,14 +326,19 @@ colorscale_heuristic <- function(colorscale_values,
 
   #qmin, qmax for featureplot2 from scexpr, for correct limits of colorsteps, colorsteps must be auto or vector
   # scale.min: provided from scexpr featureplot2 but exclude non expressers (=0)
+
   type <- rlang::arg_match(type)
+
+  # find the largest absolute value
+  max_val <- abs(max(colorscale_values))
+  decimals <- max(0, -floor(log10(max_val))) + 1
   if (is.null(scale.max)) {
-    scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 0.1), nsmall = 1))
+    scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 10^-decimals), nsmall = decimals))
   }
   if (is.null(scale.min)) {
-    scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 0.1), nsmall = 1))
+    scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 10^-decimals), nsmall = decimals))
   }
-  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), 1), nsmall = 1)))
+  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), decimals), nsmall = decimals)))
 
   colorsteps <- sort(unique(colorsteps))
   if (is.null(colorsteps)) {
@@ -415,19 +420,22 @@ colorscale_heuristic <- function(colorscale_values,
       max.lab <- ifelse(qmax < 1, paste0(scale.max, " (q", round(qmax*100, 0), ")"), scale.max)
 
       colorstepbreaks <- colorsteps
-      if (dplyr::near(colorstepbreaks[1], scale.min)) {
+      #if (dplyr::near(colorstepbreaks[1], scale.min)) {
+      while(colorstepbreaks[1] < scale.min) {
         colorstepbreaks <- colorstepbreaks[-1]
       }
-      if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
+      #if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
+      while(colorstepbreaks[length(colorstepbreaks)] > scale.max) {
         colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
       }
+      colorstepbreaks <- round(colorstepbreaks, digits = decimals)
 
       scale_fill <-
         scalefun(colors = fill,
                  values = scales::rescale(c(scale.min, scale.mid, scale.max)),
                  breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
                  limits = c(scale.min, scale.max), # limit must be he same as outer breaks
-                 labels = c(min.lab, colorstepbreaks, max.lab),
+                 labels = c(min.lab, format(colorstepbreaks, nsmall = decimals), max.lab),
                  na.value = col_na)
     }
     #browser()

@@ -18,7 +18,7 @@
 #' \dontrun{
 #' # find workspaces
 #' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
-#' # read population counts
+#' # read counts
 #' counts <- wsx_get_popstats_legacy(ws = ws[[1]])[["counts"]]
 #' }
 wsx_get_popstats_legacy <- function(ws,

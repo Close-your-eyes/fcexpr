@@ -26,7 +26,8 @@ ff_filter_obs <- function(ff,
                           channels_select = F,
                           limits = c(-Inf, Inf),
                           limits_include = c(F, F),
-                          quantiles = c(0, 1)) {
+                          quantiles = c(0, 1),
+                          verbose = T) {
   if (!is.list(ff)) {
     ff <- list(ff)
   }
@@ -62,7 +63,10 @@ ff_filter_obs <- function(ff,
     dplyr::mutate(diff_rel = round(diff_abs / n_before, 3)) |>
     tibble::as_tibble()
 
-  print(summary, n = Inf)
+  if (verbose) {
+    print(summary, n = Inf)
+  }
+
   attr(ff, "summary") <- summary
   return(ff)
 }

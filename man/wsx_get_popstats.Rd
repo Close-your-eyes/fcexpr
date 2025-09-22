@@ -34,6 +34,17 @@ or parallel::mclapply are suggested; only for legacy method}
 \item{...}{additional argument to the lapply function;
 mainly mc.cores when parallel::mclapply is chosen}
 }
+\value{
+list of data frames of counts and stats
+}
 \description{
 Read data from a flowjo wsp file
+}
+\examples{
+\dontrun{
+# find workspaces
+ws <- list.files(path = wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
+# read counts
+counts <- wsx_get_popstats(ws = ws[[1]])[["counts"]]
+}
 }

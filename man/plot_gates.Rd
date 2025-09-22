@@ -17,15 +17,23 @@ plot_gates(
   gate_stats_color = "black",
   pct_digits = 1,
   plot_contours = F,
+  plot_title = T,
+  title = c("full_path", "short_path", "final_node"),
   contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
     "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0.8, linewidth = 0.2),
-  col_pal = RColorBrewer::brewer.pal(11, "Spectral"),
+  col_pal = colrr::col_pal("Spectral", direction = -1),
   col_pal_trans = "pseudo_log",
   theme = ggplot2::theme_bw(),
   theme_args = list(panel.grid = ggplot2::element_blank(), strip.background =
     ggplot2::element_rect(fill = "grey95", color = "white"), axis.text =
-    ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(), legend.position =
-    "none"),
+    ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(), axis.title.x =
+    ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")), axis.title.y =
+    ggplot2::element_text(margin = ggplot2::margin(r = 2, unit = "pt")), legend.position
+    = "none", strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0,
+    unit = "pt")), strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 
+    
+    2, 0, 2, unit = "pt")), plot.margin = grid::unit(c(1, 1, 1, 1), "pt"), panel.spacing
+    = grid::unit(2, "pt")),
   ...
 )
 }
@@ -57,9 +65,21 @@ scattermore = scattermore::geom_scattermore which is a high performance dot plot
 
 \item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
 
+\item{plot_title}{do plot titles?}
+
+\item{title}{title format}
+
+\item{contour_args}{arguments to stat_density_2d}
+
 \item{col_pal}{color palette to use for color gradient generation}
 
 \item{col_pal_trans}{argument passed as 'trans' in scale_fill_gradientn}
+
+\item{theme}{ggplot theme}
+
+\item{theme_args}{arguments to ggplot2::theme}
+
+\item{...}{arguments to geom}
 }
 \value{
 a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file

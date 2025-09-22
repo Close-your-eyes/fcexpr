@@ -8,17 +8,20 @@ gating_tree_plot(
   PopulationFullPath,
   layout = "tree",
   find_short_gating_path = T,
+  label_repel = F,
   ...
 )
 }
 \arguments{
 \item{PopulationFullPath}{vector of all populations path (full) gated in a (flowjo) workspace;
-optionally provide named vector (e.g. with short names) which will be plotted in the graph at correponding nodes}
+optionally provide named vector (e.g. with short names) which will be plotted in the graph at corresponding nodes}
 
 \item{layout}{layout for plotting, see ?ggraph::ggraph or ?ggraph::layout_tbl_graph_igraph}
 
 \item{find_short_gating_path}{if PopulationFullPath is a vector without names find the shortest unique
 gating path from these full paths for plotting}
+
+\item{label_repel}{repel population labels?}
 
 \item{...}{additional argument to ggrepel, like max.overlaps}
 }

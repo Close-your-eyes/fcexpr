@@ -10,7 +10,8 @@ ff_filter_obs(
   channels_select = F,
   limits = c(-Inf, Inf),
   limits_include = c(F, F),
-  quantiles = c(0, 1)
+  quantiles = c(0, 1),
+  verbose = T
 )
 }
 \arguments{

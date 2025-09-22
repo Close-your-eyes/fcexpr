@@ -15,3 +15,11 @@ gatingset
 \description{
 Uses flowWorkspace::merge_list_to_gs
 }
+\examples{
+\dontrun{
+# read gatingsets
+gslist1 <- wsp_get_gs(wsp1)
+gslist2 <- wsp_get_gs(wsp2)
+gs <- gslist_try_merge(list(gslist1[[1]][[1]], gslist2[[1]][[1]]))
+}
+}

@@ -10,6 +10,11 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # read gatingsets
+#' gslist1 <- wsp_get_gs(wsp1)
+#' lookup <- gs_get_descname_lookup(gslist1[[1]][[1]])
+#' }
 gs_get_descname_lookup <- function(gs) {
 
   pars <- purrr::map_dfr(stats::setNames(flowWorkspace::sampleNames(gs), flowWorkspace::sampleNames(gs)), function(x) {

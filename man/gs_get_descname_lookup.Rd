@@ -17,3 +17,10 @@ All gating hierarchies (gh) in gs are checked for equal channel descriptions.
 For channel names with unique desc across all gh, desc are returned,
 otherwise the channel name.
 }
+\examples{
+\dontrun{
+# read gatingsets
+gslist1 <- wsp_get_gs(wsp1)
+lookup <- gs_get_descname_lookup(gslist1[[1]][[1]])
+}
+}

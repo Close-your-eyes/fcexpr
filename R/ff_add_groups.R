@@ -67,6 +67,8 @@ ff_add_groups <- function(ff,
   if (!is.null(attr(ff, "grouplist"))) {
     grouplist <- c(attr(ff, "grouplist"), grouplist)
   }
+  grouplist <- purrr::map(grouplist, ~.x[!duplicated(.x)])
+
   attr(ff, "grouplist") <- grouplist
   return(ff)
 

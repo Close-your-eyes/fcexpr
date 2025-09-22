@@ -10,11 +10,19 @@ keywords_to_sampledescription(sd_path, keywords, FCS.file.folder = "FCS_files")
 \item{sd_path}{path to sampledescription.xlsx}
 
 \item{keywords}{keywords to read from FCS files and write to sd}
+
+\item{FCS.file.folder}{folder name with FCS files in dirname(sd_path)}
 }
 \value{
-nothing, sampledescription is updated on disk
+nothing, sampledescription file is updated on disk
 }
 \description{
 FCS files are identified by identity and searched for in
 FCS.file.folder in dirname(sd_path).
+}
+\examples{
+\dontrun{
+keywords_to_sampledescription(sd_path = "path/sampledescription.xlsx",
+                              keywords = c("$TOT", "$OP"))
+}
 }

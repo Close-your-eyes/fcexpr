@@ -88,6 +88,7 @@ get_ff <- function(gs,
                    return_transformed = T,
                    population,
                    seed = 42,
+                   downsample_channels = NULL,
                    channels = NULL,
                    leverage_score_for_sampling = F,
                    return_ind_mat = F) {
@@ -114,8 +115,8 @@ get_ff <- function(gs,
     utils::install.packages("Seurat")
   }
 
-  if (!is.null(channels) && !leverage_score_for_sampling) {
-    message("channels are only needed for leverage score aided sampling. since leverage_score_for_sampling = F channels are ignored.")
+  if (!is.null(downsample_channels) && !leverage_score_for_sampling) {
+    message("downsample_channels are only needed for leverage score aided sampling. since leverage_score_for_sampling = F downsample_channels are ignored.")
   }
 
   ## little unhandy to avoid memory is populated by ind_mat if not needed
@@ -162,14 +163,28 @@ get_ff <- function(gs,
     stop("Do FCS files contain a valid compensation matrix?")
   })
 
+  if (!is.null(channels)) {
+    if (!is.null(names(channels))) {
+      ff <- purrr::map(ff, ~ff_add_desc(ff = .x, desc = channels)[[1]])
+    }
+    ff <- ff_filter_obs(
+      ff = ff,
+      channels = channels,
+      channels_select = T,
+      verbose = F
+    )
+  }
+
+
+
   attr(ff[[1]], "trafolist") <- flowWorkspace:::gs_get_transformlists(gs, inverse = F)
   attr(ff[[1]], "trafolistinv") <- flowWorkspace:::gs_get_transformlists(gs, inverse = T)
 
   if (leverage_score_for_sampling) {
     message("Calculating leverage scores.")
-    channels <- .get.channels(ff[[1]], channels = channels)
+    downsample_channels <- .get.channels(ff[[1]], channels = downsample_channels)
     lev_scores <- lapply(asplit(inds, 2), function(x) {
-      Seurat::LeverageScore(object = t(flowCore::exprs(ff[[1]])[which(x),channels]), verbose = F, seed = seed)
+      Seurat::LeverageScore(object = t(flowCore::exprs(ff[[1]])[which(x), downsample_channels]), verbose = F, seed = seed)
     })
   } else {
     lev_scores <- lapply(asplit(inds, 2), function(x) rep(1, length(which(x))))

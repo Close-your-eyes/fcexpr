@@ -162,14 +162,14 @@ dimred_to_fcs <- function(ff.list,
     if (is.null(names(grouplist))) {
       stop("grouplist has to have names. These names will become channel names in the FCS file.")
     }
-    if (!all(unlist(lapply(grouplist, function(x) is.numeric(x))))) {
-      stop("Please provide numeric values only in grouplist: E.g. use as.numeric(as.factor(x)), where x is numeric.")
-    }
+    # if (!all(unlist(lapply(grouplist, function(x) is.numeric(x))))) {
+    #   stop("Please provide numeric values only in grouplist: E.g. use as.numeric(as.factor(x)), where x is numeric.")
+    # }
     if (any(unlist(lapply(grouplist, function(x) is.na(x))))) {
       stop("NA found in sample infos.")
     }
-    if (!all(unlist(lapply(grouplist, function(x) length(x) == length(ff.list[[1]]))))) {
-      stop("Length of each additional sample information has to match the length of selected samples, which is: ", length(ff.list[[1]]),".")
+    if (!all(unlist(lapply(grouplist, function(x) length(x) == length(ff.list))))) {
+      stop("Length of each additional sample information has to match the length of selected samples, which is: ", length(ff.list),".")
     }
   }
 
@@ -250,7 +250,6 @@ dimred_to_fcs <- function(ff.list,
                                         mc.cores = mc.cores)
   }
 
-
   ## ---- prepare final fcs file -------
 
   if (write.transformed.channels.to.FCS && write.untransformed.channels.to.FCS) {
@@ -323,10 +322,9 @@ dimred_to_fcs <- function(ff.list,
   }
 
 
-
   ## ---- write to disk -------
   if (!is.null(save.path) && !is.na(save.path)) {
-    message("Writing files to disk.")
+    message("Writing files to disk: ", save.path)
     t <- format(as.POSIXct(Sys.time(), format = "%d-%b-%Y-%H:%M:%S"), "%Y%m%d_%H%M%S")
     dir.create(save.path, showWarnings = F)
     if (!is.null(save.name)) {

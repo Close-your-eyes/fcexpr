@@ -3,11 +3,12 @@
 #'
 #'
 #' @param PopulationFullPath vector of all populations path (full) gated in a (flowjo) workspace;
-#' optionally provide named vector (e.g. with short names) which will be plotted in the graph at correponding nodes
+#' optionally provide named vector (e.g. with short names) which will be plotted in the graph at corresponding nodes
 #' @param layout layout for plotting, see ?ggraph::ggraph or ?ggraph::layout_tbl_graph_igraph
 #' @param find_short_gating_path if PopulationFullPath is a vector without names find the shortest unique
 #' gating path from these full paths for plotting
 #' @param ... additional argument to ggrepel, like max.overlaps
+#' @param label_repel repel population labels?
 #'
 #' @return list of plot, graph and data.frame
 #' @export
@@ -39,6 +40,7 @@
 gating_tree_plot <- function(PopulationFullPath,
                              layout = "tree",
                              find_short_gating_path = T,
+                             label_repel = F,
                              ...) {
 
   if (!requireNamespace("ggraph", quietly = T)) {
@@ -63,10 +65,11 @@ gating_tree_plot <- function(PopulationFullPath,
   from_to_df <- dplyr::mutate(data.frame(path = gsub("root/root", "root", paste0("root/", PopulationFullPath))), level = stringr::str_count(path, "/"))
   all_lev <- unique(from_to_df$level)
 
+
   from_to_df2 <- dplyr::bind_rows(purrr::keep(purrr::map(all_lev[-length(all_lev)], function(x) {
     out <- purrr::map(dplyr::distinct(from_to_df[which(from_to_df$level == x),])[,"path",drop=T], function(y) {
       # avoid regex which will have a problem with "+" and other special characters; hence check with str_locate is match starts at position 1
-      to_df <- dplyr::distinct(from_to_df[intersect(which(from_to_df$level == (x+1)), which(stringr::str_locate(from_to_df$path, stringr::fixed(y))[,"start"] == 1)),])
+      to_df <- dplyr::distinct(from_to_df[intersect(which(from_to_df$level == (x+1)), which(stringr::str_locate(from_to_df$path, stringr::fixed(paste0(y, "/")))[,"start"] == 1)),])
       if (nrow(to_df) > 0) {
         return(data.frame(from = y, to = to_df$path))
       } else {
@@ -97,7 +100,7 @@ gating_tree_plot <- function(PopulationFullPath,
   plot <- ggraph::ggraph(graph, layout = layout) +
     ggraph::geom_edge_link() +
     ggraph::geom_node_point(size = 4) +
-    ggraph::geom_node_label(ggplot2::aes(label = Population), repel = T, ...)
+    ggraph::geom_node_label(ggplot2::aes(label = Population), repel = label_repel, ...)
 
   return(list(plot = plot, graph = graph, df = from_to_df3))
 }

@@ -1,7 +1,7 @@
 #' Add channel descriptions to flow frame
 #'
 #' @param ff one flowframe or a list of such
-#' @param desc named vector of channel descriptions, names must be channel names
+#' @param desc named vector of channel descriptions, names must be channel description
 #'
 #' @returns ff list
 #' @export
@@ -11,7 +11,7 @@
 #'   ps <- fcexpr::wsx_get_popstats(w1, strip_data = F)[[1]]
 #'   channels <- fcexpr::guess_marker_channels(ps) |>
 #'     dplyr::filter(!ind %in% c(3,10,7))
-#'   channels <- stats::setNames(channels$marker, channels$value)
+#'   channels <- stats::setNames(channels$value, channels$marker)
 #'
 #'   fflist <- fcexpr::wsp_get_ff(w1,
 #'                                FCS.file.folder = file.path(wd, "FCS_files"),
@@ -33,8 +33,9 @@ ff_add_desc <- function(ff, desc) {
   if (is.null(names(desc))){
     stop("desc needs channel names as names.")
   }
+  desc_rev <- stats::setNames(names(desc), desc)
   ff <- purrr::map(ff, function(f) {
-    f@parameters@data$desc <- desc[f@parameters@data$name]
+    f@parameters@data$desc <- desc_rev[f@parameters@data$name]
     kwpar <- get_kw_and_pars(exprs = f@exprs, ff = f)
     f@description <- kwpar[["keywrd"]]
     return(f)

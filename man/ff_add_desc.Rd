@@ -9,7 +9,7 @@ ff_add_desc(ff, desc)
 \arguments{
 \item{ff}{one flowframe or a list of such}
 
-\item{desc}{named vector of channel descriptions, names must be channel names}
+\item{desc}{named vector of channel descriptions, names must be channel description}
 }
 \value{
 ff list
@@ -22,7 +22,7 @@ Add channel descriptions to flow frame
   ps <- fcexpr::wsx_get_popstats(w1, strip_data = F)[[1]]
   channels <- fcexpr::guess_marker_channels(ps) |>
     dplyr::filter(!ind \%in\% c(3,10,7))
-  channels <- stats::setNames(channels$marker, channels$value)
+  channels <- stats::setNames(channels$value, channels$marker)
 
   fflist <- fcexpr::wsp_get_ff(w1,
                                FCS.file.folder = file.path(wd, "FCS_files"),

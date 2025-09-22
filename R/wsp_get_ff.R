@@ -32,10 +32,11 @@
 #' @param return_untransformed logical; do return untransformed (inverse) data
 #' @param return_transformed logical; do return transformed data (transformation as in flowjo?!)
 #' @param seed set a seed to reproduce downsampling
-#' @param channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
-#' @param leverage_score_for_sampling logical whether to use leverage scores for downsampling
+#' @param downsample_channels channels to use for leverage score calculation; use wsx_get_keywords to retrieve channel names/descriptions
+#' @param downsample_leverage_score logical whether to use leverage scores for downsampling
 #' @param return_ind_mat return full index matrix?
 #' @param dir direction to save .h5 files to
+#' @param channels channel names to filter flow frames for; when named vector, names are added as channel desc
 #'
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
@@ -83,10 +84,11 @@ wsp_get_ff <- function(wsp,
                        remove_redundant_channels = F,
                        lapply_fun = lapply,
                        seed = 42,
-                       channels = NULL,
-                       leverage_score_for_sampling = F,
+                       downsample_channels = NULL,
+                       downsample_leverage_score = F,
                        return_ind_mat = F,
                        dir = tempdir(),
+                       channels = NULL,
                        ...) {
 
   if (!requireNamespace("BiocManager", quietly = T)) {
@@ -178,7 +180,8 @@ wsp_get_ff <- function(wsp,
                         population = pp,
                         seed = seed,
                         channels = channels,
-                        leverage_score_for_sampling = leverage_score_for_sampling,
+                        downsample_channels = downsample_channels,
+                        leverage_score_for_sampling = downsample_leverage_score,
                         return_ind_mat = return_ind_mat)
   message("temporary .h5 were removed.")
 

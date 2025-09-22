@@ -13,7 +13,7 @@
 #'
 #' @examples
 #'\dontrun{
-#'compMap_neutral_to_fcs(fcs_file_path = "my/path/to/FCSfile.fcs)
+#'compMap_neutral_to_fcs(fcs_file_path = "my/path/to/FCSfile.fcs")
 #' }
 compMat_neutral_to_fcs <- function(fcs_file_path,
                                    compMat_keyword = "SPILL",
