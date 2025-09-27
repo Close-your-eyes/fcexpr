@@ -83,6 +83,9 @@ create_pop <- function(range_n = c(5e1:1e3),
                        range_modes = c(1:3),
                        mean_prob_vec_args = list(),
                        ...) {
+  if (!requireNamespace("brathering", quietly = T)) {
+    devtools::install_github("Close-your-eyes/brathering")
+  }
   n <- sample(range_n, 1)
 
   # one list entry of m modalities for each dim

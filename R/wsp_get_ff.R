@@ -41,7 +41,6 @@
 #' @return a list of (subsetted) flowframes with events that are within the gated population only
 #' @export
 #'
-#' @importFrom magrittr "%>%"
 #'
 #' @examples
 #'\dontrun{
@@ -153,7 +152,7 @@ wsp_get_ff <- function(wsp,
   pp <-
     do.call(rbind, purrr::map2(wsp, groups, function(x,y) {
       wsx_get_poppaths(ws = x, groups = y, collapse = F)
-    })) %>%
+    })) |>
     dplyr::filter(FileName %in% smpl$FlowJoFileName) |>
     dplyr::filter(PopulationFullPath  %in% population | Population %in% population)
   if (nrow(pp) == 0) {

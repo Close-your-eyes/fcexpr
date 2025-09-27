@@ -141,6 +141,9 @@ heatmap_long_df <- function(df,
   if (!requireNamespace("brathering", quietly = T)) {
     devtools::install_github("Close-your-eyes/brathering")
   }
+  if (!requireNamespace("colrr", quietly = T)) {
+    devtools::install_github("Close-your-eyes/colrr")
+  }
 
   stopifnot("df must be a data frame" = is.data.frame(df))
   scale <- rlang::arg_match(scale)

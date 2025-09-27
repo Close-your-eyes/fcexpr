@@ -103,17 +103,11 @@ plot_gates <- function(gs,
                                          panel.spacing = grid::unit(2, "pt")),
                        ...) {
 
-  if (!requireNamespace("grDevices", quietly = T)) {
-    utils::install.packages("grDevices")
-  }
-  if (!requireNamespace("RColorBrewer", quietly = T)) {
-    utils::install.packages("RColorBrewer")
-  }
-  if (!requireNamespace("BiocManager", quietly = T)) {
-    utils::install.packages("BiocManager")
-  }
   if (!requireNamespace("ggcyto", quietly = T)) {
     BiocManager::install("ggcyto")
+  }
+  if (!requireNamespace("colrr", quietly = T)) {
+    devtools::install_github("Close-your-eyes/colrr")
   }
 
   dots <- list(...)

@@ -132,13 +132,14 @@ wsp_get_gs <- function(wsp,
 
   ## join pData
   if (!is.null(pData)) {
-    # which colukmns only have one level per pData_join_col level
-    joincols <- find_unique_level_columns(df = pData, refcol = pData_join_col)
+    # which columns only have one level per pData_join_col level
+    joincols <- brathering::get_unique_level_columns(df = pData,
+                                                     refcol = pData_join_col)
     message("pData joinable columns: ", paste(joincols[-1], collapse = ", "))
     gs_list <- lapply(gs_list, function(x) {
       pd <- flowCore::pData(x) |>
         tibble::rownames_to_column(pData_join_col) |>
-        dplyr::left_join(pData |> dplyr::distinct(dplyr::pick(dplyr::all_of(joincols))), by = pData_join_col) |>
+        dplyr::left_join(dplyr::distinct(pData, dplyr::pick(dplyr::all_of(joincols))), by = pData_join_col) |>
         tibble::column_to_rownames(pData_join_col)
       flowCore::pData(x) <- pd
       return(x)

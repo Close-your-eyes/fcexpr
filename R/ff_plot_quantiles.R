@@ -12,11 +12,13 @@ ff_plot_quantiles <- function(ff,
                               channels = NULL,
                               quantiles = seq(0,1,0.01)) {
 
+  if (!requireNamespace("brathering", quietly = T)) {
+    devtools::install_github("Close-your-eyes/brathering")
+  }
+
   if (!is.list(ff)) {
     ff <- list(ff)
   }
-
-
 
   qdf <- purrr::map(ff, function(x) {
     chann <- ff_get_channels(x, channels = channels)

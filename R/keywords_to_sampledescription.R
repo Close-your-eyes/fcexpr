@@ -18,6 +18,11 @@
 keywords_to_sampledescription <- function(sd_path,
                                           keywords,
                                           FCS.file.folder = "FCS_files") {
+
+  if (!requireNamespace("brathering", quietly = T)) {
+    devtools::install_github("Close-your-eyes/brathering")
+  }
+
   xlsx <- openxlsx::read.xlsx(sd_path)
   fcs_files <- list.files(file.path(dirname(sd_path), FCS.file.folder), pattern = ".fcs", full.names = T, ignore.case = T)
   keys <- flowCore::read.FCSheader(fcs_files, keyword = keywords)

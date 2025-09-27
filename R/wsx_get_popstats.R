@@ -32,12 +32,20 @@ wsx_get_popstats <- function(ws,
 
   dots <- list(...)
 
+  tryCatch(expr = {
+    out <- wsx_get_popstats2(ws = ws,
+                             groups = groups,
+                             invert_groups = invert_groups,
+                             return_stats = return_stats,
+                             strip_data = strip_data)
+  },
+  error = function(err) {
+    message("error in wsx_get_popstats2:")
+    print(err)
+    message("try legacy method.")
+    skip_legacy <- F
+  })
 
-  out <- wsx_get_popstats2(ws = ws,
-                           groups = groups,
-                           invert_groups = invert_groups,
-                           return_stats = return_stats,
-                           strip_data = strip_data)
   if (skip_legacy) {
     return(out)
   }
