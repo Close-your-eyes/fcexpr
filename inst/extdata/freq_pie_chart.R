@@ -57,7 +57,7 @@
                    axis.title = ggplot2::element_blank(),
                    axis.text = ggplot2::element_blank(),
                    axis.ticks = ggplot2::element_blank()) +
-    ggplot2::geom_text(ggplot2::aes(color = farver::decode_colour(col_pal, to = "hcl")[,"l"] > 50,
+    ggplot2::geom_text(ggplot2::aes(color = brathering:::bw_txt(col_pal),
                                     x = inset.text.radius*sin(mid_angle),
                                     y = inset.text.radius*cos(mid_angle),
                                     label = format(round(frac, 2), nsmall = 2)),

@@ -7,7 +7,7 @@ lgcl_trsfrm_ff <- function(ff, m_max = 500, channels = NULL, ...) {
     channels <- channels[which(channels != flowCore:::findTimeChannel(ff))]
   }
 
-  trfms <- furrr::future_map(channels, function(z) {
+  trfms <- purrr::map(channels, function(z) {
     m <- 4.5
     lgcl <- NULL
     while(is.null(lgcl) && m < m_max) {
@@ -283,12 +283,8 @@ get_ff2 <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T))) { # || utils::packageDescription("Seurat")[["RemoteRef"]] != "feat/dictionary")) {
-    if (!requireNamespace("remotes", quietly = T)) {
-      utils::install.packages("remotes")
-    }
+  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T))) {
     install.packages("Seurat")
-    #remotes::install_github("satijalab/seurat", "feat/dictionary")
   }
 
   if (!is.null(channels) && !leverage_score_for_sampling) {

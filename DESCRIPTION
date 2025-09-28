@@ -30,14 +30,9 @@ Imports:
 Suggests: 
     brathering,
     rmarkdown,
-    rstudioapi,
     EmbedSOM,
-    MASS,
-    MUDAN,
-    Rtsne,
     Seurat,
     diptest,
-    harmony,
     matrixStats,
     presto,
     uwot,
@@ -54,24 +49,16 @@ Suggests:
     CytoML,
     flowCore,
     flowWorkspace,
-    flowClust,
-    leiden,
     readODS,
     scales,
-    ClusterR,
     ggpointdensity,
     scattermore,
     ggcyto,
     ggraph,
     igraph,
     matrixTests,
-    mhca,
-    remotes,
-    farver,
-    furrr,
-    ggforce,
-    colorRamps,
-    paletteer
+    RSelenium,
+    netstat
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)
