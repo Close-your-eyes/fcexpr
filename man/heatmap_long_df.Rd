@@ -11,8 +11,8 @@ heatmap_long_df(
   values,
   dotsizes = NULL,
   dotsize_range = c(2, 7),
-  fill = "auto",
-  color = "auto",
+  fill = "..auto..",
+  color = "..auto..",
   scale = c("none", "zscore", "1"),
   features_topn = NULL,
   topn_cols = values,
@@ -21,9 +21,9 @@ heatmap_long_df(
   featurelabels_repel = F,
   featuresitalic = F,
   color_linewidth = 0.2,
-  legendbreaks = "auto",
-  legendlabels = "auto",
-  colorsteps = "auto",
+  legendbreaks = "..auto..",
+  legendlabels = "..auto..",
+  colorsteps = "..auto..",
   colorsteps_nice = T,
   axes_flip = F,
   group_seplines = F,
@@ -32,7 +32,7 @@ heatmap_long_df(
   legend_fill_args = list(barwidth = 1, barheight = 8, order = 1),
   legend_size_args = list(order = 2, ncol = NULL, nrow = NULL, override.aes = list(color
     = "black")),
-  theme_args = list(panel.grid = element_blank()),
+  theme_args = list(panel.grid = ggplot2::element_blank()),
   repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
   ...
 )

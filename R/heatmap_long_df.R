@@ -98,8 +98,8 @@ heatmap_long_df <- function(df,
                             values,
                             dotsizes = NULL,
                             dotsize_range = c(2,7),
-                            fill = "auto",
-                            color = "auto",
+                            fill = "..auto..",
+                            color = "..auto..",
                             scale = c("none", "zscore", "1"),
                             features_topn = NULL,
                             topn_cols = values,
@@ -108,9 +108,9 @@ heatmap_long_df <- function(df,
                             featurelabels_repel = F,
                             featuresitalic = F,
                             color_linewidth = 0.2,
-                            legendbreaks = "auto",
-                            legendlabels = "auto",
-                            colorsteps = "auto",
+                            legendbreaks = "..auto..",
+                            legendlabels = "..auto..",
+                            colorsteps = "..auto..",
                             colorsteps_nice = T,
                             axes_flip = F,
                             group_seplines = F,
@@ -132,7 +132,7 @@ heatmap_long_df <- function(df,
                               #size = c(2, 7))
                             ),
                             theme_args = list(
-                              panel.grid = element_blank()
+                              panel.grid = ggplot2::element_blank()
                             ),
                             repel_args = list(featurelabels_width = 0.2,
                                               featurelabels_nudhe_x = -1),
@@ -146,6 +146,31 @@ heatmap_long_df <- function(df,
   }
 
   stopifnot("df must be a data frame" = is.data.frame(df))
+
+  if (missing(values)) {
+    # first numeric column becomes values
+    values <- names(which(sapply(df, is.numeric)))[1]
+    message("values: ", values)
+  }
+  if (missing(features) || missing(groups)) {
+    # first two char columns
+    featgrou <- names(c(which(sapply(df, is.character)), which(sapply(df, is.factor))))[1:2]
+    if (missing(features) && missing(groups)) {
+      lens <- c(length(unique(df[[featgrou[1]]])), length(unique(df[[featgrou[2]]])))
+      # features: more levels
+      features <- featgrou[which.max(lens)[1]]
+      groups <- setdiff(featgrou, features)
+      message("features: ", features)
+      message("groups: ", groups)
+    } else if (missing(features)) {
+      features <- setdiff(featgrou, groups)
+      message("features: ", features)
+    } else if (missing(groups)) {
+      groups <- setdiff(featgrou, features)
+      message("features: ", groups)
+    }
+  }
+
   scale <- rlang::arg_match(scale)
 
   if (featuresitalic) {
@@ -186,7 +211,7 @@ heatmap_long_df <- function(df,
   )
 
 
-  if (color[1] == "auto") { # catch if length(color) > 1
+  if (color[1] == "..auto..") { # catch if length(color) > 1
     # dots: never with color
     if (!is.null(dotsizes)) {
       color <- "NA"
@@ -201,7 +226,7 @@ heatmap_long_df <- function(df,
   }
 
 
-  if (length(fill) == 1 && fill == "auto") {
+  if (length(fill) == 1 && fill == "..auto..") {
     fill <- colrr::col_pal(name = "RColorBrewer::RdBu", n = 11, direction = -1)
   } else if (length(fill) == 1) {
     fill <- colrr::col_pal(name = fill)
@@ -240,22 +265,21 @@ heatmap_long_df <- function(df,
   )
   values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F)) > 0.75*ncol(dfmat) # 0.75: arbitrary choice
 
-  # decide for colorsteps or continuuous colorbar
-  scale_fill <- colorscale_heuristic(colorscale_values = df[[values]],
-                                     values_zscored = values_zscored,
-                                     colorsteps = colorsteps,
-                                     legendbreaks = legendbreaks,
-                                     legendlabels = legendlabels,
-                                     fill = fill,
-                                     colorsteps_nice = colorsteps_nice)
+  # decide for colorsteps or continuous colorbar
+  scale_fill <- colrr::get_color_scale_continuous(values = df[[values]],
+                                                  zscored = values_zscored,
+                                                  colorsteps = colorsteps,
+                                                  legendbreaks = legendbreaks,
+                                                  legendlabels = legendlabels,
+                                                  colors = fill,
+                                                  colorsteps_nice = colorsteps_nice)
   if (grepl("coloursteps", scale_fill[["guide"]])) {
     guide_fun <- ggplot2::guide_colorsteps
   } else {
     guide_fun <- ggplot2::guide_colorbar
   }
 
-  plot <-
-    plot +
+  plot <- plot +
     scale_fill +
     ggplot2::guides(fill = Gmisc::fastDoCall(guide_fun, args = legend_fill_args),
                     size = Gmisc::fastDoCall(ggplot2::guide_legend, args = legend_size_args))
@@ -306,188 +330,7 @@ heatmap_long_df <- function(df,
     plot <- plot + ggplot2::scale_y_discrete(breaks = featurelabels, labels = names(featurelabels))
   }
 
-
   return(plot)
-}
-
-
-
-
-colorscale_heuristic <- function(colorscale_values,
-                                 values_zscored,
-                                 colorsteps,
-                                 legendbreaks,
-                                 legendlabels,
-                                 fill,
-                                 colorsteps_nice,
-                                 type = c("fill", "color"),
-                                 col_na = "grey50",
-                                 qmin = 0,
-                                 qmax = 1,
-                                 scale.max = NULL,
-                                 scale.min = NULL) {
-
-  #qmin, qmax for featureplot2 from scexpr, for correct limits of colorsteps, colorsteps must be auto or vector
-  # scale.min: provided from scexpr featureplot2 but exclude non expressers (=0)
-
-  type <- rlang::arg_match(type)
-
-  # find the largest absolute value
-  max_val <- abs(max(colorscale_values))
-  decimals <- max(0, -floor(log10(max_val))) + 1
-  if (is.null(scale.max)) {
-    scale.max <- as.numeric(format(brathering::floor2(max(colorscale_values), 10^-decimals), nsmall = decimals))
-  }
-  if (is.null(scale.min)) {
-    scale.min <- as.numeric(format(brathering::ceiling2(min(colorscale_values), 10^-decimals), nsmall = decimals))
-  }
-  scale.mid <- ifelse(values_zscored, 0, as.numeric(format(round(scale.min + ((scale.max - scale.min) / 2), decimals), nsmall = decimals)))
-
-  colorsteps <- sort(unique(colorsteps))
-  if (is.null(colorsteps)) {
-    ## colorbar legend
-    if (type == "fill") {
-      scalefun <- ggplot2::scale_fill_gradientn
-    } else {
-      scalefun <- ggplot2::scale_color_gradientn
-    }
-
-    if (length(legendbreaks) == 1 && legendbreaks == "auto") {
-      legendbreaks <- ggplot2::waiver()
-    } else if (length(legendbreaks) == 1 && legendbreaks == "minmidmax") {
-      legendbreaks <- c(scale.min, scale.mid, scale.max)
-    } else if (length(legendbreaks) == 1) {
-      legendbreaks <- seq(scale.min, scale.max, length.out = legendbreaks)
-    } else {
-      # legendbreaks is vector
-    }
-    if (length(legendlabels) == 1 && legendlabels == "auto") {
-      legendlabels <- ggplot2::waiver()
-    } else if (length(legendlabels) != length(legendbreaks)) {
-      message("length(legendlabels) != length(legendbreaks), using ggplot2 default")
-      legendlabels <- ggplot2::waiver()
-    }
-
-    scale_fill <-
-      scalefun(values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-               colors = fill,
-               breaks = legendbreaks,
-               labels = legendlabels,
-               na.value = col_na)
-  } else {
-    ## colorstep legend
-    if (type == "fill") {
-      scalefun <- ggplot2::scale_fill_stepsn
-    } else {
-      scalefun <- ggplot2::scale_color_stepsn
-    }
-
-
-    if (length(colorsteps) == 1) {
-     # browser()
-      # colorsteps is auto or one number
-      if (values_zscored) {
-        n <- ifelse(colorsteps == "auto", 1, colorsteps)
-        colorsteps <- seq(round(scale.min), round(scale.max), n)
-      } else {
-        n <- ifelse(colorsteps == "auto", 6, colorsteps)
-        if (colorsteps_nice) {
-          colorsteps <- scales:::extended_breaks(n = n)(c(round(scale.min), round(scale.max)))
-        } else {
-          colorsteps <- seq(round(scale.min), round(scale.max), length.out = n)
-          # make semi nice breaks?
-         # round_auto_any(colorsteps)
-        }
-      }
-      # remove limits as they appear anyway
-      colorsteps <- colorsteps[-c(1,length(colorsteps))]
-    } else {
-      # colorsteps is a vector
-    }
-
-    scale_fill <-
-      scalefun(colors = fill,
-               values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-               breaks = colorsteps,
-               limits = c(scale.min, scale.max), #c(scale.min, scale.max), # what about relevant decimals?
-               show.limits = T,
-               nice.breaks = F, # is done above
-               na.value = col_na)
-
-    # change limits
-    if (qmin > 0 || qmax < 1) {
-      # only to alter limit labels
-
-      #colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
-      min.lab <- ifelse(qmin > 0, paste0(scale.min, " (q", round(qmin*100, 0), ")"), scale.min)
-      max.lab <- ifelse(qmax < 1, paste0(scale.max, " (q", round(qmax*100, 0), ")"), scale.max)
-
-      colorstepbreaks <- colorsteps
-      #if (dplyr::near(colorstepbreaks[1], scale.min)) {
-      while(colorstepbreaks[1] < scale.min) {
-        colorstepbreaks <- colorstepbreaks[-1]
-      }
-      #if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
-      while(colorstepbreaks[length(colorstepbreaks)] > scale.max) {
-        colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
-      }
-      colorstepbreaks <- round(colorstepbreaks, digits = decimals)
-
-      scale_fill <-
-        scalefun(colors = fill,
-                 values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-                 breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
-                 limits = c(scale.min, scale.max), # limit must be he same as outer breaks
-                 labels = c(min.lab, format(colorstepbreaks, nsmall = decimals), max.lab),
-                 na.value = col_na)
-    }
-    #browser()
-
-    # if (length(colorsteps) == 1) {
-    #   # colorsteps given as one number
-    #   scale_fill <-
-    #     scalefun(colors = fill,
-    #              values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-    #              n.breaks = colorsteps,
-    #              limits = c(scale.min, scale.max),
-    #              show.limits = T,
-    #              nice.breaks = colorsteps_nice,
-    #              na.value = col_na)
-    # } else {
-    #   # colorsteps given as a vector
-    #   if (qmin > 0 || qmax < 1) {
-    #     # only to alter limit labels
-    #     colorsteps <- round(seq(scale.min, scale.max, length.out = 6),1)
-    #     if (qmin > 0) {min.lab <- paste0(scale.min, " (q", round(qmin*100, 0), ")")} else {min.lab <- scale.min}
-    #     if (qmax < 1) {max.lab <- paste0(scale.max, " (q", round(qmax*100, 0), ")")} else {max.lab <- scale.max}
-    #
-    #     colorstepbreaks <- colorsteps
-    #     if (dplyr::near(colorstepbreaks[1], scale.min)) {
-    #       colorstepbreaks <- colorstepbreaks[-1]
-    #     }
-    #     if (dplyr::near(colorstepbreaks[length(colorstepbreaks)], scale.max)) {
-    #       colorstepbreaks <- colorstepbreaks[-length(colorstepbreaks)]
-    #     }
-    #     scale_fill <-
-    #       scalefun(colors = fill,
-    #                values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-    #                breaks = c(scale.min, colorstepbreaks, scale.max), # manually add limits as breaks
-    #                limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
-    #                labels = c(min.lab, colorstepbreaks, max.lab),
-    #                na.value = col_na)
-    #   } else {
-    #     scale_fill <-
-    #       scalefun(colors = fill,
-    #                values = scales::rescale(c(scale.min, scale.mid, scale.max)),
-    #                breaks = colorsteps,
-    #                limits = c(ceiling(scale.min), floor(scale.max)), #c(scale.min, scale.max), # what about relevant decimals?
-    #                show.limits = T,
-    #                na.value = col_na)
-    #   }
-    #   #labels = function(x) round(x, legend.decimals))
-    # }
-  }
-  return(scale_fill)
 }
 
 
