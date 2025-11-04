@@ -91,7 +91,7 @@ wsx_get_popstats2 <- function(ws,
 
   # assign root as parent_id
   pop_df <- assign_root_as_parentid(pop_df, node_details_list)
-
+  # browser()
 
   ## error below here with
   # ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp"
@@ -112,7 +112,7 @@ wsx_get_popstats2 <- function(ws,
       orandnot <- T
     }
   }
-
+# browser()
   if (orandnot) {
     # add "not" to id for duplicated ids from not nodes
     dup_id <- unique(pop_df$id[duplicated(pop_df$id)])
@@ -124,10 +124,10 @@ wsx_get_popstats2 <- function(ws,
     #"/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
     pop_df$id <- make.unique(pop_df$id)
   }
-
+# browser()
   keys_list <- fcexpr::wsx_get_keywords(ws = ws, samples = unique(pop_df$FileName)) # return = "data.frame"
   fcs_idents <-
-    stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
+    utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>
     dplyr::mutate(FileName = as.character(FileName))
   pop_df <- dplyr::left_join(pop_df, fcs_idents, by = "FileName")
@@ -137,7 +137,7 @@ wsx_get_popstats2 <- function(ws,
     pop_df <- add_channel_desc(df = pop_df, ws = ws, keys_list = keys_list[["df"]])
   }
 
-
+  # browser()
 
   ## next: follow graph to derive population full paths
   # make graph
@@ -556,7 +556,7 @@ add_boolean_gate_data <- function(df,
   }
   nodes_name <- rlang::arg_match(nodes_name)
 
-
+# browser()
   # identify parents of OrNodes/AndNodes by name and Count but without PopulationFullPath
   ## add id and parent_id to OrNodes/AndNodes themselves
   ## something is weird here
@@ -627,6 +627,7 @@ add_boolean_gate_data <- function(df,
         return(NULL)
         # is na when there are no children to OrNodes or AndNodes
       }
+      browser()
       childnodes <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_children(xml2::xml_child(y, "Subpopulations"))))[, c("name", "count"),drop=T]
       names(childnodes) <- c("name2", "count2")
       childnodes$count2 <- as.numeric(childnodes$count2)
@@ -639,10 +640,21 @@ add_boolean_gate_data <- function(df,
   if (nrow(temp_df2) > 0) {
     # join temp_df
     temp_df2 <- dplyr::left_join(temp_df2, temp_df, by = c("FileName", "name", "Count"))
-    temp_df2 <- temp_df2[,c("FileName", "name2", "count2", "id")]
-    names(temp_df2)[2:4] <- c("name", "Count", "parent_id")
+    temp_df2 <- temp_df2[,c("FileName", "name2", "count2", "id")] # "name", "Count"
+    names(temp_df2)[2:4] <- c("name", "Count", "parent_id") #  "ParentName", "ParentCount"
+    # temp_df3 <- temp_df2 |>
+    #   dplyr::mutate(parent_id = strsplit(parent_id, ",")) |>
+    #   tidyr::unnest(parent_id) |>
+    #   dplyr::left_join(df |> dplyr::select(FileName, name_root, id, Count) |> dplyr::rename("ParentCount" = Count, "parent_name_root" = name_root),
+    #                    by = c("parent_id" = "id", "FileName" = "FileName"))
     # check for duplicate rows (very rare case)
     # NAs in parent_id filled
+    # browser()
+    test <- temp_df2 |> dplyr::count(FileName, name, Count)
+    if (any(test$n) > 1) {
+      stop("boolean gates: duplicates which cannot be resolved yet.")
+    }
+    # when name (=final leaf only) and Count are not unique (e.g. =0), duplicate rows are generated in df; parent_ids are different though
     df <- brathering::coalesce_join(df, temp_df2, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
   }
 

@@ -26,11 +26,16 @@ heatmap_ordering <- function(df,
                              values = "mean_cluster_scale",
                              feature_order = c("custom", "hclust", "none"),
                              group_order = c("hclust", "none", "custom")) {
+  #browser()
 
   cols <- groups
   rows <- features
   row_order_method <- rlang::arg_match(feature_order)
   col_order_method <- rlang::arg_match(group_order)
+
+  if (group_order == "none" && feature_order == "none") {
+    return(df)
+  }
 
   mat <- df_long_to_mat(df = df,
                         to_rows = rows,
@@ -39,6 +44,7 @@ heatmap_ordering <- function(df,
 
   clust_rows <- cluster_mat(mat = mat)
   clust_cols <- cluster_mat(mat = t(mat))
+
 
   # the default
   # if rows or cols are factors, keep that order
@@ -104,6 +110,13 @@ cluster_mat = function(mat,
 }
 
 df_long_to_mat <- function(df, to_rows, to_cols, values) {
+
+  if (any(dplyr::count(df, !!rlang::sym(to_rows), !!rlang::sym(to_cols))[["n"]] > 1)) {
+    cat(paste0("dplyr::add_count(df, ", to_rows, ", ", to_cols, ")"))
+    stop("pairs of ", to_rows, " and ", to_cols, " are not unique in your data frame. fix that. inspect n after running this command.")
+  }
+
+
   mat <-
     df |>
     dplyr::select(dplyr::all_of(c(to_rows, to_cols, values))) |>

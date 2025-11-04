@@ -38,6 +38,7 @@
 #' size legend; e.g. use override.aes = list(size = c(1,3,5)) to adjust dot size
 #' in legend in contrast to dotsize_range, one number for each dot in legend
 #' needed
+#' @param heatmap_ordering_args arguments to heatmap_ordering like feature_order or group_order
 #' @param ... arguments to heatmap_ordering like feature_order or group_order
 #' @param featurelabels subset of feature labels to plot; NULL to plot all,
 #' "" to plot none; can be a named vector with names being aliases to use for
@@ -104,7 +105,7 @@ heatmap_long_df <- function(df,
                             features_topn = NULL,
                             topn_cols = values,
                             topn_ties = F,
-                            featurelabels = "auto",
+                            featurelabels = "..auto..",
                             featurelabels_repel = F,
                             featuresitalic = F,
                             color_linewidth = 0.2,
@@ -136,6 +137,8 @@ heatmap_long_df <- function(df,
                             ),
                             repel_args = list(featurelabels_width = 0.2,
                                               featurelabels_nudhe_x = -1),
+                            heatmap_ordering_args = list(feature_order = "custom",
+                                                         group_order = "hclust"),
                             ...) {
 
   if (!requireNamespace("brathering", quietly = T)) {
@@ -146,6 +149,15 @@ heatmap_long_df <- function(df,
   }
 
   stopifnot("df must be a data frame" = is.data.frame(df))
+
+  dots <- list(...)
+
+  if ("feature_order" %in% names(dots)) {
+    heatmap_ordering_args[[feature_order]] <- dots[[feature_order]]
+  }
+  if ("group_order" %in% names(dots)) {
+    heatmap_ordering_args[[group_order]] <- dots[[group_order]]
+  }
 
   if (missing(values)) {
     # first numeric column becomes values
@@ -195,21 +207,22 @@ heatmap_long_df <- function(df,
   }
 
   # optional scaling
-  df <- dplyr::mutate(df, !!values := dplyr::case_when(
-    scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
-    scale == "1" ~ brathering::scale2(!!rlang::sym(values), min = -1, max = 1),
-    .default = !!rlang::sym(values)  # fallback (optional)
-  ), .by = !!rlang::sym(features))
+  if (scale != "none") {
+    df <- dplyr::mutate(df, !!values := dplyr::case_when(
+      scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
+      scale == "1" ~ scales::rescale(!!rlang::sym(values), to = c(-1, 1)),
+      .default = !!rlang::sym(values)  # fallback (optional)
+    ), .by = !!rlang::sym(features))
+  }
+
 
   # assign factors to features and groups
-  df <- heatmap_ordering(
-    df = df,
-    features = features,
-    groups = groups,
-    values = values,
-    ...
-  )
-
+  df <- Gmisc::fastDoCall(heatmap_ordering,
+                          args = c(list(df = df,
+                                        features = features,
+                                        groups = groups,
+                                        values = values),
+                                   heatmap_ordering_args))
 
   if (color[1] == "..auto..") { # catch if length(color) > 1
     # dots: never with color
@@ -261,9 +274,12 @@ heatmap_long_df <- function(df,
     df,
     to_rows = groups,
     to_cols = features,
-    values = values
-  )
-  values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F)) > 0.75*ncol(dfmat) # 0.75: arbitrary choice
+    values = values)
+  values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F, tol = 0.05)) > 0.9*ncol(dfmat) # 0.9: arbitrary choice
+
+  if (values_zscored) {
+    message("values interpreted as z-scored.")
+  }
 
   # decide for colorsteps or continuous colorbar
   scale_fill <- colrr::get_color_scale_continuous(values = df[[values]],
@@ -295,7 +311,7 @@ heatmap_long_df <- function(df,
   }
 
 
-  if (!is.null(featurelabels) && featurelabels[1] == "auto") {
+  if (!is.null(featurelabels) && featurelabels[1] == "..auto..") {
     if (length(unique(df[[features]])) > 100) {
       featurelabels <- ""
       names(featurelabels) <- featurelabels

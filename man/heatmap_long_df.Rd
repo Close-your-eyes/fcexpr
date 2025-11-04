@@ -17,7 +17,7 @@ heatmap_long_df(
   features_topn = NULL,
   topn_cols = values,
   topn_ties = F,
-  featurelabels = "auto",
+  featurelabels = "..auto..",
   featurelabels_repel = F,
   featuresitalic = F,
   color_linewidth = 0.2,

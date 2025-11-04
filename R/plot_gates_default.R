@@ -8,7 +8,7 @@
 #' a template.
 #'
 #' @param gs a gatingset, e.g. made with fcexpr::wsp_get_gs
-#' @param gates_df a data frame with informaion of how to plot gates, made with fcexpr::gs_get_gates
+#' @param gates_df a data frame with information of how to plot gates, made with fcexpr::gs_get_gates
 #' @param facetting which facetting (ggplot2) to apply, facet_wrap or facet_grid with respective arguments, check flowCore::pData(gs) for valid columns;
 #' facet_null will completely remove facets; by default facetting is done across fcs each individual fcs file
 #' @param plot_gates logical whether to plot gates
@@ -59,7 +59,7 @@
 #' plotlist <-
 #' fcexpr::plot_gates(gs = gs,
 #' gates_df = gates,
-#' facetting = facet_grid(cols = vars(factor(diluton_factor, levels = c(unique(p.df$diluton_factor)))), rows = vars(CD8_biotin_batch)),
+#' facetting = facet_grid(cols = vars(factor(dilution_factor, levels = c(unique(p.df$dilution_factor)))), rows = vars(CD8_biotin_batch)),
 #' axis.text = element_blank())
 #'
 #' ## paste plots together with patchwork and save
