@@ -34,6 +34,7 @@ heatmap_long_df(
     = "black")),
   theme_args = list(panel.grid = ggplot2::element_blank()),
   repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
+  heatmap_ordering_args = list(feature_order = "custom", group_order = "hclust"),
   ...
 )
 }
@@ -116,6 +117,8 @@ needed}
 \item{theme_args}{arguments to ggplot2::theme}
 
 \item{repel_args}{fine tuning for featurelabel repelling}
+
+\item{heatmap_ordering_args}{arguments to heatmap_ordering like feature_order or group_order}
 
 \item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }
