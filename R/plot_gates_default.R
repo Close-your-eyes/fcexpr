@@ -144,15 +144,13 @@ plot_gates <- function(gs,
       )
 
       if (geom == "hex") {
-        p <-
-          p +
+        p <- p +
           ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]])
 
         # Remove any scales to avoid message of new fill scale
         p$scales$scales <- list()
 
-        p <-
-          p +
+        p <- p +
           ggplot2::scale_fill_gradientn(
             colours =col_pal,
             trans = col_pal_trans
@@ -195,8 +193,7 @@ plot_gates <- function(gs,
       }
       # capture.output only to suppress text about coord system
       bin <- suppressMessages(capture.output(
-        p <-
-          p +
+        p <- p +
           ggplot2::xlab(gg[1,"x_lab"]) +
           ggplot2::ylab(gg[1,"y_lab"]) +
           ggcyto::ggcyto_par_set(limits = list(
