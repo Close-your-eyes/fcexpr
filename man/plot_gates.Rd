@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_gates_default.R
 \name{plot_gates}
 \alias{plot_gates}
-\title{Plot a default layout of gated populations of a set of FCS files (e.g. from one experiment)}
+\title{Plot a default layout of gated populations of a set of FCS files}
 \usage{
 plot_gates(
   gs,
@@ -34,36 +34,45 @@ plot_gates(
     
     2, 0, 2, unit = "pt")), plot.margin = grid::unit(c(1, 1, 1, 1), "pt"), panel.spacing
     = grid::unit(2, "pt")),
-  ...
+  max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
+  geom_args = list()
 )
 }
 \arguments{
 \item{gs}{a gatingset, e.g. made with fcexpr::wsp_get_gs}
 
-\item{gates_df}{a data frame with information of how to plot gates, made with fcexpr::gs_get_gates}
+\item{gates_df}{a data frame with information of how to plot gates,
+made with fcexpr::gs_get_gates}
 
-\item{facetting}{which facetting (ggplot2) to apply, facet_wrap or facet_grid with respective arguments, check flowCore::pData(gs) for valid columns;
-facet_null will completely remove facets; by default facetting is done across fcs each individual fcs file}
+\item{facetting}{which facetting to apply, facet_wrap or facet_grid
+with respective arguments, check flowCore::pData(gs) for valid columns;
+facet_null will completely remove facets; by default facetting is done across
+each fcs file}
 
 \item{plot_gates}{logical whether to plot gates}
 
 \item{plot_gate_names}{logical whether to plot gate names}
 
-\item{plot_gate_pct}{logical whether to plot gate percentages (fraction of parent)}
+\item{plot_gate_pct}{logical whether to plot gate percentages
+(fraction of parent)}
 
-\item{inverse_trans}{logical wheter to inverse transform axes numbers; if TRUE this will make axes look like in flowjo}
+\item{inverse_trans}{logical whether to inverse transform axes numbers
+if TRUE this will make axes look like in flowjo}
 
-\item{geom}{how to plot data; recommendation is hex; hex = geom_hex taking the binwidths column of gates_df into account, pointdensity = ggpointdensity::geom_pointdensity (see ...
-and optionally provide max_nrow_to_plot (passed to ggcyto::ggcyto) to limit the number of dots per plot, defaults to 2000; be careful may increase time for plotting a lot),
-scattermore = scattermore::geom_scattermore which is a high performance dot plot version for quickly plotting millions of points (only black-white currently)}
+\item{geom}{how to plot data; recommendation is hex; hex = geom_hex taking
+the binwidths column of gates_df into account,
+pointdensity = ggpointdensity::geom_pointdensity
+scattermore = scattermore::geom_scattermore (only black-white currently)}
 
 \item{gate_color}{line color of gates}
 
 \item{gate_stats_color}{font color of gate statistics}
 
-\item{pct_digits}{how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats}
+\item{pct_digits}{how many digits after comma to print;
+passed to 'digits' of ggcyto::geom_stats}
 
-\item{plot_contours}{logical whether to plot contour lines on top with ggplot2::geom_density_2d}
+\item{plot_contours}{logical whether to plot contour lines on top with
+ggplot2::geom_density_2d}
 
 \item{plot_title}{do plot titles?}
 
@@ -79,18 +88,27 @@ scattermore = scattermore::geom_scattermore which is a high performance dot plot
 
 \item{theme_args}{arguments to ggplot2::theme}
 
-\item{...}{arguments to geom}
+\item{max_nrow_to_plot}{to ggcyto::ggcyto; defaults are chosen with respect
+to plotting time}
+
+\item{geom_args}{arguments to geom}
 }
 \value{
-a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
+a list of ggplot2 objects, one for every gating level;
+each list index contains respective plots for every fcs file
 }
 \description{
-Getting an overview of the results of a flow cytometry experiment can be a generic task if gating and analysis strategy is fixed.
-Here, ggcyto is used to create an arrangement of pseudocolor plots. A number of default settings has been selected which may garuantee
-good looking plots for most cases. Upon problems, the function may be improved to handle edge cases. Currently, customization is limited to a few rather technical
-aspects of the plots. This may be subject to expansion but generally the range of customization is too large to fit it into a generic function with a finite number of arguments.
-Hence, for very specific and detailed requriements manual plotting and fiddling is unavoidable. For that, the code of this function may serve as
-a template.
+Getting an overview of the results of a flow cytometry experiment can be a
+generic task if gating and analysis strategy is fixed.
+Here, ggcyto is used to create an arrangement of pseudocolor plots. A number
+of default settings has been selected which may guarantee
+good looking plots for most cases. Upon problems, the function may be
+improved to handle edge cases. Currently, customization is limited to a few
+rather technical aspects of the plots. This may be subject to expansion but
+generally the range of customization is too large to fit it into a generic
+function with a finite number of arguments. Hence, for very specific and
+detailed requirements manual plotting and fiddling is unavoidable. For that,
+the code of this function may serve as a template.
 }
 \examples{
 \dontrun{

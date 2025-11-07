@@ -59,7 +59,7 @@ wsx_get_popstats <- function(ws,
                                           lapply_fun = lapply_fun,
                                           ...)
   })
-browser()
+#browser()
   cols <- c("FileName", "PopulationFullPath", "Population", "Count", "ParentCount", "identity")
   res <- waldo::compare(x <- dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath, Count),
                         y <- dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))

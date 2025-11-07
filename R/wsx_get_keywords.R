@@ -75,8 +75,9 @@ wsx_get_keywords <- function(ws,
     return(keys)
   }, ...)
 
-
   names(k_return) <- basename(xml2::xml_attr(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "SampleList")), "DataSet"), "uri"))
+  names(k_return) <- utils::URLdecode(names(k_return))
+
   if (!is.null(samples)) {
     k_return <- k_return[samples]
   }

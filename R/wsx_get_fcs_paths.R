@@ -30,7 +30,7 @@ wsx_get_fcs_paths <- function(ws,
                                        sampleID = gsub("^file:", "", xml2::xml_attr(xml2::xml_find_all(ws, ".//DataSet"), "sampleID"))),
                             by = "sampleID")
 
-  paths$FilePath <- URLdecode(paths$FilePath)
+  paths$FilePath <- utils::URLdecode(paths$FilePath)
   paths$FileName <- basename(paths$FilePath)
   paths <- as.data.frame(tidyr::unnest(paths, "FlowJoGroup"))
 

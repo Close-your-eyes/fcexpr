@@ -627,7 +627,7 @@ add_boolean_gate_data <- function(df,
         return(NULL)
         # is na when there are no children to OrNodes or AndNodes
       }
-      browser()
+      #browser()
       childnodes <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_children(xml2::xml_child(y, "Subpopulations"))))[, c("name", "count"),drop=T]
       names(childnodes) <- c("name2", "count2")
       childnodes$count2 <- as.numeric(childnodes$count2)

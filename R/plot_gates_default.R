@@ -1,37 +1,53 @@
-#' Plot a default layout of gated populations of a set of FCS files (e.g. from one experiment)
+#' Plot a default layout of gated populations of a set of FCS files
 #'
-#' Getting an overview of the results of a flow cytometry experiment can be a generic task if gating and analysis strategy is fixed.
-#' Here, ggcyto is used to create an arrangement of pseudocolor plots. A number of default settings has been selected which may garuantee
-#' good looking plots for most cases. Upon problems, the function may be improved to handle edge cases. Currently, customization is limited to a few rather technical
-#' aspects of the plots. This may be subject to expansion but generally the range of customization is too large to fit it into a generic function with a finite number of arguments.
-#' Hence, for very specific and detailed requriements manual plotting and fiddling is unavoidable. For that, the code of this function may serve as
-#' a template.
+#' Getting an overview of the results of a flow cytometry experiment can be a
+#' generic task if gating and analysis strategy is fixed.
+#' Here, ggcyto is used to create an arrangement of pseudocolor plots. A number
+#' of default settings has been selected which may guarantee
+#' good looking plots for most cases. Upon problems, the function may be
+#' improved to handle edge cases. Currently, customization is limited to a few
+#' rather technical aspects of the plots. This may be subject to expansion but
+#' generally the range of customization is too large to fit it into a generic
+#' function with a finite number of arguments. Hence, for very specific and
+#' detailed requirements manual plotting and fiddling is unavoidable. For that,
+#' the code of this function may serve as a template.
 #'
 #' @param gs a gatingset, e.g. made with fcexpr::wsp_get_gs
-#' @param gates_df a data frame with information of how to plot gates, made with fcexpr::gs_get_gates
-#' @param facetting which facetting (ggplot2) to apply, facet_wrap or facet_grid with respective arguments, check flowCore::pData(gs) for valid columns;
-#' facet_null will completely remove facets; by default facetting is done across fcs each individual fcs file
+#' @param gates_df a data frame with information of how to plot gates,
+#' made with fcexpr::gs_get_gates
+#' @param facetting which facetting to apply, facet_wrap or facet_grid
+#' with respective arguments, check flowCore::pData(gs) for valid columns;
+#' facet_null will completely remove facets; by default facetting is done across
+#' each fcs file
 #' @param plot_gates logical whether to plot gates
 #' @param plot_gate_names logical whether to plot gate names
-#' @param plot_gate_pct logical whether to plot gate percentages (fraction of parent)
-#' @param inverse_trans logical wheter to inverse transform axes numbers; if TRUE this will make axes look like in flowjo
-#' @param geom how to plot data; recommendation is hex; hex = geom_hex taking the binwidths column of gates_df into account, pointdensity = ggpointdensity::geom_pointdensity (see ...
-#' and optionally provide max_nrow_to_plot (passed to ggcyto::ggcyto) to limit the number of dots per plot, defaults to 2000; be careful may increase time for plotting a lot),
-#' scattermore = scattermore::geom_scattermore which is a high performance dot plot version for quickly plotting millions of points (only black-white currently)
+#' @param plot_gate_pct logical whether to plot gate percentages
+#' (fraction of parent)
+#' @param inverse_trans logical whether to inverse transform axes numbers
+#' if TRUE this will make axes look like in flowjo
+#' @param geom how to plot data; recommendation is hex; hex = geom_hex taking
+#' the binwidths column of gates_df into account,
+#' pointdensity = ggpointdensity::geom_pointdensity
+#' scattermore = scattermore::geom_scattermore (only black-white currently)
 #' @param gate_stats_color font color of gate statistics
 #' @param gate_color line color of gates
-#' @param plot_contours logical whether to plot contour lines on top with ggplot2::geom_density_2d
-#' @param pct_digits how many digits after comma to print; passed to 'digits' of ggcyto::geom_stats
+#' @param plot_contours logical whether to plot contour lines on top with
+#' ggplot2::geom_density_2d
+#' @param pct_digits how many digits after comma to print;
+#' passed to 'digits' of ggcyto::geom_stats
 #' @param col_pal color palette to use for color gradient generation
 #' @param col_pal_trans argument passed as 'trans' in scale_fill_gradientn
 #' @param plot_title do plot titles?
 #' @param title title format
 #' @param contour_args arguments to stat_density_2d
 #' @param theme ggplot theme
+#' @param max_nrow_to_plot to ggcyto::ggcyto; defaults are chosen with respect
+#' to plotting time
+#' @param geom_args arguments to geom
 #' @param theme_args arguments to ggplot2::theme
-#' @param ... arguments to geom
 #'
-#' @return a list of ggplot2 objects, one for every gating level; each list index contains respective plots for every fcs file
+#' @return a list of ggplot2 objects, one for every gating level;
+#' each list index contains respective plots for every fcs file
 #' @export
 #'
 #' @examples
@@ -101,7 +117,11 @@ plot_gates <- function(gs,
                                          strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
                                          plot.margin = grid::unit(c(1,1,1,1), "pt"),
                                          panel.spacing = grid::unit(2, "pt")),
-                       ...) {
+                       max_nrow_to_plot = switch(geom,
+                                                 "hex" = 5e4,
+                                                 "pointdensity" = 2000,
+                                                 "scattermore" = 2e6),
+                       geom_args = list()) {
 
   if (!requireNamespace("ggcyto", quietly = T)) {
     BiocManager::install("ggcyto")
@@ -110,7 +130,20 @@ plot_gates <- function(gs,
     devtools::install_github("Close-your-eyes/colrr")
   }
 
-  dots <- list(...)
+  if (geom == "scattermore") {
+    if (!requireNamespace("devtools", quietly = T)) {
+      utils::install.packages("devtools")
+    }
+    if (!requireNamespace("scattermore", quietly = T)) {
+      devtools::install_github("exaexa/scattermore")
+    }
+  }
+
+  if (geom == "pointdensity") {
+    if (!requireNamespace("ggpointdensity", quietly = T)) {
+      utils::install.packages("ggpointdensity")
+    }
+  }
 
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
@@ -119,73 +152,51 @@ plot_gates <- function(gs,
     message("Caution: Contour lines are calculated across multiple facets.")
   }
 
+  geom_fun <- switch(geom,
+                     "hex" = ggplot2::geom_hex,
+                     "pointdensity" = ggpointdensity::geom_pointdensity,
+                     "scattermore" = scattermore::geom_scattermore)
+
+  if (geom == "pointdensity") {
+    if (!"adjust" %in% names(geom_args)) {
+      geom_args <- c(geom_args, list(adjust = 5))
+      message("pointdensity: adjust=5")
+    }
+    if (!"size" %in% names(geom_args)) {
+      geom_args <- c(geom_args, list(size = 0.3))
+      message("pointdensity: size=0.3")
+    }
+  }
+
+  scale_fun <- switch(geom,
+                      "hex" = ggplot2::scale_fill_gradientn,
+                      "pointdensity" = ggplot2::scale_color_gradientn)
+
+
   out <- purrr::flatten(lapply(sort(unique(gates_df$GateLevel)), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
 
     p <- lapply(split(g, paste(g$GateLevel, g$Parent, g$x, g$y, sep = "__")), function(gg) {
 
-      my.filter <- if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL}
-
-      if ("max_nrow_to_plot" %in% names(dots)) {
-        max_nrow_to_plot <- dots[["max_nrow_to_plot"]]
-      } else {
-        max_nrow_to_plot <- switch(geom,
-                                   "hex" = 5e4,
-                                   "pointdensity" = 2000,
-                                   "scattermore" = 2e6)
+      if (geom == "hex" && !"binwidth" %in% names(geom_args)) {
+        geom_args <- c(geom_args, list(binwidth = gg[1,"binwidths"][[1]]))
       }
 
       p <- ggcyto::ggcyto(
         data = gs,
         subset = gg[1,"Parent"],
-        filter = my.filter,
+        filter = if (gg[1,"marginalFilter"]) {ggcyto::marginalFilter} else {NULL},
         mapping = ggplot2::aes(!!rlang::sym(gg[1,"x"]), !!rlang::sym(gg[1,"y"])),
-        max_nrow_to_plot = max_nrow_to_plot
-      )
+        max_nrow_to_plot = max_nrow_to_plot) +
+        do.call(what = geom_fun, args = geom_args) +
+        theme +
+        do.call(ggplot2::theme, args = theme_args)
 
       if (geom == "hex") {
-        p <- p +
-          ggplot2::geom_hex(binwidth = gg[1,"binwidths"][[1]])
-
-        # Remove any scales to avoid message of new fill scale
-        p$scales$scales <- list()
-
-        p <- p +
-          ggplot2::scale_fill_gradientn(
-            colours =col_pal,
-            trans = col_pal_trans
-          )
+        p$scales$scales <- list() # Remove any scales to avoid message of new fill scale
       }
-
-      if (geom == "pointdensity") {
-        if (!requireNamespace("ggpointdensity", quietly = T)) {
-          utils::install.packages("ggpointdensity")
-        }
-        temp_dots <- dots[which(grepl("^pointdensity__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^pointdensity__", "", names(temp_dots), ignore.case = T)
-        if (!"adjust" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(adjust = 5))
-        }
-        if (!"size" %in% names(temp_dots)) {
-          temp_dots <- c(temp_dots, list(size = 0.3))
-        }
-        p <-
-          p +
-          do.call(ggpointdensity::geom_pointdensity, args = temp_dots) +
-          ggplot2::scale_color_gradientn(colours = col_pal, trans = col_pal_trans)
-      }
-
-      if (geom == "scattermore") {
-        if (!requireNamespace("devtools", quietly = T)) {
-          utils::install.packages("devtools")
-        }
-        if (!requireNamespace("scattermore", quietly = T)) {
-          devtools::install_github("exaexa/scattermore")
-        }
-
-        temp_dots <- dots[which(grepl("^scattermore__", names(dots), ignore.case = T))]
-        names(temp_dots) <- gsub("^scattermore__", "", names(temp_dots), ignore.case = T)
-        p <- p + do.call(scattermore::geom_scattermore, args = temp_dots)
+      if (geom != "scattermore") {
+        p <- p + do.call(scale_fun, args = list(colors = col_pal, trans = col_pal_trans))
       }
 
       if (plot_contours) {
@@ -207,9 +218,6 @@ plot_gates <- function(gs,
           ggcyto::axis_x_inverse_trans() +
           ggcyto::axis_y_inverse_trans()
       }
-
-      p <- p + theme
-      p <- p + do.call(ggplot2::theme, args = theme_args)
 
       if (!is.null(facetting)) {
         p <- p + facetting
