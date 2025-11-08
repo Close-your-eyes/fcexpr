@@ -123,6 +123,9 @@ plot_gates <- function(gs,
                                                  "scattermore" = 2e6),
                        geom_args = list()) {
 
+  geom <- rlang::arg_match(geom)
+  title <- rlang::arg_match(title)
+
   if (!requireNamespace("ggcyto", quietly = T)) {
     BiocManager::install("ggcyto")
   }
@@ -144,9 +147,6 @@ plot_gates <- function(gs,
       utils::install.packages("ggpointdensity")
     }
   }
-
-  geom <- rlang::arg_match(geom)
-  title <- rlang::arg_match(title)
 
   if (plot_contours) {
     message("Caution: Contour lines are calculated across multiple facets.")
@@ -278,7 +278,10 @@ plot_gates <- function(gs,
     })
     return(p)
   }))
-
+  browser()
+  # dims <- attr(out[[1]][["data"]], "dims")
+  # dims <- dims[axis != "order", ]
+  # as.ggplot(out[[1]])
   popattr <- purrr::map_chr(out, attr, "Population")
   out <- purrr::map(out, ggcyto::as.ggplot)
   attr(out, "Population") <- popattr

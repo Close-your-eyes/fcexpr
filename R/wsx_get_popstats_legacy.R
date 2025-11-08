@@ -35,7 +35,7 @@ wsx_get_popstats_legacy <- function(ws,
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
-  samples <- get_sample_nodes(ws, group_df) #fcexpr:::
+  samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
 
 
   gates_list <- do.call(rbind, lapply_fun(xml2::xml_find_all(samples, ".//Gate|.//Dependents"), function(n) {
@@ -46,6 +46,7 @@ wsx_get_popstats_legacy <- function(ws,
     sampleID <- xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "sampleID")
 
     FilePath <- gsub("^file:", "", xml2::xml_attr(xml2::xml_child(s_node, "DataSet")[[1]], "uri"))
+    FilePath <- utils::URLdecode(FilePath)
     FileName <- basename(FilePath)
 
     p_nodes <- prnts[which(xml2::xml_name(prnts) %in% c("AndNode", "OrNode", "NotNode", "Population"))]
@@ -113,7 +114,7 @@ wsx_get_popstats_legacy <- function(ws,
   }, ...)) |> #, ...
     dplyr::bind_rows(do.call(rbind, lapply_fun(samples, function(y) {
       # roots
-      data.frame(FileName = basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
+      data.frame(FileName = utils::URLdecode(basename(xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri"))),
                  PopulationFullPath = "root",
                  Parent = NA,
                  Population = "root",
@@ -126,7 +127,7 @@ wsx_get_popstats_legacy <- function(ws,
                  ParentID = NA,
                  eventsInside = NA,
                  sampleID = xml2::xml_attr(xml2::xml_child(y, "DataSet"), "sampleID"),
-                 FilePath = gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri")),
+                 FilePath = utils::URLdecode(gsub("^file:", "", xml2::xml_attr(xml2::xml_child(y, "DataSet"), "uri"))),
                  GateDepth = 0,
                  origin = "root",
                  #deps = I(list(character(0))),
