@@ -15,7 +15,9 @@ gs_get_gates(
   x_statpos_pct = 0.9,
   y_statpos_pct = 0.1,
   statsize_name = 4,
-  statsize_pct = 4
+  statsize_pct = 4,
+  reduce_n_bins_below = 0,
+  reduce_factor = 2
 )
 }
 \arguments{
@@ -42,6 +44,8 @@ in inverse transformation which is equal to logicle transformation (for scatter 
 \item{statsize_name}{size of name label}
 
 \item{statsize_pct}{size of percent label}
+
+\item{reduce_factor}{}
 }
 \value{
 a data frame to loop over and produce plots with ggcyto

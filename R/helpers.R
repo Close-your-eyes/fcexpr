@@ -371,9 +371,11 @@ get_gs <- function(x,
       message("number of samples in gs is not 1. this should not be.")
     }
 
-    # validity check in flowWorkspace::merge_list_to_gs checks for eqaul names of gs. they have to be unique.
+    # validity check in flowWorkspace::merge_list_to_gs checks for equal names of gs. they have to be unique.
     # so using y[["FlowJoFileName"]] may not be sufficient to avoid ambiguities, use identity
     flowWorkspace::sampleNames(gs) <- y[["identity"]]
+    # new: 01.12.2025
+    flowCore::pData(gs)$FileName <- y[["FlowJoFileName"]]
     attr(gs, "ws") <- y[["wsp"]]
     attr(gs, "FlowJoFileName") <- y[["FlowJoFileName"]]
     attr(gs, "FilePath") <- y[["FilePathUse"]]

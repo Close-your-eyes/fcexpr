@@ -13,14 +13,13 @@ plot_gates(
   plot_gate_pct = T,
   inverse_trans = F,
   geom = c("hex", "pointdensity", "scattermore"),
-  gate_color = "black",
   gate_stats_color = "black",
   pct_digits = 1,
   plot_contours = F,
   plot_title = T,
   title = c("full_path", "short_path", "final_node"),
   contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
-    "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0.8, linewidth = 0.2),
+    "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0, linewidth = 0.2),
   col_pal = colrr::col_pal("Spectral", direction = -1),
   col_pal_trans = "pseudo_log",
   theme = ggplot2::theme_bw(),
@@ -32,10 +31,12 @@ plot_gates(
     = "none", strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0,
     unit = "pt")), strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 
     
-    2, 0, 2, unit = "pt")), plot.margin = grid::unit(c(1, 1, 1, 1), "pt"), panel.spacing
-    = grid::unit(2, "pt")),
+    2, 0, 2, unit = "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"),
+    panel.spacing = grid::unit(2, "pt")),
   max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
-  geom_args = list()
+  geom_args = list(),
+  gate_args = list(colour = "black", linewidth = 0.3),
+  as_ggplot = F
 )
 }
 \arguments{
@@ -64,8 +65,6 @@ the binwidths column of gates_df into account,
 pointdensity = ggpointdensity::geom_pointdensity
 scattermore = scattermore::geom_scattermore (only black-white currently)}
 
-\item{gate_color}{line color of gates}
-
 \item{gate_stats_color}{font color of gate statistics}
 
 \item{pct_digits}{how many digits after comma to print;
@@ -92,6 +91,10 @@ ggplot2::geom_density_2d}
 to plotting time}
 
 \item{geom_args}{arguments to geom}
+
+\item{gate_args}{arguments to geom_gate}
+
+\item{as_ggplot}{convert to ggplot object?}
 }
 \value{
 a list of ggplot2 objects, one for every gating level;
@@ -141,5 +144,11 @@ axis.text = element_blank())
 ## paste plots together with patchwork and save
 ## patchwork is superior to cowplot as is will completely ignore ommitted facet_strips
 ggsave(patchwork::wrap_plots(plotlist, ncol = 1), filename = paste0("facsplots.png"), device = "png", path = im_path, dpi = "retina", width = 18, height = 7)
+
+## save with new fun
+pngfiles <- purrr::map_chr(seq_along(plots), function(i) {
+  popname <-  gsub("/", "_",attr(plots[[i]], "Population"))
+  brathering::img_save(plotdata = plots[[i]], width = 10, height = 3, filename = paste0(popname, ".png"), path = im_path)
+})
 }
 }

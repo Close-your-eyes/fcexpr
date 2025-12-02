@@ -30,7 +30,6 @@
 #' pointdensity = ggpointdensity::geom_pointdensity
 #' scattermore = scattermore::geom_scattermore (only black-white currently)
 #' @param gate_stats_color font color of gate statistics
-#' @param gate_color line color of gates
 #' @param plot_contours logical whether to plot contour lines on top with
 #' ggplot2::geom_density_2d
 #' @param pct_digits how many digits after comma to print;
@@ -45,6 +44,8 @@
 #' to plotting time
 #' @param geom_args arguments to geom
 #' @param theme_args arguments to ggplot2::theme
+#' @param gate_args arguments to geom_gate
+#' @param as_ggplot convert to ggplot object?
 #'
 #' @return a list of ggplot2 objects, one for every gating level;
 #' each list index contains respective plots for every fcs file
@@ -81,6 +82,12 @@
 #' ## paste plots together with patchwork and save
 #' ## patchwork is superior to cowplot as is will completely ignore ommitted facet_strips
 #' ggsave(patchwork::wrap_plots(plotlist, ncol = 1), filename = paste0("facsplots.png"), device = "png", path = im_path, dpi = "retina", width = 18, height = 7)
+#'
+#' ## save with new fun
+#' pngfiles <- purrr::map_chr(seq_along(plots), function(i) {
+#'   popname <-  gsub("/", "_",attr(plots[[i]], "Population"))
+#'   brathering::img_save(plotdata = plots[[i]], width = 10, height = 3, filename = paste0(popname, ".png"), path = im_path)
+#' })
 #' }
 plot_gates <- function(gs,
                        gates_df,
@@ -90,7 +97,6 @@ plot_gates <- function(gs,
                        plot_gate_pct = T,
                        inverse_trans = F,
                        geom = c("hex", "pointdensity", "scattermore"),
-                       gate_color = "black",
                        gate_stats_color = "black",
                        pct_digits = 1,
                        plot_contours = F,
@@ -101,7 +107,7 @@ plot_gates <- function(gs,
                                            color = "black",
                                            contour_var = "ndensity",
                                            breaks = seq(0.05,0.95,0.1),
-                                           alpha = 0.8,
+                                           alpha = 0,
                                            linewidth = 0.2),
                        col_pal = colrr::col_pal("Spectral", direction = -1),
                        col_pal_trans = "pseudo_log",
@@ -115,13 +121,16 @@ plot_gates <- function(gs,
                                          legend.position = "none",
                                          strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2,0,2,0, unit = "pt")),
                                          strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
-                                         plot.margin = grid::unit(c(1,1,1,1), "pt"),
+                                         plot.margin = ggplot2::margin(1,1,1,1, "pt"),
                                          panel.spacing = grid::unit(2, "pt")),
                        max_nrow_to_plot = switch(geom,
                                                  "hex" = 5e4,
                                                  "pointdensity" = 2000,
                                                  "scattermore" = 2e6),
-                       geom_args = list()) {
+                       geom_args = list(),
+                       gate_args = list(colour = "black",
+                                        linewidth = 0.3),
+                       as_ggplot = F) {
 
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
@@ -231,10 +240,9 @@ plot_gates <- function(gs,
 
       if (plot_gates) {
         for (i in 1:nrow(gg)) {
-          p <- p + ggcyto::geom_gate(
-            gg[i,"PopulationFullPath"],
-            colour = gate_color
-          )
+          p <- p + Gmisc::fastDoCall(what = ggcyto::geom_gate,
+                                     args = c(list(data = gg[i,"PopulationFullPath"]),
+                                              gate_args))
         }
       }
       if (plot_gate_names) {
@@ -278,12 +286,19 @@ plot_gates <- function(gs,
     })
     return(p)
   }))
-  browser()
+
+  # browser()
+
   # dims <- attr(out[[1]][["data"]], "dims")
   # dims <- dims[axis != "order", ]
   # as.ggplot(out[[1]])
+
+
   popattr <- purrr::map_chr(out, attr, "Population")
-  out <- purrr::map(out, ggcyto::as.ggplot)
+  # spare that until fix comes https://github.com/RGLab/ggcyto/issues/108
+  if (as_ggplot) {
+    out <- purrr::map(out, ggcyto::as.ggplot)
+  }
   attr(out, "Population") <- popattr
 
   return(out)

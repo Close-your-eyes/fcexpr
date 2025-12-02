@@ -1,4 +1,5 @@
 get_group_df <- function(ws, groups, invert_groups) {
+
   group_df <- wsx_get_groups(ws, collapse = NULL)
   if (is.null(groups)) {
     groups <- unique(group_df[,"FlowJoGroup", drop=T])
@@ -13,11 +14,14 @@ get_group_df <- function(ws, groups, invert_groups) {
   if (nrow(group_df) == 0) {
     stop("Non of provided groups found.")
   }
-  # if any sample is in at least two groups, the group column becomes a list
-  if (any(table(group_df$sampleID) > 1)) {
-    # or nest with tidyr?
-    group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), FlowJoGroup = list(FlowJoGroup))
-  }
+  # # if any sample is in at least two groups, the group column becomes a list
+  # if (any(table(group_df$sampleID) > 1)) {
+  #   # or nest with tidyr?
+  #   group_df <- dplyr::summarise(dplyr::group_by(group_df, sampleID), FlowJoGroup = list(FlowJoGroup))
+  # }
+  # no list
+  group_df <- group_df |>
+    dplyr::summarise(FlowJoGroup = paste(FlowJoGroup, collapse = ";"), .by = sampleID)
   return(group_df)
 }
 

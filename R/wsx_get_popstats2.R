@@ -188,7 +188,7 @@ wsx_get_popstats2 <- function(ws,
     dplyr::mutate(FilePath = gsub("^file:", "", FilePath))
   #file_paths$name <- basename(file_paths$uri)
   #file_paths$name <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
-
+#browser()
   # join cols order rows
   pop_df <-
     pop_df |>

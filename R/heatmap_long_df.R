@@ -312,7 +312,8 @@ heatmap_long_df <- function(df,
 
 
   if (!is.null(featurelabels) && featurelabels[1] == "..auto..") {
-    if (length(unique(df[[features]])) > 100) {
+    if (length(unique(df[[features]])) > 200) {
+      message("featurelabels omitted as n>200. Set to NULL to plot all.")
       featurelabels <- ""
       names(featurelabels) <- featurelabels
       theme_args[[if (determine_feature_axis(plot) == "x") "axis.ticks.x" else "axis.ticks.y"]] <- ggplot2::element_blank()

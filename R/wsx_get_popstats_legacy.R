@@ -142,6 +142,7 @@ wsx_get_popstats_legacy <- function(ws,
   if (any(dplyr::count(pop_df, FileName, PopulationFullPath)$n >1)) {
     stop("PopulationFullPaths not unique which cannot or should not be. Check.")
   }
+
   ## add short paths
   auto_paths <- fcexpr:::shortest_unique_path(pop_df$PopulationFullPath) #fcexpr:::
   pop_df$Population <- unname(auto_paths[pop_df$PopulationFullPath])

@@ -13,6 +13,8 @@
 #' @param y_statpos_pct y-position for gate percent labels
 #' @param statsize_name size of name label
 #' @param statsize_pct size of percent label
+#' @param reduce_n_bins_below
+#' @param reduce_factor
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
@@ -33,7 +35,9 @@ gs_get_gates <- function(gs,
                          x_statpos_pct = 0.9,
                          y_statpos_pct = 0.1,
                          statsize_name = 4,
-                         statsize_pct = 4) {
+                         statsize_pct = 4,
+                         reduce_n_bins_below = 0,
+                         reduce_factor = 2) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
     utils::install.packages("flowWorkspace")
@@ -95,53 +99,21 @@ gs_get_gates <- function(gs,
   gates$y_lab <- gates$y
   gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
 
-  get_inds <- function(channel, fs, fs_name, min_max = c(0, 300)) {
-    if (is.na(channel)) {return(NULL)}
-    if (nrow(flowCore::exprs(fs[[fs_name]])) == 0) {return(NULL)}
-    inds_in_range <- dplyr::between(flowCore::exprs(fs[[fs_name]])[,channel], min_max[1], min_max[2])
-    return(inds_in_range)
-  }
-  get_quantiles <- function(gate, fs, fs_name, min_max_vals_scatter, min_max_vals) {
-
-    # inds are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
-    xy_channel <- stats::setNames(c(gate$x, gate$y), c("x", "y"))
-    xy_channel <- xy_channel[which(!is.na(xy_channel))]
-    #xy_channel <- stats::setNames(c(gate$x, gate$y), c(gate$x, gate$y))
-    inds_xy <- purrr::map(xy_channel,
-                          ~get_inds(channel = .x,
-                                    fs = fs,
-                                    fs_name = fs_name,
-                                    min_max = if (grepl("fsc|ssc", .x, ignore.case = T)) min_max_vals_scatter else min_max_vals))
-    if (length(inds_xy) == 2) {
-      # 2D gate: no NA channel
-      inds <- inds_xy[[1]] & inds_xy[[2]] # event within limits in both dimension?
-    } else {
-      inds <- inds_xy[[1]]
-    }
-
-    if (any(inds)) {
-      quants <- apply(flowCore::exprs(fs[[fs_name]])[inds, xy_channel, drop=F],
-                      MARGIN = 2,
-                      FUN = stats::quantile,
-                      probs = quantile_lim_filter)
-    } else {
-      return(NULL)
-    }
-    return(quants)
-
-  }
-
-  lims <- purrr::map(split(gates, 1:nrow(gates)), function(gate) {
+  lims_count <- purrr::map(split(gates, 1:nrow(gates)), function(gate) {
 
     fs <- flowWorkspace::cytoset_to_flowSet(flowWorkspace::gs_pop_get_data(gs, y = gate$Parent, truncate_max_range = F))
 
     ## currently focus is on 2D-gates only and 1D
-    quants <- do.call(rbind, purrr::map(names(fs@frames),
-                                        ~ get_quantiles(gate = gate,
-                                                       fs = fs,
-                                                       fs_name = .x,
-                                                       min_max_vals_scatter = min_max_vals_scatter,
-                                                       min_max_vals = min_max_vals)))
+    quants_count <- purrr::map(names(fs@frames),
+                               ~ get_quantiles_and_count(gate = gate,
+                                                         fs = fs,
+                                                         fs_name = .x,
+                                                         min_max_vals_scatter = min_max_vals_scatter,
+                                                         min_max_vals = min_max_vals,
+                                                         quantile_lim_filter = quantile_lim_filter))
+
+    quants <- do.call(rbind, purrr::discard(sapply(quants_count, "[[", "quants", simplify = F), is.null))
+    counts <- purrr::discard(sapply(quants_count, "[[", "count", simplify = F), is.null)
 
     # get min and max from all flowFrames
     if (is.null(quants)) {
@@ -154,15 +126,24 @@ gs_get_gates <- function(gs,
     if (is.na(gate$y)) {
       quants <- c(quants[1], NA, quants[2], NA)
     }
-    return(quants)
+    return(list(quants = quants, counts = counts))
   })
+
+  lims <- sapply(lims_count, "[[", "quants", simplify = F)
   lims[which(sapply(lims, is.null))] <- NA
+
+  counts <- sapply(lims_count, "[[", "counts", simplify = F)
+  counts <- sapply(counts, unlist)
 
   # order is known
   gates$x_lowlim <- sapply(lims, "[", 1)
   gates$x_uplim <- sapply(lims, "[", 3)
   gates$y_lowlim <- sapply(lims, "[", 2)
   gates$y_uplim <- sapply(lims, "[", 4)
+
+  n_bins <- rep(n_bins, nrow(gates))
+  below <- sapply(counts, function(x) any(x<reduce_n_bins_below))
+  n_bins[which(below)] <- n_bins[which(below)] / reduce_factor
 
   mat <- cbind((gates$x_uplim - gates$x_lowlim)/sqrt(n_bins), (gates$y_uplim - gates$y_lowlim)/sqrt(n_bins))
   gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
@@ -194,3 +175,47 @@ matsplitter<-function(M, r, c) {
   cv
 }
 
+get_inds <- function(channel, fs, fs_name, min_max = c(0, 300)) {
+  if (is.na(channel)) {return(NULL)}
+  if (nrow(flowCore::exprs(fs[[fs_name]])) == 0) {return(NULL)}
+  inds_in_range <- dplyr::between(flowCore::exprs(fs[[fs_name]])[,channel], min_max[1], min_max[2])
+  return(inds_in_range)
+}
+get_quantiles_and_count <- function(gate,
+                                    fs,
+                                    fs_name,
+                                    min_max_vals_scatter,
+                                    min_max_vals,
+                                    quantile_lim_filter) {
+
+  # inds are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
+  xy_channel <- stats::setNames(c(gate$x, gate$y), c("x", "y"))
+  xy_channel <- xy_channel[which(!is.na(xy_channel))]
+  #xy_channel <- stats::setNames(c(gate$x, gate$y), c(gate$x, gate$y))
+  inds_xy <- purrr::map(xy_channel,
+                        ~get_inds(channel = .x,
+                                  fs = fs,
+                                  fs_name = fs_name,
+                                  min_max = if (grepl("fsc|ssc", .x, ignore.case = T)) min_max_vals_scatter else min_max_vals))
+  if (length(inds_xy) == 2) {
+    # 2D gate: no NA channel
+    inds <- inds_xy[[1]] & inds_xy[[2]] # event within limits in both dimension?
+  } else {
+    inds <- inds_xy[[1]]
+  }
+
+  if (any(inds)) {
+    quants <- apply(flowCore::exprs(fs[[fs_name]])[inds, xy_channel, drop=F],
+                    MARGIN = 2,
+                    FUN = stats::quantile,
+                    probs = quantile_lim_filter)
+    count <- sum(inds)
+  } else {
+    return(NULL)
+  }
+
+
+
+  return(list(quants = quants, count = count))
+
+}
