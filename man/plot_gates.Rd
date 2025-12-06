@@ -8,9 +8,9 @@ plot_gates(
   gs,
   gates_df,
   facetting = NULL,
-  plot_gates = T,
-  plot_gate_names = T,
-  plot_gate_pct = T,
+  plot_gates = "gates_df",
+  plot_gate_names = "gates_df",
+  plot_gate_pct = "gates_df",
   inverse_trans = F,
   geom = c("hex", "pointdensity", "scattermore"),
   gate_stats_color = "black",
@@ -27,11 +27,12 @@ plot_gates(
     ggplot2::element_rect(fill = "grey95", color = "white"), axis.text =
     ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(), axis.title.x =
     ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")), axis.title.y =
-    ggplot2::element_text(margin = ggplot2::margin(r = 2, unit = "pt")), legend.position
+    ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")), legend.position
     = "none", strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0,
     unit = "pt")), strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 
     
-    2, 0, 2, unit = "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"),
+    2, 0, 2, unit = "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"), plot.title =
+    ggplot2::element_text(margin = ggplot2::margin(1, 1, 1, 1, unit = "pt"), size = 12),
     panel.spacing = grid::unit(2, "pt")),
   max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
   geom_args = list(),

@@ -6,7 +6,7 @@
 \usage{
 gs_get_gates(
   gs,
-  n_bins = 200^2,
+  n_bins = 40000,
   quantile_lim_filter = c(1e-04, 0.9999),
   min_max_vals = c(0, 300),
   min_max_vals_scatter = c(0, 250000),
@@ -17,7 +17,9 @@ gs_get_gates(
   statsize_name = 4,
   statsize_pct = 4,
   reduce_n_bins_below = 0,
-  reduce_factor = 2
+  reduce_factor = 2,
+  scatter_equal = T,
+  fluo_equal = T
 )
 }
 \arguments{
@@ -45,7 +47,13 @@ in inverse transformation which is equal to logicle transformation (for scatter 
 
 \item{statsize_pct}{size of percent label}
 
-\item{reduce_factor}{}
+\item{reduce_n_bins_below}{reduce number of bins when number of events is below this number}
+
+\item{reduce_factor}{by which factor to reduce bin number?}
+
+\item{scatter_equal}{equal limits for all scatter channels?}
+
+\item{fluo_equal}{equal limits for each fluorescence channel in all panels?}
 }
 \value{
 a data frame to loop over and produce plots with ggcyto

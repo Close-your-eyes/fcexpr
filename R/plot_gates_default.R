@@ -92,9 +92,9 @@
 plot_gates <- function(gs,
                        gates_df,
                        facetting = NULL,
-                       plot_gates = T,
-                       plot_gate_names = T,
-                       plot_gate_pct = T,
+                       plot_gates = "gates_df",
+                       plot_gate_names = "gates_df",
+                       plot_gate_pct = "gates_df",
                        inverse_trans = F,
                        geom = c("hex", "pointdensity", "scattermore"),
                        gate_stats_color = "black",
@@ -117,11 +117,12 @@ plot_gates <- function(gs,
                                          axis.text = ggplot2::element_blank(),
                                          axis.ticks = ggplot2::element_blank(),
                                          axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")),
-                                         axis.title.y = ggplot2::element_text(margin = ggplot2::margin(r = 2, unit = "pt")),
+                                         axis.title.y = ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")),
                                          legend.position = "none",
                                          strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2,0,2,0, unit = "pt")),
                                          strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
                                          plot.margin = ggplot2::margin(1,1,1,1, "pt"),
+                                         plot.title = ggplot2::element_text(margin = ggplot2::margin(1,1,1,1, unit = "pt"), size = 12),
                                          panel.spacing = grid::unit(2, "pt")),
                        max_nrow_to_plot = switch(geom,
                                                  "hex" = 5e4,
@@ -181,6 +182,19 @@ plot_gates <- function(gs,
                       "hex" = ggplot2::scale_fill_gradientn,
                       "pointdensity" = ggplot2::scale_color_gradientn)
 
+  if (is.logical(plot_gates)) {
+    gates_df$plot_gate <- plot_gates
+  }
+  if (is.logical(plot_gate_names)) {
+    gates_df$plot_gate_name <- plot_gate_names
+  }
+  if (is.logical(plot_gate_pct)) {
+    gates_df$plot_gate_pct <- plot_gate_pct
+  }
+
+  conv <- stats::setNames(gates_df$Population, gates_df$PopulationFullPath)
+  gates_df$Parent_short <- conv[gates_df$Parent]
+  gates_df$Parent_short[which(is.na(gates_df$Parent_short))] <- ""
 
   out <- purrr::flatten(lapply(sort(unique(gates_df$GateLevel)), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
@@ -238,17 +252,16 @@ plot_gates <- function(gs,
                                 strip.text.y = ggplot2::element_blank())
       }
 
-      if (plot_gates) {
-        for (i in 1:nrow(gg)) {
+      for (i in 1:nrow(gg)) {
+
+        if (gg[i,"plot_gate"]) {
           p <- p + Gmisc::fastDoCall(what = ggcyto::geom_gate,
                                      args = c(list(data = gg[i,"PopulationFullPath"]),
                                               gate_args))
         }
-      }
-      if (plot_gate_names) {
-        for (i in 1:nrow(gg)) {
+        if (gg[i,"plot_gate_name"]) {
           p <- p + ggcyto::geom_stats(
-            gg[i,"PopulationFullPath"],
+            gate = gg[i,"PopulationFullPath"],
             type = "gate_name",
             size = gg[i,"statsize_name"],
             colour = gate_stats_color,
@@ -256,11 +269,9 @@ plot_gates <- function(gs,
             fill = scales::alpha(c("white"),0.5)
           )
         }
-      }
-      if (plot_gate_pct) {
-        for (i in 1:nrow(gg)) {
+        if (gg[i,"plot_gate_pct"]) {
           p <- p + ggcyto::geom_stats(
-            gg[i,"PopulationFullPath"],
+            gate = gg[i,"PopulationFullPath"],
             digits = pct_digits,
             type = "percent",
             size = gg[i,"statsize_pct"],
@@ -270,15 +281,14 @@ plot_gates <- function(gs,
           )
         }
       }
-
       if (!plot_title) {
         p <- p + ggplot2::labs(title = NULL)
       } else {
-        if (title == "short_path") {
-          p <- p + ggplot2::labs(title = gg$Population)
-        } else if (title == "final_node") {
-          p <- p + ggplot2::labs(title = rev(strsplit(gg$Population, "/")[[1]])[1])
-        }
+        titlechr <- switch(title,
+                           short_path = gg$Parent_short[1],# multiple boolean parents?
+                           final_node = rev(strsplit(gg$Parent[1], "/")[[1]])[1],
+                           full_path = gsub("root", "", gg$Parent[1]))
+        p <- p + ggplot2::labs(title = titlechr)
       }
       attr(p, "Population") <- paste(gg$Population, collapse = "__")
 

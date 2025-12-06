@@ -137,10 +137,15 @@ wsp_get_gs <- function(wsp,
                                                      refcol = pData_join_col)
     message("pData joinable columns: ", paste(joincols[-1], collapse = ", "))
     gs_list <- lapply(gs_list, function(x) {
+      if (pData_join_col %in% names(flowCore::pData(x))) {
+        to_col <- "completely_random_colname_for_now"
+      } else {
+        to_col <- pData_join_col
+      }
       pd <- flowCore::pData(x) |>
-        tibble::rownames_to_column(pData_join_col) |>
+        tibble::rownames_to_column(to_col) |>
         dplyr::left_join(dplyr::distinct(pData, dplyr::pick(dplyr::all_of(joincols))), by = pData_join_col) |>
-        tibble::column_to_rownames(pData_join_col)
+        tibble::column_to_rownames(to_col)
       flowCore::pData(x) <- pd
       return(x)
     })

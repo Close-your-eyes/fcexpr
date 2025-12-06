@@ -375,7 +375,7 @@ get_gs <- function(x,
     # so using y[["FlowJoFileName"]] may not be sufficient to avoid ambiguities, use identity
     flowWorkspace::sampleNames(gs) <- y[["identity"]]
     # new: 01.12.2025
-    flowCore::pData(gs)$FileName <- y[["FlowJoFileName"]]
+    flowCore::pData(gs)[["FileName"]] <- y[["FlowJoFileName"]]
     attr(gs, "ws") <- y[["wsp"]]
     attr(gs, "FlowJoFileName") <- y[["FlowJoFileName"]]
     attr(gs, "FilePath") <- y[["FilePathUse"]]

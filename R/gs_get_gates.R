@@ -13,8 +13,10 @@
 #' @param y_statpos_pct y-position for gate percent labels
 #' @param statsize_name size of name label
 #' @param statsize_pct size of percent label
-#' @param reduce_n_bins_below
-#' @param reduce_factor
+#' @param reduce_n_bins_below reduce number of bins when number of events is below this number
+#' @param reduce_factor by which factor to reduce bin number?
+#' @param scatter_equal equal limits for all scatter channels?
+#' @param fluo_equal equal limits for each fluorescence channel in all panels?
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
@@ -26,7 +28,7 @@
 #' gates <- gs_get_gates(gs)
 #' }
 gs_get_gates <- function(gs,
-                         n_bins = 200^2,
+                         n_bins = 40000,
                          quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
                          min_max_vals_scatter = c(0, 250000),
@@ -37,7 +39,9 @@ gs_get_gates <- function(gs,
                          statsize_name = 4,
                          statsize_pct = 4,
                          reduce_n_bins_below = 0,
-                         reduce_factor = 2) {
+                         reduce_factor = 2,
+                         scatter_equal = T,
+                         fluo_equal = T) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
     utils::install.packages("flowWorkspace")
@@ -141,6 +145,36 @@ gs_get_gates <- function(gs,
   gates$y_lowlim <- sapply(lims, "[", 2)
   gates$y_uplim <- sapply(lims, "[", 4)
 
+  if (scatter_equal) {
+    scat_xinds <- which(grepl("[FS]SC-[AWH]", gates$x))
+    scat_yinds <- which(grepl("[FS]SC-[AWH]", gates$y))
+    scat_lowlim <- c(gates$x_lowlim[scat_xinds],
+                     gates$y_lowlim[scat_yinds])
+    scat_uplim <- c(gates$x_uplim[scat_xinds],
+                    gates$y_uplim[scat_yinds])
+    gates$x_lowlim[scat_xinds] <- min(scat_lowlim)
+    gates$y_lowlim[scat_yinds] <- min(scat_lowlim)
+    gates$x_uplim[scat_xinds] <- max(scat_uplim)
+    gates$y_uplim[scat_yinds] <- max(scat_uplim)
+  }
+  if (fluo_equal) {
+    allchann <- unique(c(gates$x, gates$y))
+    allchann <- allchann[which(!grepl("[FS]SC-[AWH]", allchann))]
+    for (i in allchann) {
+      #i <- allchann[3]
+      xinds <- which(gates$x == i)
+      yinds <- which(gates$y == i)
+      lowlim <- c(gates$x_lowlim[xinds],
+                  gates$y_lowlim[yinds])
+      uplim <- c(gates$x_uplim[xinds],
+                 gates$y_uplim[yinds])
+      gates$x_lowlim[xinds] <- min(lowlim)
+      gates$y_lowlim[yinds] <- min(lowlim)
+      gates$x_uplim[xinds] <- max(uplim)
+      gates$y_uplim[yinds] <- max(uplim)
+    }
+  }
+
   n_bins <- rep(n_bins, nrow(gates))
   below <- sapply(counts, function(x) any(x<reduce_n_bins_below))
   n_bins[which(below)] <- n_bins[which(below)] / reduce_factor
@@ -149,6 +183,9 @@ gs_get_gates <- function(gs,
   gates$binwidths <- split(t(mat), rep(1:nrow(mat), each = ncol(mat)))
 
   gates$facet_strip <- c(T, rep(F, nrow(gates)-1))
+  gates$plot_gate <- T
+  gates$plot_gate_name <- T
+  gates$plot_gate_pct <- T
 
   tryCatch(
     expr = {
