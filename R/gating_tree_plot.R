@@ -5,10 +5,8 @@
 #' @param PopulationFullPath vector of all populations path (full) gated in a (flowjo) workspace;
 #' optionally provide named vector (e.g. with short names) which will be plotted in the graph at corresponding nodes
 #' @param layout layout for plotting, see ?ggraph::ggraph or ?ggraph::layout_tbl_graph_igraph
-#' @param find_short_gating_path if PopulationFullPath is a vector without names find the shortest unique
-#' gating path from these full paths for plotting
+#' @param names label for nodes
 #' @param ... additional argument to ggrepel, like max.overlaps
-#' @param label_repel repel population labels?
 #'
 #' @return list of plot, graph and data.frame
 #' @export
@@ -39,7 +37,7 @@
 #' }
 gating_tree_plot <- function(PopulationFullPath,
                              layout = "tree",
-                             find_short_gating_path = T,
+                             names = c("final_node", "short_path", "full_path"),
                              label_repel = F,
                              ...) {
 
@@ -49,6 +47,8 @@ gating_tree_plot <- function(PopulationFullPath,
   if (!requireNamespace("igraph", quietly = T)) {
     utils::install.packages("igraph")
   }
+
+  names <- rlang::arg_match(names)
 
   # make unique but keep names if present
   if (is.null(names(PopulationFullPath))) {
@@ -88,11 +88,12 @@ gating_tree_plot <- function(PopulationFullPath,
   graph <- igraph::graph_from_data_frame(d = from_to_df3, directed = T)
 
   if (is.null(names(PopulationFullPath))) {
-    if (find_short_gating_path) {
-      igraph::V(graph)$Population <- fcexpr:::shortest_unique_path(igraph::V(graph)$name)
-    } else {
-      igraph::V(graph)$Population <- igraph::V(graph)$name
-    }
+    nameschr <- switch(names,
+                       short_path = fcexpr:::shortest_unique_path(igraph::V(graph)$name),
+                       final_node = basename(igraph::V(graph)$name),
+                       full_path = igraph::V(graph)$name)
+
+    igraph::V(graph)$Population <- nameschr
   } else {
     igraph::V(graph)$Population <- stats::setNames(names(PopulationFullPath), PopulationFullPath)[igraph::V(graph)$name]
   }

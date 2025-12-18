@@ -7,7 +7,7 @@
 gating_tree_plot(
   PopulationFullPath,
   layout = "tree",
-  find_short_gating_path = T,
+  names = c("final_node", "short_path", "full_path"),
   label_repel = F,
   ...
 )
@@ -18,10 +18,7 @@ optionally provide named vector (e.g. with short names) which will be plotted in
 
 \item{layout}{layout for plotting, see ?ggraph::ggraph or ?ggraph::layout_tbl_graph_igraph}
 
-\item{find_short_gating_path}{if PopulationFullPath is a vector without names find the shortest unique
-gating path from these full paths for plotting}
-
-\item{label_repel}{repel population labels?}
+\item{names}{label for nodes}
 
 \item{...}{additional argument to ggrepel, like max.overlaps}
 }

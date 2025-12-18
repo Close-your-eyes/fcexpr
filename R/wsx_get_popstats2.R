@@ -31,16 +31,32 @@ wsx_get_popstats2 <- function(ws,
 
 
   # check stats
-
+  # ws <- "/Volumes/CMS_SSD_2TB/Experiment_data/20210707_IL15_NKG2D_MICAB_target_cell_killing/FJ.workspaces/Exp_part_19.wsp"
   # groups = NULL
   # invert_groups = F
-  # show_progress = T
+  # library(xml2)
 
   show_progress = F
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
   samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
+
+  # x <- xml2::xml_child(samples[[1]], "SampleNode")
+  #
+  #
+  # recurse_on_samplenode <- function(x) {
+  #   attr <- xml2::xml_attrs(x)
+  #   print(attr)
+  #   if ("Subpopulations" %in% xml2::xml_name(xml2::xml_children(x))) {
+  #     y <- xml2::xml_children(xml2::xml_child(x, "Subpopulations"))
+  #     purrr::map(y, function(y) {
+  #       recurse_on_samplenode(y)
+  #     })
+  #   }
+  #   return(attr)
+  # }
+  # out <- recurse_on_samplenode(x)
 
   # jannis wsp: multiple samples from same FCS file
 

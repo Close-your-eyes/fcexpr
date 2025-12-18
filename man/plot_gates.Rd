@@ -17,7 +17,7 @@ plot_gates(
   pct_digits = 1,
   plot_contours = F,
   plot_title = T,
-  title = c("full_path", "short_path", "final_node"),
+  title = c("final_node", "short_path", "full_path"),
   contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
     "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0, linewidth = 0.2),
   col_pal = colrr::col_pal("Spectral", direction = -1),

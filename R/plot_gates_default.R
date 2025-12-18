@@ -101,7 +101,7 @@ plot_gates <- function(gs,
                        pct_digits = 1,
                        plot_contours = F,
                        plot_title = T,
-                       title = c("full_path", "short_path", "final_node"),
+                       title = c("final_node", "short_path", "full_path"),
                        contour_args = list(fill = "white",
                                            geom = "polygon",
                                            color = "black",
@@ -286,7 +286,7 @@ plot_gates <- function(gs,
       } else {
         titlechr <- switch(title,
                            short_path = gg$Parent_short[1],# multiple boolean parents?
-                           final_node = rev(strsplit(gg$Parent[1], "/")[[1]])[1],
+                           final_node = gsub("root", "", rev(strsplit(gg$Parent[1], "/")[[1]])[1]),
                            full_path = gsub("root", "", gg$Parent[1]))
         p <- p + ggplot2::labs(title = titlechr)
       }
