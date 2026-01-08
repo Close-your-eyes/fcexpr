@@ -46,6 +46,7 @@
 #' @param theme_args arguments to ggplot2::theme
 #' @param gate_args arguments to geom_gate
 #' @param as_ggplot convert to ggplot object?
+#' @param title_superscript plot plus and minus signs in superscript?
 #'
 #' @return a list of ggplot2 objects, one for every gating level;
 #' each list index contains respective plots for every fcs file
@@ -102,6 +103,7 @@ plot_gates <- function(gs,
                        plot_contours = F,
                        plot_title = T,
                        title = c("final_node", "short_path", "full_path"),
+                       title_superscript = F,
                        contour_args = list(fill = "white",
                                            geom = "polygon",
                                            color = "black",
@@ -196,6 +198,10 @@ plot_gates <- function(gs,
   gates_df$Parent_short <- conv[gates_df$Parent]
   gates_df$Parent_short[which(is.na(gates_df$Parent_short))] <- ""
 
+  if (any(gates_df$marginalFilter)) {
+    message("max_nrow_to_plot does not apply to gates with ggcyto::marginalFilter enabled.")
+  }
+
   out <- purrr::flatten(lapply(sort(unique(gates_df$GateLevel)), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
 
@@ -288,6 +294,11 @@ plot_gates <- function(gs,
                            short_path = gg$Parent_short[1],# multiple boolean parents?
                            final_node = gsub("root", "", rev(strsplit(gg$Parent[1], "/")[[1]])[1]),
                            full_path = gsub("root", "", gg$Parent[1]))
+        if (title_superscript && !trimws(titlechr) == "") {
+          titlechr <- gsub("-", "<sup>-</sup>", titlechr, fixed = T)
+          titlechr <- gsub("+", "<sup>+</sup>", titlechr, fixed = T)
+          p <- p + ggplot2::theme(plot.title = ggtext::element_markdown(margin = ggplot2::margin(1,1,1,1, unit = "pt"), size = 12))
+        }
         p <- p + ggplot2::labs(title = titlechr)
       }
       attr(p, "Population") <- paste(gg$Population, collapse = "__")

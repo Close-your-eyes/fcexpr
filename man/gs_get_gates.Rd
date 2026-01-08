@@ -6,7 +6,7 @@
 \usage{
 gs_get_gates(
   gs,
-  n_bins = 40000,
+  n_bins = 30000,
   quantile_lim_filter = c(1e-04, 0.9999),
   min_max_vals = c(0, 300),
   min_max_vals_scatter = c(0, 250000),
@@ -14,11 +14,12 @@ gs_get_gates(
   y_statpos_name = 0.9,
   x_statpos_pct = 0.9,
   y_statpos_pct = 0.1,
-  statsize_name = 4,
-  statsize_pct = 4,
+  statsize_name = 3.3,
+  statsize_pct = 3.3,
   reduce_n_bins_below = 0,
   reduce_factor = 2,
   scatter_equal = T,
+  marginal_filter = c("none", "scatter"),
   fluo_equal = T
 )
 }
@@ -53,6 +54,8 @@ in inverse transformation which is equal to logicle transformation (for scatter 
 
 \item{scatter_equal}{equal limits for all scatter channels?}
 
+\item{marginal_filter}{set marginalFilter to TRUE for no gate or gates scatter channels}
+
 \item{fluo_equal}{equal limits for each fluorescence channel in all panels?}
 }
 \value{
@@ -63,6 +66,9 @@ Gates from gatingset for plotting with ggcyto
 }
 \examples{
 \dontrun{
-gates <- gs_get_gates(gs)
+# by default run during wsp_get_gs
+gsdata <- fcexpr::wsp_get_gs(wsp, get_gates = F)
+gates_df <- fcexpr::gs_get_gates(gsdata[[1]][[1]])
+plots <- fcexpr::plot_gates(gs = gsdata[[1]][[1]]), gates_df = gates_df)
 }
 }

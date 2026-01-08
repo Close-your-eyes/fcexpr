@@ -34,12 +34,18 @@
 #' @examples
 #'\dontrun{
 #' # check fcs files in wsp first
-#' samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp", split = F, filter_AllSamples = T)
+#' samples <- fcexpr::wsx_get_fcs_paths(ws = "mypath/my.wsp",
+#'                                      split = F,
+#'                                      filter_AllSamples = T)
 #' # read-in Gating set with selected samples
-#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp", FCS.files.folder = "myLocalTopFolder/subfolder", groups = "Compensation", invert_groups = T, samples = samples$FileName[1:5])
-#'}
+#' gs_list <- fcexpr::wsp_get_gs(wsp = "mypath/my.wsp",
+#'                               FCS.files.folder = "myLocalTopFolder/subfolder",
+#'                               groups = "Compensation",
+#'                               invert_groups = T,
+#'                               samples = samples$FileName[1:5])
+#' }
 wsp_get_gs <- function(wsp,
-                       FCS.file.folder = NULL,
+                       FCS.file.folder = file.path(dirname(dirname(wsp)), "FCS_files"),
                        groups = NULL,
                        invert_groups = F,
                        samples = NULL,
@@ -48,7 +54,7 @@ wsp_get_gs <- function(wsp,
                        pData = NULL,
                        pData_join_col = "identity",
                        get_gates = T,
-                       get_gates_args = list(n_bins = 200^2),
+                       get_gates_args = list(n_bins = 30000),
                        force_gs_merge = F,
                        dir = tempdir()) {
 

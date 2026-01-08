@@ -18,6 +18,7 @@ plot_gates(
   plot_contours = F,
   plot_title = T,
   title = c("final_node", "short_path", "full_path"),
+  title_superscript = F,
   contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
     "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0, linewidth = 0.2),
   col_pal = colrr::col_pal("Spectral", direction = -1),
@@ -77,6 +78,8 @@ ggplot2::geom_density_2d}
 \item{plot_title}{do plot titles?}
 
 \item{title}{title format}
+
+\item{title_superscript}{plot plus and minus signs in superscript?}
 
 \item{contour_args}{arguments to stat_density_2d}
 

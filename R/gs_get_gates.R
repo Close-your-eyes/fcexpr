@@ -17,18 +17,20 @@
 #' @param reduce_factor by which factor to reduce bin number?
 #' @param scatter_equal equal limits for all scatter channels?
 #' @param fluo_equal equal limits for each fluorescence channel in all panels?
+#' @param marginal_filter set marginalFilter to TRUE for no gate or gates scatter channels
 #'
 #' @return a data frame to loop over and produce plots with ggcyto
 #' @export
 #'
-#' @importFrom magrittr "%>%"
-#'
 #' @examples
 #' \dontrun{
-#' gates <- gs_get_gates(gs)
+#' # by default run during wsp_get_gs
+#' gsdata <- fcexpr::wsp_get_gs(wsp, get_gates = F)
+#' gates_df <- fcexpr::gs_get_gates(gsdata[[1]][[1]])
+#' plots <- fcexpr::plot_gates(gs = gsdata[[1]][[1]]), gates_df = gates_df)
 #' }
 gs_get_gates <- function(gs,
-                         n_bins = 40000,
+                         n_bins = 30000,
                          quantile_lim_filter = c(0.0001, 0.9999),
                          min_max_vals = c(0, 300),
                          min_max_vals_scatter = c(0, 250000),
@@ -36,11 +38,12 @@ gs_get_gates <- function(gs,
                          y_statpos_name = 0.9,
                          x_statpos_pct = 0.9,
                          y_statpos_pct = 0.1,
-                         statsize_name = 4,
-                         statsize_pct = 4,
+                         statsize_name = 3.3,
+                         statsize_pct = 3.3,
                          reduce_n_bins_below = 0,
                          reduce_factor = 2,
                          scatter_equal = T,
+                         marginal_filter = c("none", "scatter"),
                          fluo_equal = T) {
 
   if (!requireNamespace("flowWorkspace", quietly = T)){
@@ -67,14 +70,15 @@ gs_get_gates <- function(gs,
   }
   min_max_vals <- sort(min_max_vals)
   min_max_vals_scatter <- sort(min_max_vals_scatter)
+  marginal_filter <- rlang::arg_match(marginal_filter)
 
   gates <-
     data.frame(PopulationFullPath = gsub("^/", "", flowWorkspace::gs_get_pop_paths(gs)),
                Population = flowWorkspace::gs_get_pop_paths(gs, path = "auto"),
-               GateLevel = nchar(flowWorkspace::gs_get_pop_paths(gs)) - nchar(gsub("/", "", flowWorkspace::gs_get_pop_paths(gs)))) %>%
-    dplyr::filter(GateLevel > 0) %>%
-    dplyr::mutate(Parent = gsub("^/", "", dirname(PopulationFullPath))) %>%
-    dplyr::mutate(Parent = ifelse(Parent == ".", "root", Parent)) %>%
+               GateLevel = nchar(flowWorkspace::gs_get_pop_paths(gs)) - nchar(gsub("/", "", flowWorkspace::gs_get_pop_paths(gs)))) |>
+    dplyr::filter(GateLevel > 0) |>
+    dplyr::mutate(Parent = gsub("^/", "", dirname(PopulationFullPath))) |>
+    dplyr::mutate(Parent = ifelse(Parent == ".", "root", Parent)) |>
     dplyr::mutate(x_statpos_name = x_statpos_name,
                   y_statpos_name = y_statpos_name,
                   statsize_name = statsize_name,
@@ -101,7 +105,11 @@ gs_get_gates <- function(gs,
   gates$y <- sapply(gates$dims, "[", 2)
   gates$x_lab <- gates$x
   gates$y_lab <- gates$y
-  gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
+  if (marginal_filter == "none") {
+    gates$marginalFilter <- F
+  } else {
+    gates$marginalFilter <- ifelse(grepl("fsc|ssc", gates$x, ignore.case = T) & grepl("fsc|ssc", gates$y, ignore.case = T), T, F)
+  }
 
   lims_count <- purrr::map(split(gates, 1:nrow(gates)), function(gate) {
 
@@ -197,6 +205,7 @@ gs_get_gates <- function(gs,
       print(e)
     }
   )
+  rownames(gates) <- 1:nrow(gates)
   return(gates)
 }
 
