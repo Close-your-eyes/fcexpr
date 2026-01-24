@@ -55,6 +55,10 @@
 #' by -1 to make this work properly
 #' @param topn_ties break ties for features_topn? if TRUE, more then
 #' features_topn may be plotted
+#' @param featuregroup column name in df that groups features
+#' @param featuregroup_style how to show feature groups, by colored axis text and/or separate facets
+#' @param featuregroup_col_name color legend name
+#' @param featuregroup_col_pal color palette name passed to colrr::col_pal
 #'
 #' @return ggplot2 object
 #' @export
@@ -97,6 +101,10 @@ heatmap_long_df <- function(df,
                             groups,
                             features,
                             values,
+                            featuregroup = NULL,
+                            featuregroup_style = c("facet", "color"),
+                            featuregroup_col_name = "",
+                            featuregroup_col_pal = "custom_light",
                             dotsizes = NULL,
                             dotsize_range = c(2,7),
                             fill = "..auto..",
@@ -164,6 +172,12 @@ heatmap_long_df <- function(df,
     values <- names(which(sapply(df, is.numeric)))[1]
     message("values: ", values)
   }
+
+  if (!is.null(featuregroup) && !featuregroup %in% names(df)) {
+    stop("featuregroup column not found in df.")
+  }
+  featuregroup_style <- rlang::arg_match(featuregroup_style, multiple = T)
+
   if (missing(features) || missing(groups)) {
     # first two char columns
     featgrou <- names(c(which(sapply(df, is.character)), which(sapply(df, is.factor))))[1:2]
@@ -334,9 +348,64 @@ heatmap_long_df <- function(df,
 
   plot <- plot + theme + Gmisc::fastDoCall(ggplot2::theme, args = theme_args)
 
+  if (!is.null(featuregroup)) {
+    if ("facet" %in% featuregroup_style) {
+      if (axes_flip) {
+        facet_args <- list(scales = "free_x",
+                           space = "free_x",
+                           nrow = 1,
+                           ncol = NULL,
+                           strip.position = "top")
+      } else {
+        facet_args <- list(scales = "free_y",
+                           space = "free_y",
+                           ncol = 1,
+                           nrow = NULL,
+                           strip.position = "right")
+      }
+
+      plot <- plot +
+        Gmisc::fastDoCall(ggplot2::facet_wrap,
+                          args = c(list(facets = ggplot2::vars(!!rlang::sym(featuregroup))),
+                                   facet_args))
+    }
+
+    if ("color" %in% featuregroup_style) {
+      marker_df <- dplyr::distinct(df, !!rlang::sym(features), !!rlang::sym(featuregroup))
+      color_conv <- colrr::col_pal(featuregroup_col_pal, n = marker_df[[featuregroup]], return = "char")
+      marker_df$color <- color_conv[marker_df[[featuregroup]]]
+      colman <- stats::setNames(marker_df$color, marker_df[[featuregroup]])
+
+      plot <- plot +
+        ggplot2::geom_point(
+          data = data.frame(
+            x = NA,
+            y = NA,
+            yaxis = marker_df[[featuregroup]]
+          ) |> dplyr::mutate(!!values := 0),
+          ggplot2::aes(x = x, y = y, color = yaxis, fill = !!rlang::sym(values)),
+          inherit.aes = F
+        ) +
+        ggplot2::scale_color_manual(
+          name = featuregroup_col_name,
+          values = colman[!duplicated(colman)]
+        ) +
+        ggplot2::scale_x_discrete(na.translate = F)
+      if (axes_flip) {
+        plot <- plot + ggplot2::theme(axis.text.x = ggtext::element_markdown())
+      } else {
+        plot <- plot + ggplot2::theme(axis.text.y = ggtext::element_markdown())
+      }
+    }
+  }
+
+
   # breaks not present are ignored
   # axes_flip is incorporated
   if (featurelabels_repel) {
+    if (!is.null(featuregroup)) {
+      warning("grouped y axis and feature repel combination is not tested or established.")
+    }
     plot <- repel_features(
       df = df,
       plot = plot,
@@ -344,7 +413,16 @@ heatmap_long_df <- function(df,
       featurelabels = featurelabels,
       featuresitalic = featuresitalic)
   } else {
-    plot <- plot + ggplot2::scale_y_discrete(breaks = featurelabels, labels = names(featurelabels))
+    if (!is.null(featuregroup)) {
+      plot <- plot +
+        ggplot2::scale_y_discrete(na.translate = F,
+                                  labels = function(y) color_labels(y, stats::setNames(marker_df[["color"]],
+                                                                                       marker_df[[features]])),
+                                  breaks = featurelabels)
+    } else {
+      plot <- plot +
+        ggplot2::scale_y_discrete(breaks = featurelabels, labels = names(featurelabels))
+    }
   }
 
   return(plot)
@@ -430,3 +508,12 @@ round_auto_any <- function(x,
   res
 }
 
+color_labels <- function(labels, col_map) {
+  sapply(labels, function(x) {
+    if (x %in% names(col_map)) {
+      paste0("<span style='color:", col_map[x], ";'>", x, "</span>")
+    } else {
+      x
+    }
+  })
+}

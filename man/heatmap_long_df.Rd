@@ -9,6 +9,10 @@ heatmap_long_df(
   groups,
   features,
   values,
+  featuregroup = NULL,
+  featuregroup_style = c("facet", "color"),
+  featuregroup_col_name = "",
+  featuregroup_col_pal = "custom_light",
   dotsizes = NULL,
   dotsize_range = c(2, 7),
   fill = "..auto..",
@@ -46,6 +50,14 @@ heatmap_long_df(
 \item{features}{column with features}
 
 \item{values}{column with fill values for color scale}
+
+\item{featuregroup}{column name in df that groups features}
+
+\item{featuregroup_style}{how to show feature groups, by colored axis text and/or separate facets}
+
+\item{featuregroup_col_name}{color legend name}
+
+\item{featuregroup_col_pal}{color palette name passed to colrr::col_pal}
 
 \item{dotsizes}{column for dot sizes, if provided will cause plotting of
 dots instead of tiles}
