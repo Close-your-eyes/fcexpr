@@ -35,10 +35,11 @@ heatmap_long_df(
   theme = ggplot2::theme_classic(),
   legend_fill_args = list(barwidth = 1, barheight = 8, order = 1),
   legend_size_args = list(order = 2, ncol = NULL, nrow = NULL, override.aes = list(color
-    = "black")),
+    = "..auto..", fill = "..auto..")),
   theme_args = list(panel.grid = ggplot2::element_blank()),
   repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
   heatmap_ordering_args = list(feature_order = "custom", group_order = "hclust"),
+  values_zscored = NULL,
   ...
 )
 }
@@ -131,6 +132,9 @@ needed}
 \item{repel_args}{fine tuning for featurelabel repelling}
 
 \item{heatmap_ordering_args}{arguments to heatmap_ordering like feature_order or group_order}
+
+\item{values_zscored}{say if values are z-scored; if NULL inferred from data
+with brathering::is_z_scored}
 
 \item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }

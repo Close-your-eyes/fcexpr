@@ -59,6 +59,8 @@
 #' @param featuregroup_style how to show feature groups, by colored axis text and/or separate facets
 #' @param featuregroup_col_name color legend name
 #' @param featuregroup_col_pal color palette name passed to colrr::col_pal
+#' @param values_zscored say if values are z-scored; if NULL inferred from data
+#' with brathering::is_z_scored
 #'
 #' @return ggplot2 object
 #' @export
@@ -137,7 +139,7 @@ heatmap_long_df <- function(df,
                               order = 2,
                               ncol = NULL,
                               nrow = NULL,
-                              override.aes = list(color = "black")
+                              override.aes = list(color = "..auto..", fill = "..auto..")
                               #size = c(2, 7))
                             ),
                             theme_args = list(
@@ -147,6 +149,7 @@ heatmap_long_df <- function(df,
                                               featurelabels_nudhe_x = -1),
                             heatmap_ordering_args = list(feature_order = "custom",
                                                          group_order = "hclust"),
+                            values_zscored = NULL,
                             ...) {
 
   if (!requireNamespace("brathering", quietly = T)) {
@@ -289,11 +292,15 @@ heatmap_long_df <- function(df,
     to_rows = groups,
     to_cols = features,
     values = values)
-  values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F, tol = 0.05)) > 0.9*ncol(dfmat) # 0.9: arbitrary choice
 
-  if (values_zscored) {
-    message("values interpreted as z-scored.")
+  if (is.null(values_zscored)) {
+    values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F, tol = 0.05)) > 0.9*ncol(dfmat) # 0.9: arbitrary choice
+
+    if (values_zscored) {
+      message("values interpreted as z-scored.")
+    }
   }
+
 
   # decide for colorsteps or continuous colorbar
   scale_fill <- colrr::get_color_scale_continuous(values = df[[values]],
@@ -307,6 +314,20 @@ heatmap_long_df <- function(df,
     guide_fun <- ggplot2::guide_colorsteps
   } else {
     guide_fun <- ggplot2::guide_colorbar
+  }
+
+  ## auto legend size fill and color ?
+  if ("override.aes" %in% names(legend_size_args)) {
+    if ("color" %in% names(legend_size_args[["override.aes"]])) {
+      if (legend_size_args[["override.aes"]][["color"]] == "..auto..") {
+        legend_size_args[["override.aes"]][["color"]] <- brathering:::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
+      }
+    }
+    if ("fill" %in% names(legend_size_args[["override.aes"]])) {
+      if (legend_size_args[["override.aes"]][["fill"]] == "..auto..") {
+        legend_size_args[["override.aes"]][["fill"]] <- brathering:::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
+      }
+    }
   }
 
   plot <- plot +
@@ -413,7 +434,7 @@ heatmap_long_df <- function(df,
       featurelabels = featurelabels,
       featuresitalic = featuresitalic)
   } else {
-    if (!is.null(featuregroup)) {
+    if (!is.null(featuregroup) && "color" %in% featuregroup_style) {
       plot <- plot +
         ggplot2::scale_y_discrete(na.translate = F,
                                   labels = function(y) color_labels(y, stats::setNames(marker_df[["color"]],

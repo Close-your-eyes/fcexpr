@@ -22,14 +22,17 @@ get_hclust_clusters <- function(exprs,
   method <- rlang::arg_match(method)
   distance <- rlang::arg_match(distance)
 
+
   if (distance == "correlation") {
     d = as.dist(1 - cor(t(exprs)))
-  } else{
-    d <- do.call(stats::dist, args = c(list(x = exprs, method = distance)))
+  } else if (distance == "euclidean") {
+    d <- parallelDist::parallelDist(exprs, threads = 12)
+  } else {
+    d <- Gmisc::fastDoCall(stats::dist, args = c(list(x = exprs, method = distance)))
   }
 
-  h <- do.call(stats::hclust, args = c(list(d = d, method = method)))
-  ks <- do.call(cbind, parallel::mclapply(k, function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
+  h <- Gmisc::fastDoCall(stats::hclust, args = c(list(d = d, method = method)))
+  ks <- Gmisc::fastDoCall(cbind, parallel::mclapply(k, function(x) stats::cutree(tree = h, k = x), mc.cores = mc.cores))
 
 
   # make sure that cluster 1 is the largest and so on

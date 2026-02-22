@@ -7,7 +7,7 @@
 get_louvain_cluster(
   exprs,
   FindNeighbors_args = list(),
-  FindClusters_args = list(resolution = c(0.1)),
+  FindClusters_args = list(resolution = c(0.1), verbose = T),
   mc.cores = 1
 )
 }
@@ -25,4 +25,9 @@ matrix with cluster identities
 }
 \description{
 Calculate louvain clusters based on expression matrix
+}
+\examples{
+\dontrun{
+# try options(future.globals.maxSize = 8000 * 1024^2)
+}
 }

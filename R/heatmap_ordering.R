@@ -26,25 +26,25 @@ heatmap_ordering <- function(df,
                              values = "mean_cluster_scale",
                              feature_order = c("custom", "hclust", "none"),
                              group_order = c("hclust", "none", "custom")) {
-  #browser()
 
   cols <- groups
   rows <- features
   row_order_method <- rlang::arg_match(feature_order)
   col_order_method <- rlang::arg_match(group_order)
 
-  if (group_order == "none" && feature_order == "none") {
+  if (row_order_method == "none" && col_order_method == "none") {
     return(df)
   }
 
-  mat <- df_long_to_mat(df = df,
-                        to_rows = rows,
-                        to_cols = cols,
-                        values = values)
+  mat <- brathering::df_long_to_mat(
+    df,
+    to_rows = rows,
+    to_cols = cols,
+    values = values
+  )
 
   clust_rows <- cluster_mat(mat = mat)
   clust_cols <- cluster_mat(mat = t(mat))
-
 
   # the default
   # if rows or cols are factors, keep that order
@@ -89,10 +89,11 @@ heatmap_ordering <- function(df,
     df[[cols]] <- factor(df[[cols]], levels = col_order)
   }
 
+  attr(df, "clust_rows") <- clust_rows
+  attr(df, "clust_cols") <- clust_cols
 
   return(df)
 }
-
 
 cluster_mat = function(mat,
                        distance = c("euclidean", "correlation", "maximum", "manhattan", "canberra", "binary", "minkowski"),
@@ -102,6 +103,8 @@ cluster_mat = function(mat,
 
   if (distance == "correlation"){
     d = stats::as.dist(1 - cor(t(mat)))
+  } else if (distance == "euclidean") {
+    d <- parallelDist::parallelDist(mat, threads = 12)
   } else{
     d = stats::dist(mat, method = distance)
   }
@@ -109,22 +112,22 @@ cluster_mat = function(mat,
   return(stats::hclust(d, method = method))
 }
 
-df_long_to_mat <- function(df, to_rows, to_cols, values) {
-
-  if (any(dplyr::count(df, !!rlang::sym(to_rows), !!rlang::sym(to_cols))[["n"]] > 1)) {
-    cat(paste0("dplyr::add_count(df, ", to_rows, ", ", to_cols, ")"))
-    stop("pairs of ", to_rows, " and ", to_cols, " are not unique in your data frame. fix that. inspect n after running this command.")
-  }
-
-
-  mat <-
-    df |>
-    dplyr::select(dplyr::all_of(c(to_rows, to_cols, values))) |>
-    tidyr::pivot_wider(names_from = !!rlang::sym(to_cols), values_from = !!rlang::sym(values)) |>
-    tibble::column_to_rownames(to_rows) |>
-    as.matrix()
-  return(mat)
-}
+# df_long_to_mat <- function(df, to_rows, to_cols, values) {
+#
+#   if (any(dplyr::count(df, !!rlang::sym(to_rows), !!rlang::sym(to_cols))[["n"]] > 1)) {
+#     cat(paste0("dplyr::add_count(df, ", to_rows, ", ", to_cols, ")"))
+#     stop("pairs of ", to_rows, " and ", to_cols, " are not unique in your data frame. fix that. inspect n after running this command.")
+#   }
+#
+#
+#   mat <-
+#     df |>
+#     dplyr::select(dplyr::all_of(c(to_rows, to_cols, values))) |>
+#     tidyr::pivot_wider(names_from = !!rlang::sym(to_cols), values_from = !!rlang::sym(values)) |>
+#     tibble::column_to_rownames(to_rows) |>
+#     as.matrix()
+#   return(mat)
+# }
 
 order_custom_for_heatmap <- function(df,
                                      col_to_order,
