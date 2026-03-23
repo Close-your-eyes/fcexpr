@@ -8,7 +8,12 @@ get_louvain_cluster(
   exprs,
   FindNeighbors_args = list(),
   FindClusters_args = list(resolution = c(0.1), verbose = T),
-  mc.cores = 1
+  mc.cores = 1,
+  return_as = c("character", "numeric"),
+  pad_len = "overall_max",
+  unique_only = T,
+  one_res_per_cluster_num_only = F,
+  min_cluster = 1
 )
 }
 \arguments{
@@ -19,6 +24,8 @@ get_louvain_cluster(
 \item{FindClusters_args}{arguments to Seurat::FindClusters}
 
 \item{mc.cores}{cores to use to calculate multiple resolutions in parallel}
+
+\item{min_cluster}{}
 }
 \value{
 matrix with cluster identities
