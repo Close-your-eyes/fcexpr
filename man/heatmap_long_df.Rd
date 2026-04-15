@@ -40,6 +40,13 @@ heatmap_long_df(
   repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
   heatmap_ordering_args = list(feature_order = "custom", group_order = "hclust"),
   values_zscored = NULL,
+  pvals = NULL,
+  pval_features = NULL,
+  pval_max = 0.01,
+  pval_symnum_args = list(cutpoints = c(0, 1e-04, Inf), symbols = c("*", "ns")),
+  pval_filter = c("top", "pos_fc"),
+  pval_logfc = "logFC",
+  pval_text_args = list(size = 5, vjust = 0.75),
   ...
 )
 }
@@ -135,6 +142,8 @@ needed}
 
 \item{values_zscored}{say if values are z-scored; if NULL inferred from data
 with brathering::is_z_scored}
+
+\item{pval_text_args}{}
 
 \item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }

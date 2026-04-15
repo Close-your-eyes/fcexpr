@@ -61,6 +61,13 @@
 #' @param featuregroup_col_pal color palette name passed to colrr::col_pal
 #' @param values_zscored say if values are z-scored; if NULL inferred from data
 #' with brathering::is_z_scored
+#' @param pvals
+#' @param pval_features
+#' @param pval_max
+#' @param pval_symnum_args
+#' @param pval_filter
+#' @param pval_logfc
+#' @param pval_text_args
 #'
 #' @return ggplot2 object
 #' @export
@@ -150,7 +157,16 @@ heatmap_long_df <- function(df,
                             heatmap_ordering_args = list(feature_order = "custom",
                                                          group_order = "hclust"),
                             values_zscored = NULL,
+                            pvals = NULL,
+                            pval_features = NULL,
+                            pval_max = 0.01,
+                            pval_symnum_args = list(cutpoints = c(0, 0.0001, Inf),
+                                                    symbols = c("*", "ns")),
+                            pval_filter = c("top", "pos_fc"),
+                            pval_logfc = "logFC",
+                            pval_text_args = list(size = 5, vjust = 0.75),
                             ...) {
+
 
   if (!requireNamespace("brathering", quietly = T)) {
     devtools::install_github("Close-your-eyes/brathering")
@@ -201,6 +217,7 @@ heatmap_long_df <- function(df,
   }
 
   scale <- rlang::arg_match(scale)
+  pval_filter <- rlang::arg_match(pval_filter)
 
   if (featuresitalic) {
     theme_args <- brathering::gg_inject_theme_element(theme_args = theme_args,
@@ -209,10 +226,32 @@ heatmap_long_df <- function(df,
                                                       value = "italic")
   }
 
+  if (!is.null(pvals) && !pvals %in% names(df)) {
+    message("pvals column not found.")
+    pvals <- NULL
+  }
+  if (!is.null(pvals) && pval_filter == "pos_fc" && !pval_logfc %in% names(df)) {
+    message("pval_logfc column not found.")
+    pvals <- NULL
+  }
+
+
+
+  if (!is.null(pvals)) {
+    if (is.null(pval_features)) {
+      pval_features <- unique(df[[features]])
+    } else {
+      pval_features <- intersect(pval_features, df[[features]])
+      if (!length(pval_features)) {
+        pvals <- NULL
+        message("none of pval_features found.")
+      }
+    }
+  }
+
   # optional filter for top n features per group
   if (!is.null(features_topn)) {
-    select <-
-      df |>
+    select <- df |>
       # max group per feature
       dplyr::slice_max(order_by = !!rlang::sym(values), n = 1, by = !!rlang::sym(features)) |>
       # then best features per group
@@ -234,7 +273,7 @@ heatmap_long_df <- function(df,
 
 
   # assign factors to features and groups
-  df <- Gmisc::fastDoCall(heatmap_ordering,
+  df <- Gmisc::fastDoCall(fcexpr::heatmap_ordering,
                           args = c(list(df = df,
                                         features = features,
                                         groups = groups,
@@ -262,12 +301,13 @@ heatmap_long_df <- function(df,
     fill <- colrr::col_pal(name = fill)
   }
 
+  df <- dplyr::arrange(df, !!rlang::sym(features))
+
   # start ggplot pipeline
   plot <- ggplot2::ggplot(df, ggplot2::aes(
     x = !!rlang::sym(groups),
     y = !!rlang::sym(features),
-    fill = !!rlang::sym(values)
-  ))
+    fill = !!rlang::sym(values)))
   if (axes_flip) {
     plot <- plot + ggplot2::coord_flip()
   }
@@ -277,13 +317,12 @@ heatmap_long_df <- function(df,
       ggplot2::aes(size = !!rlang::sym(dotsizes)),
       shape = 21,
       color = color,
-      stroke = color_linewidth
-    ) + ggplot2::scale_size(range = dotsize_range)
+      stroke = color_linewidth) +
+      ggplot2::scale_size(range = dotsize_range)
   } else {
     plot <- plot + ggplot2::geom_tile(
       color = color,
-      linewidth = color_linewidth
-    )
+      linewidth = color_linewidth)
   }
 
   # check if values are z-scored
@@ -295,10 +334,26 @@ heatmap_long_df <- function(df,
 
   if (is.null(values_zscored)) {
     values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F, tol = 0.05)) > 0.9*ncol(dfmat) # 0.9: arbitrary choice
-
     if (values_zscored) {
       message("values interpreted as z-scored.")
     }
+  }
+
+
+  if (!is.null(pvals)) {
+    if (pval_filter == "max") {
+      df_pval <- dplyr::slice_max(df, order_by = !!rlang::sym(values), n = 1, by = c(!!rlang::sym(features)))
+    } else if (pval_filter == "pos_fc") {
+      df_pval <- dplyr::filter(df, !!rlang::sym(pval_logfc) > 0)
+    }
+    df_pval <- df_pval |>
+      dplyr::filter(!!rlang::sym(pvals) <= pval_max) |>
+      dplyr::filter(!!rlang::sym(features) %in% pval_features)
+    df_pval$pval_sym <- do.call(stats::symnum, c(list(x = df_pval[[pvals]]), pval_symnum_args))
+
+    plot <- plot + Gmisc::fastDoCall(ggplot2::geom_text, args = c(list(data = df_pval,
+                                                                       mapping = ggplot2::aes(label = pval_sym)),
+                                                                  pval_text_args))
   }
 
 

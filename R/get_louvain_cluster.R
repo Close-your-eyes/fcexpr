@@ -64,7 +64,7 @@ get_louvain_cluster <- function(exprs,
     clust_idents <- clust_idents[,names(nn[!duplicated(nn)])]
   }
 
-  clust_idents <- clust_idents[,which(apply(clust_idents, 2, function(x) length(unique(x))) >= min_cluster)]
+  clust_idents <- clust_idents[,which(apply(clust_idents, 2, function(x) length(unique(x))) >= min_cluster),drop = F]
   if (ncol(clust_idents) == 0) {
     message("no clusterings left. decrease min_cluster?")
   } else {
