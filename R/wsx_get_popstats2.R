@@ -8,9 +8,9 @@
 #' @param return_stats logical (T,F) whether to return statistics next to cells counts
 #' @param groups vector of flowjo group names to consider
 #' @param invert_groups logical whether to exclude the selected groups
-#' @param strip_data
+#' @param strip_data remove internal columns from count df and speed up the function
 #'
-#' @return data frame with cells counts or a list with counts and statistics if return_stats = T
+#' @return list with counts and statistics and graphs
 #' @export
 #'
 #' @examples
@@ -28,14 +28,6 @@ wsx_get_popstats2 <- function(ws,
                               invert_groups = F,
                               return_stats = F,
                               strip_data = T) {
-
-
-  # check stats
-  # ws <- "/Volumes/CMS_SSD_2TB/Experiment_data/20210707_IL15_NKG2D_MICAB_target_cell_killing/FJ.workspaces/Exp_part_19.wsp"
-  # groups = NULL
-  # invert_groups = F
-  # library(xml2)
-
   show_progress = F
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
@@ -83,17 +75,6 @@ wsx_get_popstats2 <- function(ws,
   }
   names(gates) <- samplenodenames[["name"]]
 
-  #browser()
-  ## fix naming issue here.
-  ## get all names and compare
-  #depends <- xml2::xml_find_all(samples, ".//Dependents", flatten = F)
-  #names(depends) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name"]
-
-  # !!!!!
-  # do.call(rbind, x) fills missing values (e.g. missing parent_id) with value id, this is unexpected and a mistake!
-  # use do.call(dplyr::bind_rows, x) which does it correctly and insert NA for missing values
-  # !!!!!
-
   # children of OrNodes or AndNodes gates have no parent_id as the OrNodes or AndNodes has no id; this feature is (no parent_id) is shared with the root
   # create data with gate ids
   pop_df <- purrr::map_dfr(purrr::map(gates, xml2::xml_attrs), function(x) as.data.frame(do.call(dplyr::bind_rows, x)), .id = "FileName")
@@ -109,8 +90,6 @@ wsx_get_popstats2 <- function(ws,
   pop_df <- add_root_node(pop_df)
 
   # pull all counts with and associated ids
-  # nodeset <- purrr::map(gates, xml2::xml_parents)[[1]]
-  # nodeset <- purrr::map(gates, xml2::xml_parents)[["Compensation Controls_CD19 APC Stained Control.fcs"]]
   node_details_list <- purrr::map(.x = purrr::map(gates, xml2::xml_parents),
                                   .f = get_node_details2,
                                   .progress = show_progress,
@@ -128,7 +107,7 @@ wsx_get_popstats2 <- function(ws,
   #   node_details_df$FileName <- unname(conv[node_details_df$FileName])
   # }
 
-  # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
+  # join this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
 
   # from OrNodes and AndNodes in node_details_list: find all children of these nodes. the remaining row in pop_df must have the samples root as parent
@@ -136,10 +115,6 @@ wsx_get_popstats2 <- function(ws,
   # assign root as parent_id
   pop_df <- assign_root_as_parentid(pop_df, node_details_list)
   # browser()
-
-  ## error below here with
-  # ws <- "/Volumes/CMS_SSD_2TB/example_workspaces/Complicated_OrAndGates_OrGate_at_diff_hierachies_sameGatingTree.wsp"
-
   # to make a complete graph, all id and parent_id have to be assigned (also of OrNodes and AndNodes)
   # but how to match unambiguously without PopulationFullPath? - use name and count (see add_boolean_gate_data)
   # do not nodes at last, because notnodes stemming from OrNodes/AndNodes - those OrNodes/AndNodes need an id themselves first (before they are NA)
@@ -162,49 +137,10 @@ wsx_get_popstats2 <- function(ws,
     dup_id <- unique(pop_df$id[duplicated(pop_df$id)])
     inds <- intersect(which(pop_df$id %in% dup_id), which(pop_df$NodeType == "NotNode"))
     pop_df[inds,"id"] <- paste0(pop_df[inds,"id"], "_Not")
-
     # when NotNodes, somehow from same OrNodes/AndNodes still have the id - make it unique; all correct?
-    # check somewhen. but this only occurs in kind of exotic gating strategies. will not cause problems, regularly
-    #"/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
     pop_df$id <- make.unique(pop_df$id)
   }
 
-  # keys_list <- wsx_get_keywords(
-  #   ws = ws,
-  #   samples = unique(pop_df$FileName),
-  #   verbose = F
-  # )
-  #
-  # if (is.null(keys_list)) {
-  #   # when samples are added to wsp before renaming on disk: pop_df has old filenames
-  #   # also fix in pop_df?
-  #   keys_list <- wsx_get_keywords(ws = ws,
-  #                                 samples = basename(xml2::xml_attr(xml2::xml_find_all(samples, "DataSet", flatten = T), "uri")),
-  #                                 verbose = F)
-  # }
-  # if (is.null(keys_list)) {
-  #   keys_list <- wsx_get_keywords(ws = ws,
-  #                                 verbose = F)
-  # }
-  #
-  # fcs_idents <-
-  #   utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
-  #   dplyr::rename(identity = "values", "FileName" = ind) |>
-  #   dplyr::mutate(FileName = as.character(FileName))
-  # ## same potential issue as with keys_list above: pop_df has old FileName
-  # if (any(!fcs_idents$FileName %in% pop_df$FileName)) {
-  #   message("did you change filenames after loading fcs files into flowjo? try to")
-  #
-  #   tt <- stringdist::stringdistmatrix(unique(pop_df$FileName), fcs_idents$FileName)
-  #   match_inds <- apply(tt, 1, which.min)
-  #   if (length(unique(match_inds)) < length(match_inds)) {
-  #     stop("could not match old and new FileName unambigously. Make new wsp and re-import renamed FCS files.")
-  #   }
-  #   message("change old to new FileName based on best match. You may re-create the wsp with renamed FCS files from scratch.")
-  #   # iteration over rows makes sense!
-  #   conv <- stats::setNames(fcs_idents$FileName[match_inds], unique(pop_df$FileName))
-  #   pop_df$FileName <- unname(conv[pop_df$FileName])
-  # }
   pop_df <- dplyr::left_join(pop_df, fcs_idents, by = "FileName")
 
   # add channel desc here, after boolean gates have been enriched by data, including xChannel, yChannel
@@ -217,7 +153,6 @@ wsx_get_popstats2 <- function(ws,
   ## next: follow graph to derive population full paths
   # make graph
   # find end nodes (vertices) by checking degree (number of outgoing edges); graph has to be directed
-
   fromtodf <- pop_df |>
     dplyr::filter(!is.na(parent_id)) |>
     dplyr::select(parent_id, id) |>
@@ -229,7 +164,6 @@ wsx_get_popstats2 <- function(ws,
   end_edges <- names(edge_degrees[which(edge_degrees == 0)])
 
   # adds grandparent_id, PopulationFullPath, PopulationFullPathID, GateDepth
-  #browser()
   pop_df <- add_full_paths(
     df = pop_df,
     graph = gate_graph,
@@ -262,21 +196,17 @@ wsx_get_popstats2 <- function(ws,
     as.data.frame(do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_child(samples, "DataSet")))) |>
     dplyr::rename("FilePath" = uri) |>
     dplyr::mutate(FilePath = gsub("^file:", "", FilePath))
-  #file_paths$name <- basename(file_paths$uri)
-  #file_paths$name <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
-  #browser()
+
   # join cols order rows
   pop_df <-
     pop_df |>
     dplyr::left_join(group_df, by = c("sampleID")) |>
     dplyr::left_join(file_paths, by = c("sampleID")) |>
     dplyr::mutate(FlowJoWsp = ws_raw)
-
   pop_df <- pop_df[order(pop_df$FileName, pop_df$GateDepth),]
 
 
   # fill whitespaces with NA
-
   cols <- c(
     "FileName",
     "PopulationFullPath",
@@ -380,7 +310,6 @@ wsx_get_popstats2 <- function(ws,
   ))
   # stats
 
-  # matrix/df with all parent gates as ref and FractionOfXXX
 }
 
 
@@ -700,7 +629,7 @@ add_boolean_gate_data <- function(df,
   temp_df <- dplyr::rename(temp_df, "name" = name2, "Count" = Count2)
 
   ### complement original pop_df
-  # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  # join via name and Count: only in rare case when there are two OrNodes with same name and same count, this will give a conflict
   df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count"))
 
   ## add parent_id to children of OrNodes/AndNodes
@@ -763,7 +692,7 @@ add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNod
   names(temp_df)[which(names(temp_df) == "ParentFullPath")] <- "PopulationFullPath"
   names(temp_df)[which(names(temp_df) == "id")] <- "parent_id"
   temp_df$PopulationFullPath <- paste0(temp_df$PopulationFullPath, "/", temp_df$name)
-  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   ## add ids to OrNode
   temp_df <- purrr::map_dfr(sapply(node_details_list, "[", nodes_name), function(x) {
@@ -777,7 +706,7 @@ add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNod
   temp_df <- dplyr::left_join(temp_df, df[,c("FileName", "PopulationFullPath", "id")], by = c("FileName", "PopulationFullPath"))
   temp_df <- dplyr::group_by(temp_df, FileName, name, Count)
   temp_df <- dplyr::summarise(temp_df, id = paste(id, collapse = ","), .groups = "drop")
-  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in a super rare case when there are two OrNodes with same name and same count, this will give a conflict
+  df <- brathering::coalesce_join(df, temp_df, by = c("FileName", "name", "Count")) # join via name and Count: only in rare case when there are two OrNodes with same name and same count, this will give a conflict
 
   return(df)
 }
