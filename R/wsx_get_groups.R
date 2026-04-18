@@ -25,7 +25,7 @@ wsx_get_groups <- function(ws,
     stop("filter_AllSamples has be TRUE or FALSE.")
   }
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
   g <- sapply(xml2::xml_attrs(xml2::xml_children(xml2::xml_child(ws, "Groups"))), "[[", "name")
   gs <- sapply(xml2::xml_child(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "Groups")), "Group"), "SampleRefs"), function(x) unlist(xml2::xml_attrs(xml2::xml_children(x))))
   gr <- data.frame(FlowJoGroup = rep(g, lengths(gs)),

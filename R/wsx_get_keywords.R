@@ -12,6 +12,7 @@
 #' @param keywords which keywords to return
 #' @param ... ... additional argument to the lapply function; mainly mc.cores when parallel::mclapply is chosen
 #' @param samples FileName as on disk
+#' @param verbose print messages?
 #'
 #' @return a list of data.frames. one list entry for each sample, each row of data.frame representing one keyword
 #' @export
@@ -40,9 +41,10 @@ wsx_get_keywords <- function(ws,
                              return = c("data.frame", "vector"),
                              lapply_fun = lapply,
                              samples = NULL,
+                             verbose = T,
                              ...) {
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
   lapply_fun <- match.fun(lapply_fun)
   return <- match.arg(arg = return, choices = c("data.frame", "vector"), several.ok = T)
 
@@ -78,9 +80,18 @@ wsx_get_keywords <- function(ws,
   names(k_return) <- basename(xml2::xml_attr(xml2::xml_child(xml2::xml_children(xml2::xml_child(ws, "SampleList")), "DataSet"), "uri"))
   names(k_return) <- utils::URLdecode(names(k_return))
 
+
   if (!is.null(samples)) {
-    k_return <- k_return[samples]
+    k_return <- k_return[which(names(k_return) %in% samples)]
+
+    if (!length(k_return)) {
+      if (verbose) {
+        message("none of samples found.")
+      }
+      return(NULL)
+    }
   }
+
 
   if (anyDuplicated(names(k_return)) != 0) {
     message("wsx_get_keywords: duplicate filenames. returning unique only.")

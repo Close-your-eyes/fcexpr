@@ -12,7 +12,7 @@ wsx_get_gate_definitions <- function(ws,
                                      groups = NULL,
                                      invert_groups = F) {
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
 
   group_df <- wsx_get_groups(ws, collapse = NULL)
 

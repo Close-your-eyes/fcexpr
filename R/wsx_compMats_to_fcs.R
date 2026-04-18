@@ -29,7 +29,7 @@ wsx_compMats_to_fcs <- function(ws,
   if (!requireNamespace("flowWorkspace", quietly = T)){
     BiocManager::install("flowWorkspace")
   }
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
 
   ids <- wsx_get_groups(ws)
   if (is.null(groups)) {

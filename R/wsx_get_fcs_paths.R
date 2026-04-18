@@ -18,7 +18,7 @@ wsx_get_fcs_paths <- function(ws,
                               split = T,
                               filter_AllSamples = F) {
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
   if (!is.logical(split)) {
     stop("split has be TRUE or FALSE.")
   }

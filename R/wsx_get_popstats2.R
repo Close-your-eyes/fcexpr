@@ -42,28 +42,50 @@ wsx_get_popstats2 <- function(ws,
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
   samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
 
-  # x <- xml2::xml_child(samples[[1]], "SampleNode")
-  #
-  #
-  # recurse_on_samplenode <- function(x) {
-  #   attr <- xml2::xml_attrs(x)
-  #   print(attr)
-  #   if ("Subpopulations" %in% xml2::xml_name(xml2::xml_children(x))) {
-  #     y <- xml2::xml_children(xml2::xml_child(x, "Subpopulations"))
-  #     purrr::map(y, function(y) {
-  #       recurse_on_samplenode(y)
-  #     })
-  #   }
-  #   return(attr)
-  # }
-  # out <- recurse_on_samplenode(x)
-
-  # jannis wsp: multiple samples from same FCS file
-
-
   # in samples each sample is an own nodeset with gates that only belong to that sample
   gates <- xml2::xml_find_all(samples, ".//Gate", flatten = F) # .//Dependents
-  names(gates) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name",drop=T]
+  samplenodenames <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))
+  fcsfilenames <- basename(xml2::xml_attr(xml2::xml_find_all(samples, "DataSet", flatten = T), "uri"))
+
+  keys_list <- wsx_get_keywords(
+    ws = ws,
+    samples = samplenodenames,
+    verbose = F)
+  if (is.null(keys_list)) {
+    # when samples are added to wsp before renaming on disk
+    keys_list <- wsx_get_keywords(ws = ws,
+                                  samples = fcsfilenames,
+                                  verbose = F)
+  }
+  if (is.null(keys_list)) {
+    keys_list <- wsx_get_keywords(ws = ws,
+                                  verbose = F)
+  }
+
+  fcs_idents <-
+    utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
+    dplyr::rename(identity = "values", "FileName" = ind) |>
+    dplyr::mutate(FileName = as.character(FileName))
+  # browser()
+  conv <- NULL
+  if (any(!fcs_idents$FileName %in% samplenodenames[["name"]])) {
+    message("did you change filenames after loading fcs files into flowjo? try to")
+
+    tt <- stringdist::stringdistmatrix(unique(samplenodenames[["name"]]), fcs_idents$FileName)
+    match_inds <- apply(tt, 1, which.min)
+    if (length(unique(match_inds)) < length(match_inds)) {
+      stop("could not match old and new FileName unambigously. Make new wsp and re-import renamed FCS files.")
+    }
+    message("change old to new FileName based on best match. You may re-create the wsp with renamed FCS files from scratch.")
+    # iteration over rows makes sense!
+    conv <- stats::setNames(fcs_idents$FileName[match_inds], unique(samplenodenames[["name"]]))
+    samplenodenames[["name"]] <- unname(conv[samplenodenames[["name"]]])
+  }
+  names(gates) <- samplenodenames[["name"]]
+
+  #browser()
+  ## fix naming issue here.
+  ## get all names and compare
   #depends <- xml2::xml_find_all(samples, ".//Dependents", flatten = F)
   #names(depends) <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))[,"name"]
 
@@ -92,13 +114,19 @@ wsx_get_popstats2 <- function(ws,
   node_details_list <- purrr::map(.x = purrr::map(gates, xml2::xml_parents),
                                   .f = get_node_details2,
                                   .progress = show_progress,
-                                  more_gate_data = !strip_data)
-
+                                  more_gate_data = !strip_data,
+                                  conv = conv)
+  # browser()
   node_details_df <- bind_rows_chunked(df_list = sapply(node_details_list, "[", "df"))
 
   if (anyDuplicated(node_details_df[which(!is.na(node_details_df$id)), "id"]) != 0) {
     stop("Duplicate gate id detected. FlowJo wsp needs fixing?!")
   }
+
+  # done in get_node_details2
+  # if (!is.null(conv)) {
+  #   node_details_df$FileName <- unname(conv[node_details_df$FileName])
+  # }
 
   # join in this way; pop_df has no And-/Or-Depend Gates but node_details_df has
   pop_df <- dplyr::left_join(node_details_df, pop_df, by = c("id", "FileName"))
@@ -128,7 +156,7 @@ wsx_get_popstats2 <- function(ws,
       orandnot <- T
     }
   }
-# browser()
+  # browser()
   if (orandnot) {
     # add "not" to id for duplicated ids from not nodes
     dup_id <- unique(pop_df$id[duplicated(pop_df$id)])
@@ -140,12 +168,43 @@ wsx_get_popstats2 <- function(ws,
     #"/Volumes/CMS_SSD_2TB/example_workspaces/Multiple_OrNodes_AndNodes_NotNode_on_OrAndNodes_sameDims_sameGatingTrees.wsp"
     pop_df$id <- make.unique(pop_df$id)
   }
-# browser()
-  keys_list <- fcexpr::wsx_get_keywords(ws = ws, samples = unique(pop_df$FileName)) # return = "data.frame"
-  fcs_idents <-
-    utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
-    dplyr::rename(identity = "values", "FileName" = ind) |>
-    dplyr::mutate(FileName = as.character(FileName))
+
+  # keys_list <- wsx_get_keywords(
+  #   ws = ws,
+  #   samples = unique(pop_df$FileName),
+  #   verbose = F
+  # )
+  #
+  # if (is.null(keys_list)) {
+  #   # when samples are added to wsp before renaming on disk: pop_df has old filenames
+  #   # also fix in pop_df?
+  #   keys_list <- wsx_get_keywords(ws = ws,
+  #                                 samples = basename(xml2::xml_attr(xml2::xml_find_all(samples, "DataSet", flatten = T), "uri")),
+  #                                 verbose = F)
+  # }
+  # if (is.null(keys_list)) {
+  #   keys_list <- wsx_get_keywords(ws = ws,
+  #                                 verbose = F)
+  # }
+  #
+  # fcs_idents <-
+  #   utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
+  #   dplyr::rename(identity = "values", "FileName" = ind) |>
+  #   dplyr::mutate(FileName = as.character(FileName))
+  # ## same potential issue as with keys_list above: pop_df has old FileName
+  # if (any(!fcs_idents$FileName %in% pop_df$FileName)) {
+  #   message("did you change filenames after loading fcs files into flowjo? try to")
+  #
+  #   tt <- stringdist::stringdistmatrix(unique(pop_df$FileName), fcs_idents$FileName)
+  #   match_inds <- apply(tt, 1, which.min)
+  #   if (length(unique(match_inds)) < length(match_inds)) {
+  #     stop("could not match old and new FileName unambigously. Make new wsp and re-import renamed FCS files.")
+  #   }
+  #   message("change old to new FileName based on best match. You may re-create the wsp with renamed FCS files from scratch.")
+  #   # iteration over rows makes sense!
+  #   conv <- stats::setNames(fcs_idents$FileName[match_inds], unique(pop_df$FileName))
+  #   pop_df$FileName <- unname(conv[pop_df$FileName])
+  # }
   pop_df <- dplyr::left_join(pop_df, fcs_idents, by = "FileName")
 
   # add channel desc here, after boolean gates have been enriched by data, including xChannel, yChannel
@@ -170,6 +229,7 @@ wsx_get_popstats2 <- function(ws,
   end_edges <- names(edge_degrees[which(edge_degrees == 0)])
 
   # adds grandparent_id, PopulationFullPath, PopulationFullPathID, GateDepth
+  #browser()
   pop_df <- add_full_paths(
     df = pop_df,
     graph = gate_graph,
@@ -185,7 +245,7 @@ wsx_get_popstats2 <- function(ws,
   subgroup_vertex_id_list <- split(names(graph_subgroups$membership), graph_subgroups$membership)
   gate_graph_samples <- lapply(stats::setNames(subgroup_vertex_id_list, gsub("root_", "", sapply(subgroup_vertex_id_list, "[", 1))), function(x) igraph::subgraph(graph = gate_graph, vids = x))
 
-
+ # browser()
   pop_df <- add_count(pop_df, type = "parent") # add parent count
   pop_df <- add_count(pop_df, type = "grandparent") # add grandparent count
   pop_df <- add_total_count(pop_df)
@@ -204,7 +264,7 @@ wsx_get_popstats2 <- function(ws,
     dplyr::mutate(FilePath = gsub("^file:", "", FilePath))
   #file_paths$name <- basename(file_paths$uri)
   #file_paths$name <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
-#browser()
+  #browser()
   # join cols order rows
   pop_df <-
     pop_df |>
@@ -355,15 +415,18 @@ wsx_get_popstats2 <- function(ws,
   ggraph::geom_node_text(ggplot2::aes(label = name))'
 
 
-get_node_details2 <- function(nodeset, more_gate_data = F) {
+get_node_details2 <- function(nodeset, more_gate_data = F, conv = NULL) {
 
   temp_attr_list <- purrr::map(nodeset, xml2::xml_attrs)
   temp_attr_list_names <- sapply(temp_attr_list, names)
   temp_attr_list <- temp_attr_list[which(grepl("sampleID", temp_attr_list_names))]
   sampleID <- temp_attr_list[[1]][7]
   temp_attr_list <- list(temp_attr_list[[1]][-7])
+  if (!is.null(conv)) {
+    temp_attr_list[[1]][["name"]] <- unname(conv[temp_attr_list[[1]][["name"]]])
+  }
   # sampleNode becomes last row in df
-
+#browser()
   pops <- xml2::xml_find_all(nodeset, "Population|AndNode|OrNode|NotNode") # do not omit NotNode here
   gate_list <- xml2::xml_find_all(pops, ".//Gate|.//Dependents", flatten = T)
 
@@ -374,7 +437,7 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
 
   id <- c(xml2::xml_attr(gate_list, attr = "id"), NA) # add NA for SampleNode at the end
   node_types <- c(xml2::xml_name(gate_list_par), "SampleNode")
-
+#browser()
   # sometimes, boolean gates are returned duplicated, but only of them has an ID
   # in this case ID and node_types are of different lengths which causes error
   # filter for indices (rows), that are duplicates but have an ID
@@ -401,7 +464,7 @@ get_node_details2 <- function(nodeset, more_gate_data = F) {
   df[,"id"] <- id
 
   ind <- grepl("\\.fcs", df$name, ignore.case = T)
-
+#browser()
   df$count <- as.numeric(df$count)
   df$name_root <- ifelse(ind, "root", df$name) # df$count == max(df$count)
   df$id <- ifelse(ind, paste0("root_", df$name), df$id) # df$count == max(df$count)
@@ -490,13 +553,15 @@ add_full_paths <- function(df, graph, edges = NULL, show_progress = F) {
   if (is.null(edges)) {
     edges <- df$id
   }
-
+  # browser()
   # different OrNodes / AndNodes with same id (multiple id assigned by same originating gates?!)
   full_paths_df <- purrr::map(edges, function(x) {
+    # browser()
     path_to_root <- igraph::shortest_paths(graph,
                                            mode = "all",
                                            from = x,
                                            to = paste0("root_", df[which(df$id == x), "FileName"]),
+                                           #to = gsub("0026_-_", "", paste0("root_", df[which(df$id == x), "FileName"])),
                                            algorithm = "unweighted")
     ## derive full paths
     pops_to_root <- rev(df[match(names(path_to_root[[1]][[1]]), df$id),"name"])
@@ -516,6 +581,7 @@ add_full_paths <- function(df, graph, edges = NULL, show_progress = F) {
   while (length(full_paths_df) > 20) {
     full_paths_df <- purrr::map(split(c(1:length(full_paths_df)), ceiling(seq_along(c(1:length(full_paths_df)))/10)), function(x) purrr::reduce(full_paths_df[x], dplyr::bind_rows))
   }
+  #browser()
   full_paths_df <- unique(purrr::reduce(full_paths_df, dplyr::bind_rows))
   full_paths_df$GateDepth <- nchar(full_paths_df$PopulationFullPath) - nchar(gsub("/", "", full_paths_df$PopulationFullPath)) + 1
   full_paths_df$GateDepth <- ifelse(full_paths_df$PopulationFullPath == "", 0, full_paths_df$GateDepth)
@@ -540,6 +606,7 @@ add_root_node <- function(df) {
                                   id = paste0("root_", unique(df$FileName)),
                                   parent_id = NA))
 }
+
 add_count <- function(df, type = c("parent", "grandparent")) {
   type <- rlang::arg_match(type)
   id <- paste0(type, "_id")
@@ -548,7 +615,7 @@ add_count <- function(df, type = c("parent", "grandparent")) {
   df2 <- df[,match(c("id", "Count"), names(df))]
   df2 <- df2[which(!is.na(df2$id)),] # depends
   names(df2) <- c(id, name)
-
+#browser()
   df <- dplyr::left_join(df, df2, by = id)
   df[[name2]] <- df[["Count"]]/df[[name]]
   return(df)
@@ -572,7 +639,7 @@ add_boolean_gate_data <- function(df,
   }
   nodes_name <- rlang::arg_match(nodes_name)
 
-# browser()
+  # browser()
   # identify parents of OrNodes/AndNodes by name and Count but without PopulationFullPath
   ## add id and parent_id to OrNodes/AndNodes themselves
   ## something is weird here

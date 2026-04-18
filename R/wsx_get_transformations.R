@@ -22,7 +22,7 @@ wsx_get_transformations <- function(ws,
 
   lapply_fun <- match.fun(lapply_fun)
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
 
   ids <- wsx_get_groups(ws)
   if (is.null(groups)) {

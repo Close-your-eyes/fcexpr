@@ -20,7 +20,7 @@ wsx_get_poppaths <- function(ws,
                              groups = NULL,
                              collapse = T) {
 
-  ws <- check_ws(ws)
+  ws <- fcexpr:::check_ws(ws)
 
   ids <- wsx_get_groups(ws, collapse = "character")
   if (is.null(groups)) {

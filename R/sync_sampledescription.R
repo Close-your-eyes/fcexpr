@@ -441,7 +441,7 @@ get_fcs_identities <- function(kwl, allow_duplicates = T) {
   if (any(is.na(datetime))) {
     warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
   }
-
+browser()
   fcs_identities <- stats::setNames(paste0(fil, "_-_", trimws(tot), "_-_", datetime), nm = names(kwl))
   # if (!allow_duplicates && length(unique(fcs_identities)) != length(fcs_identities)) {
   #   stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs_identities[duplicated(fcs_identities) |
