@@ -58,7 +58,7 @@ check_filenames_hdd <- function(pop_df) {
 
 add_identity <- function(pop_df, kwl) {
   fcs_idents <-
-    stack(fcexpr:::get_fcs_identities(kwl)) |>
+    utils::stack(fcexpr:::get_fcs_identities(kwl = kwl)) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>
     dplyr::mutate(FileName = as.character(FileName))
   return(dplyr::left_join(pop_df, fcs_idents, by  = "FileName"))

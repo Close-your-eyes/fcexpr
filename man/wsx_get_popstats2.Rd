@@ -21,10 +21,10 @@ wsx_get_popstats2(
 
 \item{return_stats}{logical (T,F) whether to return statistics next to cells counts}
 
-\item{strip_data}{}
+\item{strip_data}{remove internal columns from count df and speed up the function}
 }
 \value{
-data frame with cells counts or a list with counts and statistics if return_stats = T
+list with counts and statistics and graphs
 }
 \description{
 Flowjo wsp files contain many information like gated event counts, statistics and keywords

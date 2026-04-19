@@ -9,7 +9,6 @@ sync_sampledescription(
   file.name = "sampledescription.xlsx",
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
     "deleted_fcs_files", "8_peak_bead", "rainbow_bead", "8_peak_beads", "rainbow_beads"),
-  init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
   write.log = T
 )
 }
@@ -19,8 +18,6 @@ sync_sampledescription(
 \item{file.name}{name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv}
 
 \item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
-
-\item{init.columns}{additional columns to add to the initial file}
 
 \item{write.log}{write a hidden (not hidden on windows) log file every time changes take place}
 }

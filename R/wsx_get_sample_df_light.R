@@ -21,7 +21,7 @@ wsx_get_sample_df_light <- function(ws) {
   kwlist <- wsx_get_keywords(ws, return = c("data.frame", "vector"), keywords = c("$DATE", "$FIL", "$TOT", "$ETIM", "$BTIM"))
 
   fcs_ident <-
-    stack(fcexpr:::get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
+    utils::stack(fcexpr:::get_fcs_identities(kwl = kwlist[["vec"]], allow_duplicates = T)) |>
     dplyr::rename("identity" = values, "FlowJoFileName" = ind) |>
     dplyr::mutate(FlowJoFileName = as.character(FlowJoFileName))
   keys <-

@@ -170,7 +170,7 @@ get_smpl_df <- function(wsp,
     kwlist <- wsx_get_keywords(wsp[x], return = c("data.frame", "vector"), keywords = fcskeywords)
 
     fcs_ident <-
-      utils::stack(fcexpr:::get_fcs_identities(kwlist[["vec"]], allow_duplicates = T)) |>
+      utils::stack(fcexpr:::get_fcs_identities(kwl = kwlist[["vec"]], allow_duplicates = T)) |>
       dplyr::rename("identity" = values, "FlowJoFileName" = ind) |>
       dplyr::mutate(FlowJoFileName = as.character(FlowJoFileName))
     y <- y |>

@@ -97,7 +97,10 @@ wsx_compMats_to_fcs <- function(ws,
                                                                                                                                        duplicated(fcs.files, fromLast = T)]), collapse = "\n")))
     }'
 
-    alt_fcs_files <- check.FCS.files(alt_FCS_file_folder)
+
+    alt_fcs_files <- get_fcs_identities(folder_path = alt_FCS_file_folder,
+                                        allow_duplicates = F)
+
     # replace paths with identity
     names(compMats) <- unname(fcs_identities[basename(names(compMats))])
     alt_fcs_files <- alt_fcs_files[which(alt_fcs_files %in% names(compMats))] # actually not needed

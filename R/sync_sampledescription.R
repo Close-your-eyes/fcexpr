@@ -23,7 +23,6 @@
 #' @param FCS.file.folder path to the folder which contains FCS files
 #' @param file.name name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv
 #' @param exclude.folders character vector of folders to exclude when checking for FCS files
-#' @param init.columns additional columns to add to the initial file
 #' @param write.log write a hidden (not hidden on windows) log file every time changes take place
 #'
 #' @return No return value. Instead sampledescription table and FCS files are synchronized.
@@ -37,198 +36,86 @@ sync_sampledescription <- function(FCS.file.folder,
                                    file.name = "sampledescription.xlsx",
                                    exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files",
                                                        "8_peak_bead", "rainbow_bead", "8_peak_beads", "rainbow_beads"),
-                                   init.columns = c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart"),
                                    write.log = T) {
 
-  if (!requireNamespace("lubridate", quietly = T)){
-    utils::install.packages("lubridate")
-  }
-
-  file.suffix <- rev(strsplit(file.name, "\\.")[[1]])[1]
+  file.suffix <- tools::file_ext(file.name)
   if (!file.suffix %in% c("xlsx")) { # c("xlsx", "ods", "tsv")
     stop("file.name is expected to have one of the following suffixes: .xlsx")
   }
   if (file.suffix == "ods") {
     stop("ods not handled, yet.")
   }
-  if (file.suffix == "ods" && !requireNamespace("readODS", quietly = T)) {
-      utils::install.packages("readODS")
-  }
-
   if (!dir.exists(FCS.file.folder)) {
-    stop(paste0(FCS.file.folder, " not found."))
+    stop(FCS.file.folder, " not found.")
   }
 
   wd <- dirname(FCS.file.folder)
-  fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
 
-  # initiate
+  fcs.files <- get_fcs_identities(folder_path = FCS.file.folder,
+                                  exclude_folders = exclude.folders,
+                                  allow_duplicates = F)
+
+  ### initiate
   if (!file.exists(file.path(wd, file.name))) {
-
-    other_putative_sd <- stats::na.omit(purrr::map_chr(list.files(wd, "\\.xlsx$|\\.tsv$", full.names = T), function(x){
-      ext <- tolower(tools::file_ext(x))
-      colnames <- switch(ext,
-             tsv  = names(utils::read.table(x, header = T, nrows = 2, sep = "\t")),
-             xlsx = names(openxlsx::read.xlsx(x, rows = c(1,2))))
-      if (all(c("FileName", "identity") %in% colnames)) {
-        return(x)
-      }
-      return(NA)
-    }))
-    if (length(other_putative_sd) > 0) {
-      choice <- utils::menu(c("Yes", "No"), title = paste0("Other putative sampledescriptions found in the parent folder of FCS.file.folder: ", basename(other_putative_sd), ". Do you want to continue initiating another file (1)? If not (2), change the file.name argument and rerun sync_sampledescription."))
-      if (choice == 2) {
-        return(NULL)
-      }
-    }
-    #
-    # for (x in list.files(wd, "\\.ods$", full.names = T)) {
-    #   # to do
-    #   # readODS::read_ods()
-    #   #readODS::write_ods(sd, file.path(wd, "sampledescription.ods"), sheet = "samples")
-    # }
-
-    fcs.files <- fcs.files[order(lubridate::parse_date_time(
-      sapply(strsplit(fcs.files, "_-_"), "[", 3),
-      orders = "%Y.%m.%d-%H.%M.%S"
-    ))]
-    sd <- data.frame(
-      FileName = paste0(
-        sprintf(paste0("%04d"), seq_along(fcs.files)),
-        "_-_",
-        basename(names(fcs.files))
-      ),
-      identity = fcs.files,
-      stringsAsFactors = F
-    )
-    sd[, init.columns] <- ""
-    rownames(sd) <- NULL
-
-    write.sd(stats::setNames(list(sd), nm = c("samples")), wd = wd, file.name = file.name)
-    write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
-    file.rename(names(fcs.files), file.path(dirname(names(fcs.files)), sd[, "FileName"]))
-    return(paste0(file.name, " initiated."))
+    desc_file <- init_desc(wd, file.name = file.name, fcs.files = fcs.files)
+    message(desc_file, "initiated.")
+    invisible(desc_file)
   }
 
-  sd <- .read.and.check.sd(wd = wd, file.name = file.name, fcs.files = fcs.files)
-  write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
+  desc <- read_desc(wd = wd, file.name = file.name, fcs.files = fcs.files)
+  write_desc_log(wd = wd, file.name = file.name, desc = desc, write.log = write.log)
 
-  # find files for deletion
-  sd.delete.ind <- intersect(which(is.na(sd[, "FileName"])), which(!is.na(sd[, "identity"])))
-  if (length(sd.delete.ind) > 0) {
-    fcs.files.del <- fcs.files[which(fcs.files %in% sd[sd.delete.ind, "identity"])]
-
-    if (interactive()) {
-      choice <- utils::menu(c("Yes", "No"), title = paste0("Move these FCS files to deleted_FCS_files and exclude them from sampledescription: ", paste(names(fcs.files.del), collapse = ", ")))
-    } else {
-      choice <- 1
-    }
-
-    if (choice == 1) {
-      dir.create(file.path(FCS.file.folder, "deleted_FCS_files"), showWarnings = F, recursive = T)
-
-      if (dir.exists(file.path(FCS.file.folder, "deleted_FCS_files"))) {
-        file.copy(names(fcs.files.del), file.path(FCS.file.folder, "deleted_FCS_files", basename(names(fcs.files.del))))
-        file.remove(names(fcs.files.del))
-        sd <- sd[which(!is.na(sd[, "FileName"])), ]
-        sd[, "FileName"] <- ifelse(grepl("^[[:digit:]]{1,}_-_", sd[, "FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", substr(sd[, "FileName"],
-                                                                                                                                     8, nchar(sd[, "FileName"]))), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[, "FileName"]))
-        write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name)
-        write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
-        message("FCS files moved to deleted_FCS_files and ", file.name, " updated.")
-      } else {
-        message("deleted_FCS_files folder could not be created - no files were removed.")
-      }
-    }
-    if (choice == 2) {
-      return("No files removed.")
-    }
+  ### find files for deletion
+  change1 <- move_fcs_update_desc_on_disk(desc = desc,
+                                          FCS.file.folder = FCS.file.folder,
+                                          fcs.files = fcs.files,
+                                          wd = wd,
+                                          file.name = file.name,
+                                          write.log = write.log)
+  if (change1) {
+    fcs.files <- get_fcs_identities(folder_path = FCS.file.folder,
+                                    exclude_folders = exclude.folders,
+                                    allow_duplicates = F)
+    desc <- read_desc(wd = wd, file.name = file.name, fcs.files = fcs.files)
   }
 
-  fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
-  sd <- .read.and.check.sd(wd = wd, file.name = file.name, fcs.files = fcs.files)
-
-  # find new files for addition to sd
-  fcs.files.diff <- fcs.files[which(!fcs.files %in% sd[, "identity"])]
-  if (length(fcs.files.diff) != 0) {
-    fcs.files.diff <- fcs.files.diff[order(lubridate::parse_date_time(sapply(strsplit(fcs.files.diff, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S"))]
-    sd.diff <- data.frame(FileName = paste0(sprintf(paste0("%04d"), (nrow(sd) + 1):(nrow(sd) + length(fcs.files.diff))), "_-_", basename(names(fcs.files.diff))),
-                          identity = fcs.files.diff, stringsAsFactors = F)
-    sd.diff[, c(names(sd)[which(!names(sd) %in% names(sd.diff))])] <- ""
-    sd <- rbind(sd, sd.diff)
-
-    write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name)
-    write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
-    message(nrow(sd.diff), " new files have been found and added to the sampledescription.")
-    file.rename(names(fcs.files.diff), file.path(dirname(names(fcs.files.diff)), sd.diff[, "FileName"]))
+  ### find new files for addition to desc
+  change2 <- add_fcs_update_desc_on_disk(desc = desc,
+                                         fcs.files = fcs.files,
+                                         wd = wd,
+                                         file.name = file.name,
+                                         write.log = write.log)
+  if (change2) {
+    fcs.files <- get_fcs_identities(folder_path = FCS.file.folder,
+                                    exclude_folders = exclude.folders,
+                                    allow_duplicates = F)
+    desc <- read_desc(wd = wd, file.name = file.name, fcs.files = fcs.files)
   }
 
-  fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
-  sd <- .read.and.check.sd(wd = wd, file.name = file.name, fcs.files = fcs.files)
-
-  # find files for renaming
-  sd.rename.ind <- which(!sd[, "FileName"] %in% basename(names(fcs.files)))
-  if (length(sd.rename.ind) > 0) {
-    fcs.files <- stats::setNames(names(fcs.files), fcs.files)
-    fcs.files <- fcs.files[sd[, "identity"]]
-    sd[, "FileName"] <- ifelse(!grepl("^[[:digit:]]{1,}_-_", sd[, "FileName"]), paste0(sprintf("%04d", 1:nrow(sd)), "_-_", sd[, "FileName"]), sd[, "FileName"])
-    sd[, "FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[, "FileName"])), paste0(sd[, "FileName"], ".fcs"), sd[, "FileName"])
-    sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
-
-    print(data.frame(FileName = sd[sd.rename.ind, "FileName"], PreviousFileName = basename(fcs.files[sd.rename.ind]), stringsAsFactors = F))
-    if (interactive()) {
-      choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
-    } else {
-      choice <- 1
-    }
-
-    if (choice == 1) {
-      write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name)
-      write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
-      file.rename(fcs.files[sd.rename.ind], file.path(dirname(fcs.files[sd.rename.ind]), sd[sd.rename.ind, "FileName"]))
-    }
-    if (choice == 2) {
-      return("No files renamed.")
-    }
+  ### find files for renaming
+  change3 <- rename_fcs_update_desc_on_disk(desc = desc,
+                                            fcs.files = fcs.files,
+                                            wd = wd,
+                                            file.name = file.name,
+                                            write.log = write.log)
+  if (change3) {
+    fcs.files <- get_fcs_identities(folder_path = FCS.file.folder,
+                                    exclude_folders = exclude.folders,
+                                    allow_duplicates = F)
+    desc <- read_desc(wd = wd, file.name = file.name, fcs.files = fcs.files)
   }
+  ### new order --> rename
+  change4 <- reorder_fcs_update_desc_on_disk(desc = desc,
+                                             fcs.files = fcs.files,
+                                             wd = wd,
+                                             file.name = file.name,
+                                             write.log = write.log)
 
-  fcs.files <- check.FCS.files(FCS.file.folder = FCS.file.folder, exclude.folders = exclude.folders)
-  sd <- .read.and.check.sd(wd = wd, file.name = file.name, fcs.files = fcs.files)
-
-  # new order
-  if (!identical(sort(sd[, "FileName"]), sd[, "FileName"])) {
-    if (all(grepl("^[[:digit:]]{1,}_-_", sd[, "FileName"]))) {
-      fcs.files <- stats::setNames(names(fcs.files), fcs.files)
-      fcs.files <- fcs.files[sd[, "identity"]]
-      sd[, "FileName"] <- gsub("^[[:digit:]]{1,}", "", sd[, "FileName"])
-      sd[, "FileName"] <- paste0(sprintf("%04d", 1:nrow(sd)), sd[, "FileName"])
-      sd[, "FileName"] <- ifelse(!grepl("\\.fcs$", tolower(sd[, "FileName"])), paste0(sd[, "FileName"], ".fcs"), sd[, "FileName"])
-      sd[, "FileName"] <- sub("\\.FCS$", ".fcs", sd[, "FileName"])
-
-      rows <- which(sd[, "FileName"] != basename(fcs.files))
-      print(data.frame(FileName = sd[rows, "FileName"], PreviousFileName = basename(fcs.files)[rows]))
-      if (interactive()) {
-        choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
-      } else {
-        choice <- 1
-      }
-
-      if (choice == 1) {
-        write.sd(named.sheet.list = stats::setNames(list(sd), c("samples")), wd = wd, file.name = file.name)
-        write.sd.log(wd = wd, file.name = file.name, sd = sd, write.log = write.log)
-        file.rename(fcs.files, file.path(dirname(fcs.files), sd[, "FileName"]))
-      }
-      if (choice == 2) {
-        return("No files renamed.")
-      }
-    } else {
-      stop("No reodering as prefix-numbers were not detected accurately.")
-    }
-  }
-
+  print(tibble::tibble(operation = c("delete", "add", "rename", "reorder"),
+                       done = c(change1, change2, change3, change4)))
 }
 
-write.sd.log <- function(wd, file.name, sd, write.log) {
+write_desc_log <- function(wd, file.name, desc, write.log) {
   if (write.log) {
     if (Sys.info()[["sysname"]] %in% c("Linux", "Darwin")) {
       file <- file.path(wd, paste0(".log_", file.name))
@@ -246,12 +133,12 @@ write.sd.log <- function(wd, file.name, sd, write.log) {
     time <- format(Sys.time(), "%Y.%m.%d-%H.%M.%S")
     tryCatch({
       openxlsx::addWorksheet(log, time)
-      openxlsx::writeData(log, time, sd)
+      openxlsx::writeData(log, time, desc)
       openxlsx::saveWorkbook(log, file, overwrite = T)
     }, error = function(e) {
       time <- paste0(time, sample(1:100, 1))
       openxlsx::addWorksheet(log, time)
-      openxlsx::writeData(log, time, sd)
+      openxlsx::writeData(log, time, desc)
       openxlsx::saveWorkbook(log, file, overwrite = T)
     })
 
@@ -262,9 +149,13 @@ write.sd.log <- function(wd, file.name, sd, write.log) {
   }
 }
 
-write.sd <- function(named.sheet.list, wd, file.name) {
+
+
+write_desc <- function(named.sheet.list, wd, file.name) {
+
+  ext <- tolower(tools::file_ext(file.name))
   ## make repetitive elements more compact
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
+  if (ext == "xlsx") {
 
     tryCatch({
       openxlsx::write.xlsx(named.sheet.list, file = file.path(wd, file.name), firstRow = T, colWidths = "auto", overwrite = T)
@@ -301,7 +192,7 @@ write.sd <- function(named.sheet.list, wd, file.name) {
       }
     }
   }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("tsv")) {
+  if (ext == "tsv") {
 
     tryCatch({
       utils::write.table(x = named.sheet.list[[1]], file = file.path(wd, file.name), sep = "\t", row.names = F, na = "")
@@ -337,7 +228,7 @@ write.sd <- function(named.sheet.list, wd, file.name) {
       }
     }
   }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
+  if (tools::file_ext(file.name) %in% c("ods")) {
     #to do
   }
 
@@ -345,145 +236,287 @@ write.sd <- function(named.sheet.list, wd, file.name) {
 
 
 
-check.FCS.files <- function(FCS.file.folder,
-                            exclude.folders = NULL,
-                            recursive = T) {
+# check.FCS.files <- function(FCS.file.folder,
+#                             exclude.folders = NULL,
+#                             recursive = T) {
+#
+#   fcs.file.paths <- list.files(
+#     path = FCS.file.folder,
+#     pattern = "\\.fcs", #w/o $ is fine
+#     full.names = T,
+#     recursive = recursive,
+#     ignore.case = T
+#   )
+#   if (length(fcs.file.paths) == 0) {
+#     stop("No FCS files found.")
+#   }
+#
+#   if (!is.null(exclude.folders)) {
+#     exclude.pattern <- paste0(tolower(exclude.folders), collapse = "|")
+#     fcs.file.paths <- fcs.file.paths[!grepl(exclude.pattern, tolower(fcs.file.paths))]
+#   }
+#
+#   if (length(fcs.file.paths) == 0) {
+#     stop("No FCS files left after filtering for exclusion folders.")
+#   }
+#
+#   idents <- get_fcs_identities(kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F))
+#
+#   check_fcs_ident_uniqueness(idents)
+#
+#   return(idents)
+# }
 
-  fcs.file.paths <- list.files(
-    path = FCS.file.folder,
-    pattern = "\\.fcs", #w/o $ is fine
-    full.names = T,
-    recursive = recursive,
-    ignore.case = T
-  )
-  if (!is.null(exclude.folders)) {
-    fcs.file.paths <- fcs.file.paths[which(!grepl(paste0(tolower(exclude.folders), collapse = "|"), tolower(fcs.file.paths)))]
+reorder_fcs_update_desc_on_disk <- function(desc,
+                                            fcs.files,
+                                            wd,
+                                            file.name,
+                                            write.log) {
+
+  if (!identical(sort(desc[["FileName"]]), desc[["FileName"]])) {
+    if (all(grepl("^[[:digit:]]{1,}_-_", desc[["FileName"]]))) {
+      fcs.files <- stats::setNames(names(fcs.files), fcs.files)
+      fcs.files <- fcs.files[desc[, "identity"]]
+      desc[["FileName"]] <- gsub("^[[:digit:]]{1,}", "", desc[["FileName"]])
+      desc[["FileName"]] <- paste0(sprintf("%04d", 1:nrow(desc)), desc[["FileName"]])
+      desc[["FileName"]] <- normalize_filename(desc[["FileName"]])
+
+      rows <- which(desc[["FileName"]] != basename(fcs.files))
+      print(data.frame(FileName = desc[rows, "FileName"], PreviousFileName = basename(fcs.files)[rows]))
+
+      choice <- 1
+      if (interactive()) {
+        choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+      }
+
+      if (choice == 1) {
+        file.rename(fcs.files, file.path(dirname(fcs.files), desc[["FileName"]]))
+        write_desc(named.sheet.list = stats::setNames(list(desc), c("samples")), wd = wd, file.name = file.name)
+        write_desc_log(wd = wd, file.name = file.name, desc = desc, write.log = write.log)
+      } else {
+        message("No files renamed.")
+      }
+    } else {
+      message("No reodering as prefix-numbers were not detected accurately.")
+    }
+    return(TRUE)
   }
+  return(FALSE)
+}
 
-  if (length(fcs.file.paths) == 0) {
-    stop("No FCS files found or left after filtering for exclusion folders.")
+rename_fcs_update_desc_on_disk <- function(desc,
+                                           fcs.files,
+                                           wd,
+                                           file.name,
+                                           write.log) {
+
+  idx <- which(!desc[["FileName"]] %in% basename(names(fcs.files)))
+  if (length(idx) > 0) {
+    fcs.files <- stats::setNames(names(fcs.files), fcs.files)
+    fcs.files <- fcs.files[desc[["identity"]]]
+    desc[["FileName"]] <- ifelse(!grepl("^[[:digit:]]{1,}_-_", desc[["FileName"]]), paste0(sprintf("%04d", 1:nrow(desc)), "_-_", desc[["FileName"]]), desc[["FileName"]])
+    desc[["FileName"]] <- normalize_filename(desc[["FileName"]])
+
+    print(data.frame(FileName = desc[idx, "FileName"], PreviousFileName = basename(fcs.files[idx]), stringsAsFactors = F))
+
+    choice <- 1
+    if (interactive()) {
+      choice <- utils::menu(c("Yes", "No"), title = "Rename FCS files as indicated?")
+    }
+
+    if (choice == 1) {
+      file.rename(fcs.files[idx], file.path(dirname(fcs.files[idx]), desc[idx, "FileName"]))
+      write_desc(named.sheet.list = stats::setNames(list(desc), c("samples")), wd = wd, file.name = file.name)
+      write_desc_log(wd = wd, file.name = file.name, desc = desc, write.log = write.log)
+      return(TRUE)
+    }
   }
+  return(FALSE)
+}
 
-  idents <- get_fcs_identities(kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F))
-  idents_df <-
-    stack(idents) |>
-    dplyr::mutate(ind = basename(as.character(ind))) |>
-    dplyr::rename("identity" = values, "FileName" = ind)
-  idents_df_c1 <-
-    idents_df |>
-    dplyr::count(identity)
-  idents_df_c2 <-
-    idents_df |>
-    dplyr::count(identity, FileName)
+add_fcs_update_desc_on_disk <- function(desc,
+                                        fcs.files,
+                                        wd,
+                                        file.name,
+                                        write.log) {
 
-  idents_dup1 <- dplyr::filter(idents_df, identity %in% (dplyr::filter(idents_df_c1, n>1) |> dplyr::pull(identity)))
-  if (nrow(idents_dup1) > 0) {
-    message("Duplicate identities found. FCS files were duplicated on disk.")
-    print(tibble::as_tibble(idents_dup1), n = Inf)
+  new_fcs <- fcs.files[which(!fcs.files %in% desc[["identity"]])]
+  if (length(new_fcs)) {
+    new_fcs <- new_fcs[order(lubridate::parse_date_time(sapply(strsplit(new_fcs, "_-_"), "[", 3), orders = "%Y.%m.%d-%H.%M.%S"))]
+    desc.diff <- data.frame(FileName = paste0(sprintf(paste0("%04d"), (nrow(desc) + 1):(nrow(desc) + length(new_fcs))), "_-_", basename(names(new_fcs))),
+                            identity = new_fcs, stringsAsFactors = F)
+    desc.diff[, c(names(desc)[which(!names(desc) %in% names(desc.diff))])] <- ""
+    desc <- rbind(desc, desc.diff)
+
+    file.rename(names(new_fcs), file.path(dirname(names(new_fcs)), desc.diff[["FileName"]]))
+    write_desc(named.sheet.list = stats::setNames(list(desc), c("samples")), wd = wd, file.name = file.name)
+    write_desc_log(wd = wd, file.name = file.name, desc = desc, write.log = write.log)
+    message(nrow(desc.diff), " new files have been found and added to the sampledescription.")
+    return(TRUE)
   }
+  return(FALSE)
+}
 
-  idents_dup2 <- dplyr::filter(idents_df, identity %in% (dplyr::filter(idents_df_c2, n>1) |> dplyr::pull(identity)))
-  if (nrow(idents_dup2) > 0) {
-    print(tibble::as_tibble(idents_dup2), n = Inf)
-    stop("Duplicate identities with equal FileName are not allowed. Rename files to make them unique.")
+move_fcs_update_desc_on_disk <- function(desc,
+                                         FCS.file.folder,
+                                         fcs.files,
+                                         wd,
+                                         file.name,
+                                         write.log,
+                                         del_folder = "deleted_FCS_files") {
+
+  idx <- intersect(which(is.na(desc[["FileName"]])), which(!is.na(desc[["identity"]])))
+  if (length(idx) > 0) {
+    del_files <- fcs.files[which(fcs.files %in% desc[idx, "identity"])]
+
+    choice <- 1
+    # if (interactive()) {
+    #   choice <- utils::menu(c("Yes", "No"), title = paste0("Move these FCS files to deleted_FCS_files and exclude them from sampledescription: ", paste(names(del_files), collapse = ", ")))
+    # }
+
+    if (choice == 1) {
+      del_folder <- file.path(FCS.file.folder, del_folder)
+      dir.create(del_folder, showWarnings = F, recursive = T)
+
+      if (dir.exists(del_folder)) {
+        mv_files_safe(from = names(del_files),
+                      to = file.path(del_folder, basename(names(del_files))))
+
+        desc <- dplyr::filter(desc, !is.na(FileName))
+        desc[["FileName"]] <- ifelse(grepl("^[[:digit:]]{1,}_-_", desc[["FileName"]]),
+                                     paste0(sprintf("%04d", 1:nrow(desc)), "_-_", substr(desc[["FileName"]], 8, nchar(desc[["FileName"]]))),
+                                     paste0(sprintf("%04d", 1:nrow(desc)), "_-_", desc[["FileName"]]))
+
+        write_desc(
+          named.sheet.list = stats::setNames(list(desc), c("samples")),
+          wd = wd,
+          file.name = file.name
+        )
+        write_desc_log(
+          wd = wd,
+          file.name = file.name,
+          desc = desc,
+          write.log = write.log
+        )
+        message("FCS files moved to ", del_folder, " and ", file.name, " updated.")
+      } else {
+        message(del_folder, " folder could not be created - no files were removed.")
+      }
+    }
+    return(TRUE)
   }
-  return(idents)
+  return(FALSE)
 }
 
 
-get_fcs_identities <- function(kwl, allow_duplicates = T) {
+read_desc <- function(wd, file.name, fcs.files) {
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
+  if (tools::file_ext(file.name) == "xlsx") {
+    desc <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
   }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
-
-  # kwl = keyword_list; needs names
-  # kwl can be provided from FCS files: kwl = flowCore::read.FCSheader(fcs.file.paths, emptyValue = F)
-  # or kwl can be provided from wsp: kwl = wsx_get_keywords(ws = ws, return = "vector")
-  # from fj wsp when return type is data.frame:
-  # kwldf <- wsx_get_keywords(ws_raw, return = "data.frame", keywords = c("$DATE", "$BTIM", "$ETIM", "$TOT", "$FIL"))
-  # kwl2 <- do.call(rbind, kwldf)
-  # kwl2$FileName <- rep(names(kwldf), sapply(kwldf,nrow))
-  # kwl2 <- tidyr::pivot_wider(kwl2, names_from = name, values_from = value)
-  # tt <- kwl2$`$BTIM`
-  # et <- kwl2$`$ETIM`
-  # dd <- kwl2$`$DATE`
-  # fil <- kwl2$`$FIL`
-  # tot <- kwl2$`$TOT`
-
-  if (!methods::is(kwl, "list")) {
-    stop("keyword list not a list. Could be made a list but then names are missing. Try to fix.")
-  }
-  if (is.null(names(kwl))) {
-    stop("keyword list needs names")
-  }
-  if (any(duplicated(names(kwl)))) {
-    stop("names of keyword list are not unique")
-  }
-
-  dd <- sapply(kwl, "[", "$DATE")
-  tt <- sapply(kwl, "[", "$BTIM")
-  et <- sapply(kwl, "[", "$ETIM")
-  fil <- sapply(kwl, "[", "$FIL")
-  tot <- sapply(kwl, "[", "$TOT")
-
-  if (any(nchar(tt) - nchar(gsub(":", "", tt)) > 2)) {
-    tt_fix_ind <- which(nchar(tt) - nchar(gsub(":", "", tt)) > 2)
-    tt[tt_fix_ind] <- paste(rev(rev(strsplit(tt[tt_fix_ind], ":")[[1]])[-1]), collapse = ":")
-  }
-  datetime <- paste0(dd, "-", tt)
-  sub <- ifelse(grepl("^2[[:digit:]]", tt) & grepl("^0[[:digit:]]", et), 86400, 0)
-  datetime <- format(lubridate::parse_date_time(datetime, orders = c("%Y-%b-%d-%H:%M:%S", "%Y-%B-%d-%H:%M:%S", "%Y-%m-%d-%H:%M:%S", "%d-%b-%Y-%H:%M:%S",
-                                                                     "%d-%m-%Y-%H:%M:%S", "%d-%B-%Y-%H:%M:%S", "%d-%b-%Y-%H:%M:%S")) - sub, "%Y.%m.%d-%H.%M.%S")
-  if (any(is.na(datetime))) {
-    warning("datetimes ", paste(paste0(dd, "-", tt)[which(is.na(datetime))], collapse = ", "), " could not be converted to a uniform format. Please, provide this to the package-maintainer.")
-  }
-browser()
-  fcs_identities <- stats::setNames(paste0(fil, "_-_", trimws(tot), "_-_", datetime), nm = names(kwl))
-  # if (!allow_duplicates && length(unique(fcs_identities)) != length(fcs_identities)) {
-  #   stop(paste0("Duplicate FCS files found. This is not allowed. Please, remove one of each duplicates. \n", paste(names(fcs_identities[duplicated(fcs_identities) |
-  #                                                                                                                                    duplicated(fcs_identities, fromLast = T)]), collapse = "\n")))
-  # } else if (allow_duplicates && length(unique(fcs_identities)) != length(fcs_identities)) {
-  #   message(paste0("Duplicate FCS files found. Be careful. \n", paste(names(fcs_identities[duplicated(fcs_identities) |
-  #                                                                                                                                         duplicated(fcs_identities, fromLast = T)]), collapse = "\n")))
-  #
-  # }
-  return(fcs_identities)
-}
-
-.read.and.check.sd <- function(wd, file.name, fcs.files) {
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] == "xlsx") {
-    sd <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
-  }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("tsv")) {
-    sd <- as.data.frame(utils::read.table(file = file.path(wd, file.name), header = T, sep = "\t", check.names = F))
-    sd[is.na(sd)] <- ""
-    if (ncol(sd) == 1) {
+  if (tools::file_ext(file.name) == "tsv") {
+    desc <- as.data.frame(utils::read.table(file = file.path(wd, file.name), header = T, sep = "\t", check.names = F))
+    desc[is.na(desc)] <- ""
+    if (ncol(desc) == 1) {
       stop("sampledescription has only one column. Did you provide the wrong seperator (file.sep)?")
     }
   }
-  if (rev(strsplit(file.name, "\\.")[[1]])[1] %in% c("ods")) {
+  if (tools::file_ext(file.name) == "ods") {
     #to do
   }
 
-  sd[apply(sd,c(1,2),function(x) grepl("^ {1,}$", x))] <- NA # replace only-whitespace containing cells with NA
-  sd <- sd[which(rowSums(is.na(sd)) < ncol(sd)), ]
-  sd <- sd[which(!is.na(sd$identity)),]
+  desc[apply(desc,c(1,2),function(x) grepl("^ {1,}$", x))] <- NA # replace only-whitespace containing cells with NA
+  desc <- desc[which(rowSums(is.na(desc)) < ncol(desc)), ] # rm pure NA rows
+  desc <- desc[which(!is.na(desc$identity)),]
 
-  if (any(!c("FileName", "identity") %in% names(sd))) {
+  if (any(!c("FileName", "identity") %in% names(desc))) {
     stop("Columns FileName and identity have to exist is the sampledescription file.")
   }
 
-  if (nrow(sd) > length(fcs.files)) {
-    print(sd[which(!sd[, "identity"] %in% fcs.files), which(names(sd) %in% c("FileName", "identity"))])
+  if (nrow(desc) > length(fcs.files)) {
+    print(desc[which(!desc[, "identity"] %in% fcs.files), which(names(desc) %in% c("FileName", "identity"))])
     stop("More rows in sampledescription than files in FCS.files.folder. For entries above no matching FCS files were found. Did you delete them manually? Please fix by deleting those rows manually in the xlsx-file. Then save it, close it and run sync_sampledescription again.")
   }
-  # there was a better way to do this
-  if (any(sapply(c(" ", "/", ":", "\\|", "\\?", "\\!", "\\*", "<", ">", "'", "\"", "ä", "ö", "ü"), function(x) grepl(x, sd[, "FileName"])))) {
-    stop("There is at least one FileName with one or more illegal character(s) which may cause problems in file-naming ( / : | ? ! * < > ' \ ä ü ö 'space')")
+
+  validate_filenames(desc[["FileName"]])
+  return(desc)
+}
+
+validate_filenames <- function(x) {
+  invalid_pattern <- "[^A-Za-z0-9._-]"
+
+  bad <- x[grepl(invalid_pattern, x)]
+
+  if (length(bad)) {
+    stop(
+      "Invalid FileName(s):\n",
+      paste(unique(bad), collapse = "\n"),
+      "\n\nIllegal characters: anything but A-Za-z0-9._-"
+    )
   }
-  return(sd)
+}
+
+mv_files_safe <- function(from, to) {
+
+  if (any(file.exists(to))) {
+    stop("Target file already exists:\n",
+         paste(to[file.exists(to)], collapse = "\n"))
+  }
+
+  ok <- file.rename(from, to)
+
+  if (!all(ok)) {
+    stop("Failed to move some files:\n",
+         paste(from[!ok], collapse = "\n"))
+  }
+}
+
+
+init_desc <- function(wd, file.name, fcs.files) {
+
+  other_putative_sd <- stats::na.omit(purrr::map_chr(list.files(wd, "\\.xlsx$|\\.tsv$", full.names = T), function(x){
+    ext <- tolower(tools::file_ext(x))
+    colnames <- switch(ext,
+                       tsv  = names(utils::read.table(x, header = T, nrows = 2, sep = "\t")),
+                       xlsx = names(openxlsx::read.xlsx(x, rows = c(1,2))))
+    if (all(c("FileName", "identity") %in% colnames)) {
+      return(x)
+    }
+    return(NA)
+  }))
+
+  if (length(other_putative_sd) > 0) {
+    choice <- utils::menu(c("Yes", "No"), title = paste0("Other putative sampledescriptions found in the parent folder of FCS.file.folder: ", basename(other_putative_sd), ". Do you want to continue initiating another file (1)? If not (2), change the file.name argument and rerun sync_sampledescription."))
+    if (choice == 2) {
+      return(NULL)
+    }
+  }
+
+  fcs.files <- fcs.files[order(lubridate::parse_date_time(
+    sapply(strsplit(fcs.files, "_-_"), "[", 3),
+    orders = "%Y.%m.%d-%H.%M.%S"
+  ))]
+
+  desc <- data.frame(FileName = paste0(
+    sprintf(paste0("%04d"), seq_along(fcs.files)),
+    "_-_",
+    basename(names(fcs.files))
+  ),
+  identity = fcs.files,
+  stringsAsFactors = F
+  )
+  init.columns <- c("AbCalcFile", "AbCalcSheet", "ExpProtocolFile", "ExpPart")
+  desc[, init.columns] <- ""
+  rownames(desc) <- NULL
+
+  file.rename(names(fcs.files), file.path(dirname(names(fcs.files)), desc[["FileName"]]))
+  write_desc(stats::setNames(list(desc), nm = c("samples")), wd = wd, file.name = file.name)
+  write_desc_log(wd = wd, file.name = file.name, desc = desc, write.log = write.log)
+  return(file.path(wd, file.name))
+}
+
+normalize_filename <- function(x) {
+  x <- ifelse(!grepl("\\.fcs$", tolower(x)), paste0(x, ".fcs"), x)
+  x <- sub("\\.FCS$", ".fcs", x)
+  return(x)
 }

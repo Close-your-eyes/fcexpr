@@ -26,7 +26,9 @@ Imports:
     rlang,
     magrittr,
     purrr,
-    BiocManager
+    BiocManager,
+    lubridate,
+    readODS
 Suggests: 
     brathering,
     rmarkdown,
@@ -36,7 +38,6 @@ Suggests:
     matrixStats,
     presto,
     uwot,
-    lubridate,
     devtools,
     parallel,
     BiocManager,

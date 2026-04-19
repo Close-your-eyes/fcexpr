@@ -161,7 +161,7 @@ wsx_get_popstats_legacy <- function(ws,
   ## get keywords to derive identity of fcs files
   keys_list <- wsx_get_keywords(ws = ws, samples = unique(pop_df$FileName)) # return = "data.frame"
   fcs_idents <-
-    stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
+    utils::stack(fcexpr:::get_fcs_identities(kwl = keys_list[["vec"]])) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>
     dplyr::mutate(FileName = as.character(FileName))
   pop_df <- dplyr::left_join(pop_df, fcs_idents, by = "FileName")

@@ -55,9 +55,10 @@ wsx_get_popstats2 <- function(ws,
   }
 
   fcs_idents <-
-    utils::stack(fcexpr:::get_fcs_identities(keys_list[["vec"]])) |>
+    utils::stack(fcexpr:::get_fcs_identities(kwl = keys_list[["vec"]])) |>
     dplyr::rename(identity = "values", "FileName" = ind) |>
     dplyr::mutate(FileName = as.character(FileName))
+
   # browser()
   conv <- NULL
   if (any(!fcs_idents$FileName %in% samplenodenames[["name"]])) {

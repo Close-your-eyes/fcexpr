@@ -28,7 +28,8 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
     BiocManager::install("flowCore")
   }
 
-  fcs_files <- check.FCS.files(FCS.file.folder)
+  fcs_files <- get_fcs_identities(folder_path = FCS.file.folder,
+                                  allow_duplicates = F)
   fcs_files <- stats::setNames(names(fcs_files), fcs_files)
   sd <- as.data.frame(sampledescription, stringsAsFactors = F)
   if (!"identity" %in% names(sd)) {
