@@ -135,17 +135,17 @@ dimred_to_fcs <- function(ff.list,
   if (run.umap && !requireNamespace("uwot", quietly = T)) {
     utils::install.packages("uwot")
   }
-  if (!requireNamespace("devtools", quietly = T)) {
-    utils::install.packages("devtools")
+  if (!requireNamespace("pak", quietly = T)) {
+    utils::install.packages("pak")
   }
   if (calc_cluster_marker && !requireNamespace("presto", quietly = T)) {
-    devtools::install_github('immunogenomics/presto')
+    pak::pak('immunogenomics/presto')
   }
   if (calc_cluster_marker && !requireNamespace("matrixTests", quietly = T)) {
     utils::install.packages("matrixTests")
   }
   if (run.som && !requireNamespace("EmbedSOM", quietly = T)) {
-    devtools::install_github("exaexa/EmbedSOM")
+    pak::pak("exaexa/EmbedSOM")
   }
 
   if (!is.null(save.to.disk)) {

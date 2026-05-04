@@ -20,7 +20,7 @@ keywords_to_sampledescription <- function(sd_path,
                                           FCS.file.folder = "FCS_files") {
 
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
 
   xlsx <- openxlsx::read.xlsx(sd_path)

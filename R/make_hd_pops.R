@@ -84,7 +84,7 @@ create_pop <- function(range_n = c(5e1:1e3),
                        mean_prob_vec_args = list(),
                        ...) {
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
   n <- sample(range_n, 1)
 
@@ -115,6 +115,7 @@ create_pop <- function(range_n = c(5e1:1e3),
 
   out <-  purrr::map_dfr(pars, function(x) {
     purrr::pmap_dfr(asplit(x,2), function(means,sds,inds) {
+
       data.frame(cell = inds,
                  FI = rnorm(n = length(inds), mean = means, sd = sds))
     }, .id = "channel_mode")

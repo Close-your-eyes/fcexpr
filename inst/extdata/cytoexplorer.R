@@ -4,9 +4,9 @@ install_github("federicomarini/shinyBS")
 install_github("DillonHammill/DataEditR")
 install_github("DillonHammill/HeatmapR")
 # CytoExploreRData
-#devtools::install_github("DillonHammill/CytoExploreRData")
+#pak::pak("DillonHammill/CytoExploreRData")
 # CytoExploreR
-devtools::install_github("DillonHammill/CytoExploreR")
+pak::pak("DillonHammill/CytoExploreR")
 
 
 fs <- flowCore::read.flowSet(c("/Volumes/CMS_SSD_2TB/Experiment_data/20210707_IL15_NKG2D_MICAB_target_cell_killing/FCS_files/20220831_Exp.part.21/1141_-_IL2_IL7_IL15_IFNb_quadruple_cond_4_DuDa.fcs",

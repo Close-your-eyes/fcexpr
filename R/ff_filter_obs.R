@@ -29,7 +29,7 @@ ff_filter_obs <- function(ff,
                           quantiles = c(0, 1),
                           verbose = T) {
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
   if (!is.list(ff)) {
     ff <- list(ff)

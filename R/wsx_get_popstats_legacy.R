@@ -178,6 +178,10 @@ wsx_get_popstats_legacy <- function(ws,
   # } else {
   #   dup_files <- NULL
   # }
+  pop_df <- pop_df |>
+    dplyr::mutate(PopulationFullPath = ifelse(PopulationFullPath == "root", FileName, PopulationFullPath)) |>
+    dplyr::mutate(Population = ifelse(Population == "root", FileName, Population))
+
 
   stats_out <- NULL
   if (return_stats) {

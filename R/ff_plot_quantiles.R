@@ -13,7 +13,7 @@ ff_plot_quantiles <- function(ff,
                               quantiles = seq(0,1,0.01)) {
 
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
 
   if (!is.list(ff)) {

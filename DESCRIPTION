@@ -1,13 +1,13 @@
 Package: fcexpr
 Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
            role = c("aut", "cre"),
            email = "vonskopnik@pm.me",
            comment = c(ORCID = "0000-0002-6089-4769"))
-Description: After manually gating populations from a cohort of fcs files a big pile of numbers needs to be analyzed statistiscally which usually requires to get those numbers out of flowjo. Such task and a few other things can be done easily with fcexpr. 
+Description: After manually gating populations from a cohort of fcs files a big pile of numbers needs to be analyzed statistiscally which usually requires to get those numbers out of flowjo. Such task and a few other things can be done with fcexpr. 
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

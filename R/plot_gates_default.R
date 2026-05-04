@@ -47,6 +47,7 @@
 #' @param gate_args arguments to geom_gate
 #' @param as_ggplot convert to ggplot object?
 #' @param title_superscript plot plus and minus signs in superscript?
+#' @param style_preset setting options for axes etc
 #'
 #' @return a list of ggplot2 objects, one for every gating level;
 #' each list index contains respective plots for every fcs file
@@ -96,7 +97,7 @@ plot_gates <- function(gs,
                        plot_gates = "gates_df",
                        plot_gate_names = "gates_df",
                        plot_gate_pct = "gates_df",
-                       inverse_trans = F,
+                       inverse_trans = T,
                        geom = c("hex", "pointdensity", "scattermore"),
                        gate_stats_color = "black",
                        pct_digits = 1,
@@ -114,18 +115,15 @@ plot_gates <- function(gs,
                        col_pal = colrr::col_pal("Spectral", direction = -1),
                        col_pal_trans = "pseudo_log",
                        theme = ggplot2::theme_bw(),
-                       theme_args = list(panel.grid = ggplot2::element_blank(),
-                                         strip.background = ggplot2::element_rect(fill = "grey95", color = "white"),
-                                         axis.text = ggplot2::element_blank(),
-                                         axis.ticks = ggplot2::element_blank(),
+                       theme_args = list(strip.background = ggplot2::element_rect(color = NA),
                                          axis.title.x = ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")),
                                          axis.title.y = ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")),
-                                         legend.position = "none",
                                          strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2,0,2,0, unit = "pt")),
                                          strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
                                          plot.margin = ggplot2::margin(1,1,1,1, "pt"),
                                          plot.title = ggplot2::element_text(margin = ggplot2::margin(1,1,1,1, unit = "pt"), size = 12),
-                                         panel.spacing = grid::unit(2, "pt")),
+                                         panel.spacing = grid::unit(2, "pt"),
+                                         legend.position = "none"),
                        max_nrow_to_plot = switch(geom,
                                                  "hex" = 5e4,
                                                  "pointdensity" = 2000,
@@ -133,24 +131,26 @@ plot_gates <- function(gs,
                        geom_args = list(),
                        gate_args = list(colour = "black",
                                         linewidth = 0.3),
-                       as_ggplot = F) {
+                       as_ggplot = F,
+                       style_preset = c("technical", "clean", "none")) {
 
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
+  style_preset <- rlang::arg_match(style_preset)
 
   if (!requireNamespace("ggcyto", quietly = T)) {
     BiocManager::install("ggcyto")
   }
   if (!requireNamespace("colrr", quietly = T)) {
-    devtools::install_github("Close-your-eyes/colrr")
+    pak::pak("Close-your-eyes/colrr")
   }
 
   if (geom == "scattermore") {
-    if (!requireNamespace("devtools", quietly = T)) {
-      utils::install.packages("devtools")
+    if (!requireNamespace("pak", quietly = T)) {
+      utils::install.packages("pak")
     }
     if (!requireNamespace("scattermore", quietly = T)) {
-      devtools::install_github("exaexa/scattermore")
+      pak::pak("exaexa/scattermore")
     }
   }
 
@@ -202,6 +202,24 @@ plot_gates <- function(gs,
     message("max_nrow_to_plot does not apply to gates with ggcyto::marginalFilter enabled.")
   }
 
+  if (style_preset == "technical") {
+    theme_args <- c(theme_args,
+                    list(panel.grid.minor = ggplot2::element_blank(),
+                         axis.text.x = ggplot2::element_text(),
+                         axis.text.y = ggplot2::element_text(),
+                         axis.ticks.x = ggplot2::element_line(),
+                         axis.ticks.y = ggplot2::element_line()))
+  } else if (style_preset == "clean") {
+    theme_args <- c(theme_args,
+                    list(panel.grid = ggplot2::element_blank(),
+                         axis.text.x = ggplot2::element_blank(),
+                         axis.text.y = ggplot2::element_blank(),
+                         axis.ticks.x = ggplot2::element_blank(),
+                         axis.ticks.y = ggplot2::element_blank()))
+
+  }
+
+
   out <- purrr::flatten(lapply(sort(unique(gates_df$GateLevel)), function (z) {
     g <- gates_df[which(gates_df[,"GateLevel"] == z),]
 
@@ -246,6 +264,10 @@ plot_gates <- function(gs,
         p <- p +
           ggcyto::axis_x_inverse_trans() +
           ggcyto::axis_y_inverse_trans()
+      } else {
+        p <- p +
+          ggplot2::scale_x_continuous(expand = ggplot2::expansion()) +
+          ggplot2::scale_y_continuous(expand = ggplot2::expansion())
       }
 
       if (!is.null(facetting)) {
@@ -303,6 +325,10 @@ plot_gates <- function(gs,
       }
       attr(p, "Population") <- paste(gg$Population, collapse = "__")
 
+
+      p <- p +
+        ggplot2::scale_x_continuous(expand = ggplot2::expansion()) +
+        ggplot2::scale_y_continuous(expand = ggplot2::expansion())
       return(p)
     })
     return(p)

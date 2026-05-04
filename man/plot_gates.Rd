@@ -11,7 +11,7 @@ plot_gates(
   plot_gates = "gates_df",
   plot_gate_names = "gates_df",
   plot_gate_pct = "gates_df",
-  inverse_trans = F,
+  inverse_trans = T,
   geom = c("hex", "pointdensity", "scattermore"),
   gate_stats_color = "black",
   pct_digits = 1,
@@ -24,21 +24,20 @@ plot_gates(
   col_pal = colrr::col_pal("Spectral", direction = -1),
   col_pal_trans = "pseudo_log",
   theme = ggplot2::theme_bw(),
-  theme_args = list(panel.grid = ggplot2::element_blank(), strip.background =
-    ggplot2::element_rect(fill = "grey95", color = "white"), axis.text =
-    ggplot2::element_blank(), axis.ticks = ggplot2::element_blank(), axis.title.x =
+  theme_args = list(strip.background = ggplot2::element_rect(color = NA), axis.title.x =
     ggplot2::element_text(margin = ggplot2::margin(t = 2, unit = "pt")), axis.title.y =
-    ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")), legend.position
-    = "none", strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0,
-    unit = "pt")), strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 
-    
-    2, 0, 2, unit = "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"), plot.title =
-    ggplot2::element_text(margin = ggplot2::margin(1, 1, 1, 1, unit = "pt"), size = 12),
-    panel.spacing = grid::unit(2, "pt")),
+    ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")), strip.text.x =
+    ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0, unit = "pt")),
+    strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 2, 0, 2, unit =
+    "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"), plot.title =
+    ggplot2::element_text(margin = ggplot2::margin(1, 
+     1, 1, 1, unit = "pt"), size =
+    12), panel.spacing = grid::unit(2, "pt"), legend.position = "none"),
   max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
   geom_args = list(),
   gate_args = list(colour = "black", linewidth = 0.3),
-  as_ggplot = F
+  as_ggplot = F,
+  style_preset = c("technical", "clean", "none")
 )
 }
 \arguments{
@@ -99,6 +98,8 @@ to plotting time}
 \item{gate_args}{arguments to geom_gate}
 
 \item{as_ggplot}{convert to ggplot object?}
+
+\item{style_preset}{setting options for axes etc}
 }
 \value{
 a list of ggplot2 objects, one for every gating level;

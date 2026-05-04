@@ -169,10 +169,10 @@ heatmap_long_df <- function(df,
 
 
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
   if (!requireNamespace("colrr", quietly = T)) {
-    devtools::install_github("Close-your-eyes/colrr")
+    pak::pak("Close-your-eyes/colrr")
   }
 
   stopifnot("df must be a data frame" = is.data.frame(df))
@@ -371,6 +371,8 @@ heatmap_long_df <- function(df,
     guide_fun <- ggplot2::guide_colorbar
   }
 
+
+  plot <- plot + theme + Gmisc::fastDoCall(ggplot2::theme, args = theme_args)
   ## auto legend size fill and color ?
   if ("override.aes" %in% names(legend_size_args)) {
     if ("color" %in% names(legend_size_args[["override.aes"]])) {
@@ -422,7 +424,7 @@ heatmap_long_df <- function(df,
     }
   }
 
-  plot <- plot + theme + Gmisc::fastDoCall(ggplot2::theme, args = theme_args)
+  # plot <- plot + theme + Gmisc::fastDoCall(ggplot2::theme, args = theme_args)
 
   if (!is.null(featuregroup)) {
     if ("facet" %in% featuregroup_style) {

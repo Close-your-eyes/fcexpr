@@ -77,7 +77,7 @@ ff_model_GMM <- function(ff,
   stopifnot("ff has to be a flowframe" = methods::is(ff, "flowFrame"))
 
   if (!requireNamespace("brathering", quietly = T)) {
-    devtools::install_github("Close-your-eyes/brathering")
+    pak::pak("Close-your-eyes/brathering")
   }
   if (!requireNamespace("flowCore", quietly = T)) {
     BiocManager::install("flowCore")
