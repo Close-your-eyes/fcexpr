@@ -10,9 +10,6 @@ fcs_keyword_increase_max_range(
   value = 5000
 )
 }
-\arguments{
-\item{value}{}
-}
 \description{
 Title
 }

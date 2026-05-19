@@ -40,8 +40,14 @@ heatmap_ordering <- function(df,
     df,
     to_rows = rows,
     to_cols = cols,
-    values = values
-  )
+    values = values)
+
+  # impute missing values
+  if (anyNA(mat)) {
+    message("imputation of missing values to 0 for ordering.")
+    mat[which(is.na(mat))] <- 0
+  }
+
 
   clust_rows <- cluster_mat(mat = mat)
   clust_cols <- cluster_mat(mat = t(mat))

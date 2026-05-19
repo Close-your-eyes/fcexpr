@@ -6,9 +6,6 @@
 \usage{
 wsx_get_gate_definitions(ws, groups = NULL, invert_groups = F)
 }
-\arguments{
-\item{invert_groups}{}
-}
 \description{
 Obtain geometric gate definitions (coordinates) from flowjo workspace
 }

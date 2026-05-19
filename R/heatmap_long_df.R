@@ -1,7 +1,5 @@
 #' Plot heatmap from data frame in long format
 #'
-#'
-#'
 #' @param df data frame in long format
 #' @param groups column with groups
 #' @param features column with features
@@ -68,6 +66,9 @@
 #' @param pval_filter
 #' @param pval_logfc
 #' @param pval_text_args
+#' @param scale_range
+#' @param impute_missing_to
+#' @param color_trans_log
 #'
 #' @return ggplot2 object
 #' @export
@@ -119,6 +120,7 @@ heatmap_long_df <- function(df,
                             fill = "..auto..",
                             color = "..auto..",
                             scale = c("none", "zscore", "1"),
+                            scale_range = c(-1,1),
                             features_topn = NULL,
                             topn_cols = values,
                             topn_ties = F,
@@ -130,6 +132,7 @@ heatmap_long_df <- function(df,
                             legendlabels = "..auto..",
                             colorsteps = "..auto..",
                             colorsteps_nice = T,
+                            color_trans_log = F,
                             axes_flip = F,
                             group_seplines = F,
                             seplines_args = list(),
@@ -150,7 +153,8 @@ heatmap_long_df <- function(df,
                               #size = c(2, 7))
                             ),
                             theme_args = list(
-                              panel.grid = ggplot2::element_blank()
+                              panel.grid = ggplot2::element_blank(),
+                              axis.text.x = ggplot2::element_text(angle = 45, hjust = 1)
                             ),
                             repel_args = list(featurelabels_width = 0.2,
                                               featurelabels_nudhe_x = -1),
@@ -165,6 +169,7 @@ heatmap_long_df <- function(df,
                             pval_filter = c("top", "pos_fc"),
                             pval_logfc = "logFC",
                             pval_text_args = list(size = 5, vjust = 0.75),
+                            impute_missing_to = NULL,
                             ...) {
 
 
@@ -262,18 +267,33 @@ heatmap_long_df <- function(df,
     df <- df[which(df[[features]] %in% select),,drop = F]
   }
 
+
+  df <- tidyr::complete(df, !!rlang::sym(groups), !!rlang::sym(features))
+  if (anyNA(df[[values]])) {
+    if (!is.null(impute_missing_to)) {
+      message("missing values imputed to ", impute_missing_to)
+      df[[values]][which(is.na(df[[values]]))] <- impute_missing_to
+    } else {
+      message("missing values found!")
+      df <- dplyr::filter(df, !is.na(!!rlang::sym(values)))
+    }
+  }
+
   # optional scaling
   if (scale != "none") {
-    df <- dplyr::mutate(df, !!values := dplyr::case_when(
+    df <- df |>
+      #tidyr::complete(!!rlang::sym(groups), !!rlang::sym(features)) |>
+      #dplyr::mutate(!!values := ifelse(is.na(!!rlang::sym(values)), 0, !!rlang::sym(values)))
+      dplyr::mutate(!!values := dplyr::case_when(
       scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
-      scale == "1" ~ scales::rescale(!!rlang::sym(values), to = c(-1, 1)),
+      scale == "1" ~ scales::rescale(!!rlang::sym(values), to = scale_range),
       .default = !!rlang::sym(values)  # fallback (optional)
     ), .by = !!rlang::sym(features))
   }
 
 
   # assign factors to features and groups
-  df <- Gmisc::fastDoCall(fcexpr::heatmap_ordering,
+  df <- Gmisc::fastDoCall(heatmap_ordering,
                           args = c(list(df = df,
                                         features = features,
                                         groups = groups,
@@ -358,13 +378,14 @@ heatmap_long_df <- function(df,
 
 
   # decide for colorsteps or continuous colorbar
-  scale_fill <- colrr::get_color_scale_continuous(values = df[[values]],
-                                                  zscored = values_zscored,
-                                                  colorsteps = colorsteps,
-                                                  legendbreaks = legendbreaks,
-                                                  legendlabels = legendlabels,
-                                                  colors = fill,
-                                                  colorsteps_nice = colorsteps_nice)
+  scale_fill <- colrr::get_scale_fill_fun(values = df[[values]],
+                                          zscored = values_zscored,
+                                          steps = colorsteps,
+                                          legendbreaks = legendbreaks,
+                                          legendlabels = legendlabels,
+                                          palette = fill,
+                                          steps_nice = colorsteps_nice,
+                                          trans_log = color_trans_log)
   if (grepl("coloursteps", scale_fill[["guide"]])) {
     guide_fun <- ggplot2::guide_colorsteps
   } else {

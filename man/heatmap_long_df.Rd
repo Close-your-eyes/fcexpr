@@ -18,6 +18,7 @@ heatmap_long_df(
   fill = "..auto..",
   color = "..auto..",
   scale = c("none", "zscore", "1"),
+  scale_range = c(-1, 1),
   features_topn = NULL,
   topn_cols = values,
   topn_ties = F,
@@ -29,6 +30,7 @@ heatmap_long_df(
   legendlabels = "..auto..",
   colorsteps = "..auto..",
   colorsteps_nice = T,
+  color_trans_log = F,
   axes_flip = F,
   group_seplines = F,
   seplines_args = list(),
@@ -36,7 +38,8 @@ heatmap_long_df(
   legend_fill_args = list(barwidth = 1, barheight = 8, order = 1),
   legend_size_args = list(order = 2, ncol = NULL, nrow = NULL, override.aes = list(color
     = "..auto..", fill = "..auto..")),
-  theme_args = list(panel.grid = ggplot2::element_blank()),
+  theme_args = list(panel.grid = ggplot2::element_blank(), axis.text.x =
+    ggplot2::element_text(angle = 45, hjust = 1)),
   repel_args = list(featurelabels_width = 0.2, featurelabels_nudhe_x = -1),
   heatmap_ordering_args = list(feature_order = "custom", group_order = "hclust"),
   values_zscored = NULL,
@@ -47,6 +50,7 @@ heatmap_long_df(
   pval_filter = c("top", "pos_fc"),
   pval_logfc = "logFC",
   pval_text_args = list(size = 5, vjust = 0.75),
+  impute_missing_to = NULL,
   ...
 )
 }
@@ -142,8 +146,6 @@ needed}
 
 \item{values_zscored}{say if values are z-scored; if NULL inferred from data
 with brathering::is_z_scored}
-
-\item{pval_text_args}{}
 
 \item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }

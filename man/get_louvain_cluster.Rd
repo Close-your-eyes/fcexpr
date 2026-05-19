@@ -24,8 +24,6 @@ get_louvain_cluster(
 \item{FindClusters_args}{arguments to Seurat::FindClusters}
 
 \item{mc.cores}{cores to use to calculate multiple resolutions in parallel}
-
-\item{min_cluster}{}
 }
 \value{
 matrix with cluster identities
