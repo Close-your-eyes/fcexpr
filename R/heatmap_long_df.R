@@ -69,6 +69,9 @@
 #' @param scale_range
 #' @param impute_missing_to
 #' @param color_trans_log
+#' @param lower_tri for a symmetric matrix when only one obj is provided:
+#' plot the lower triangle only? (remove redundancy)
+#' @param col_na color for NA; if ..auto.. plot.background color is picked
 #'
 #' @return ggplot2 object
 #' @export
@@ -170,6 +173,8 @@ heatmap_long_df <- function(df,
                             pval_logfc = "logFC",
                             pval_text_args = list(size = 5, vjust = 0.75),
                             impute_missing_to = NULL,
+                            lower_tri = F,
+                            col_na = "..auto..",
                             ...) {
 
 
@@ -285,15 +290,15 @@ heatmap_long_df <- function(df,
       #tidyr::complete(!!rlang::sym(groups), !!rlang::sym(features)) |>
       #dplyr::mutate(!!values := ifelse(is.na(!!rlang::sym(values)), 0, !!rlang::sym(values)))
       dplyr::mutate(!!values := dplyr::case_when(
-      scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
-      scale == "1" ~ scales::rescale(!!rlang::sym(values), to = scale_range),
-      .default = !!rlang::sym(values)  # fallback (optional)
-    ), .by = !!rlang::sym(features))
+        scale == "zscore" ~ as.vector(scale(!!rlang::sym(values))),
+        scale == "1" ~ scales::rescale(!!rlang::sym(values), to = scale_range),
+        .default = !!rlang::sym(values)  # fallback (optional)
+      ), .by = !!rlang::sym(features))
   }
 
 
   # assign factors to features and groups
-  df <- Gmisc::fastDoCall(heatmap_ordering,
+  df <- Gmisc::fastDoCall(fcexpr::heatmap_ordering,
                           args = c(list(df = df,
                                         features = features,
                                         groups = groups,
@@ -323,6 +328,28 @@ heatmap_long_df <- function(df,
 
   df <- dplyr::arrange(df, !!rlang::sym(features))
 
+  dfmat <- brathering::df_long_to_mat(
+    df,
+    to_rows = groups,
+    to_cols = features,
+    values = values)
+
+  if (lower_tri) {
+    # if (ncol(corr_mat) != nrow(corr_mat)) {
+    #   message("Correlation matrix is not quadratic. Returning the lower triangle may not yield intended results.")
+    # }
+    df_lowtri <- dfmat
+    df_lowtri[which(!lower.tri(df_lowtri))] <- NA
+    df_lowtri <- brathering::mat_to_df_long(df_lowtri,
+                                      rownames_to = groups,
+                                      colnames_to = features,
+                                      values_to = values) |>
+      dplyr::left_join(df[,-which(names(df) == values)], by = c(groups, features))
+    df_lowtri[[groups]] <- factor(df_lowtri[[groups]], levels = levels(df[[groups]]))
+    df_lowtri[[features]] <- factor(df_lowtri[[features]], levels = levels(df[[features]]))
+    df <- df_lowtri
+  }
+
   # start ggplot pipeline
   plot <- ggplot2::ggplot(df, ggplot2::aes(
     x = !!rlang::sym(groups),
@@ -346,12 +373,6 @@ heatmap_long_df <- function(df,
   }
 
   # check if values are z-scored
-  dfmat <- brathering::df_long_to_mat(
-    df,
-    to_rows = groups,
-    to_cols = features,
-    values = values)
-
   if (is.null(values_zscored)) {
     values_zscored <- sum(apply(dfmat, 2, brathering::is_z_scored, verbose = F, tol = 0.05)) > 0.9*ncol(dfmat) # 0.9: arbitrary choice
     if (values_zscored) {
@@ -376,6 +397,10 @@ heatmap_long_df <- function(df,
                                                                   pval_text_args))
   }
 
+  col_na <- col_na[1]
+  if (col_na == "..auto..") {
+    col_na <- brathering::gg_get_theme_element(plot, element = "plot.background")@fill
+  }
 
   # decide for colorsteps or continuous colorbar
   scale_fill <- colrr::get_scale_fill_fun(values = df[[values]],
@@ -385,7 +410,9 @@ heatmap_long_df <- function(df,
                                           legendlabels = legendlabels,
                                           palette = fill,
                                           steps_nice = colorsteps_nice,
-                                          trans_log = color_trans_log)
+                                          trans_log = color_trans_log,
+                                          col_na = col_na)
+
   if (grepl("coloursteps", scale_fill[["guide"]])) {
     guide_fun <- ggplot2::guide_colorsteps
   } else {

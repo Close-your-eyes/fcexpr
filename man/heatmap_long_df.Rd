@@ -51,6 +51,8 @@ heatmap_long_df(
   pval_logfc = "logFC",
   pval_text_args = list(size = 5, vjust = 0.75),
   impute_missing_to = NULL,
+  lower_tri = F,
+  col_na = "..auto..",
   ...
 )
 }
@@ -146,6 +148,11 @@ needed}
 
 \item{values_zscored}{say if values are z-scored; if NULL inferred from data
 with brathering::is_z_scored}
+
+\item{lower_tri}{for a symmetric matrix when only one obj is provided:
+plot the lower triangle only? (remove redundancy)}
+
+\item{col_na}{color for NA; if ..auto.. plot.background color is picked}
 
 \item{...}{arguments to heatmap_ordering like feature_order or group_order}
 }
