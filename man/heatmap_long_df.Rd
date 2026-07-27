@@ -31,6 +31,7 @@ heatmap_long_df(
   colorsteps = "..auto..",
   colorsteps_nice = T,
   color_trans_log = F,
+  color_center_zero = T,
   axes_flip = F,
   group_seplines = F,
   seplines_args = list(),
@@ -122,6 +123,8 @@ a single number or a vector of explicit steps; may not work with any number
 when colorsteps_nice is TRUE}
 
 \item{colorsteps_nice}{heuristic for pretty steps}
+
+\item{color_center_zero}{center color scale of legend at zero?}
 
 \item{axes_flip}{do flip them?}
 

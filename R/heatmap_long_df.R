@@ -72,6 +72,7 @@
 #' @param lower_tri for a symmetric matrix when only one obj is provided:
 #' plot the lower triangle only? (remove redundancy)
 #' @param col_na color for NA; if ..auto.. plot.background color is picked
+#' @param color_center_zero center color scale of legend at zero?
 #'
 #' @return ggplot2 object
 #' @export
@@ -136,6 +137,7 @@ heatmap_long_df <- function(df,
                             colorsteps = "..auto..",
                             colorsteps_nice = T,
                             color_trans_log = F,
+                            color_center_zero = T,
                             axes_flip = F,
                             group_seplines = F,
                             seplines_args = list(),
@@ -341,9 +343,9 @@ heatmap_long_df <- function(df,
     df_lowtri <- dfmat
     df_lowtri[which(!lower.tri(df_lowtri))] <- NA
     df_lowtri <- brathering::mat_to_df_long(df_lowtri,
-                                      rownames_to = groups,
-                                      colnames_to = features,
-                                      values_to = values) |>
+                                            rownames_to = groups,
+                                            colnames_to = features,
+                                            values_to = values) |>
       dplyr::left_join(df[,-which(names(df) == values)], by = c(groups, features))
     df_lowtri[[groups]] <- factor(df_lowtri[[groups]], levels = levels(df[[groups]]))
     df_lowtri[[features]] <- factor(df_lowtri[[features]], levels = levels(df[[features]]))
@@ -411,7 +413,8 @@ heatmap_long_df <- function(df,
                                           palette = fill,
                                           steps_nice = colorsteps_nice,
                                           trans_log = color_trans_log,
-                                          col_na = col_na)
+                                          col_na = col_na,
+                                          center_zero = color_center_zero)
 
   if (grepl("coloursteps", scale_fill[["guide"]])) {
     guide_fun <- ggplot2::guide_colorsteps
