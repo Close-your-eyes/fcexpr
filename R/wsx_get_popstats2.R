@@ -64,7 +64,6 @@ wsx_get_popstats2 <- function(ws,
     dplyr::rename(identity = "values", "FileName" = ind) |>
     dplyr::mutate(FileName = as.character(FileName))
 
-  # browser()
   conv <- check_fcs_namechange(filenames = fcs_idents$FileName,
                                nodenames = samplenodenames[["name"]])
   # samplenodenames[["name"]] <- unname(conv[samplenodenames[["name"]]])
@@ -424,11 +423,11 @@ make_graphs <- function(df) {
 check_fcs_namechange <- function(filenames, nodenames) {
   conv <- NULL
   if (any(!filenames %in% nodenames)) {
-    message("did you change filenames after loading fcs files into flowjo? try to")
-
-    tt <- stringdist::stringdistmatrix(unique(nodenames), filenames)
-    match_inds <- apply(tt, 1, which.min)
-    if (length(unique(match_inds)) < length(match_inds)) {
+    message("did you change filenames after loading fcs files into flowjo?")
+    match_inds <- apply(stringdist::stringdistmatrix(unique(nodenames), filenames),
+                        1,
+                        which.min)
+    if (anyDuplicated(match_inds)) {
       stop("could not match old and new FileName unambigously. Make new wsp and re-import renamed FCS files.")
     }
     message("change old to new FileName based on best match. You may re-create the wsp with renamed FCS files from scratch.")

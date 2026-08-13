@@ -32,6 +32,7 @@ wsx_get_popstats <- function(ws,
 
   dots <- list(...)
 
+  out <- NULL
   tryCatch(expr = {
     out <- wsx_get_popstats2(ws = ws,
                              groups = groups,
@@ -60,9 +61,17 @@ wsx_get_popstats <- function(ws,
                                           ...)
   })
 
-  cols <- c("FileName", "PopulationFullPath", "Population", "Count", "ParentCount", "identity")
-  res <- waldo::compare(x <- dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count),
-                        y <- dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))
+  res <- 1
+  if (!is.null(out)) {
+    cols <- c("FileName", "PopulationFullPath", "Population", "Count", "ParentCount", "identity")
+    res <- waldo::compare(x <- dplyr::select(out_legacy[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count),
+                          y <- dplyr::select(out[["counts"]], dplyr::all_of(cols)) |> dplyr::arrange(FileName,identity,PopulationFullPath,Count))
+
+    if (length(res)) {
+      message("Found differences between new and legacy method. Returning legacy.
+            You may report that workspace to vonskopnik@pm.me.")
+    }
+  }
 
   # out1 <- out[["counts"]] |> dplyr::filter(grepl("0041", FileName))
   # out2 <- out_legacy[["counts"]] |> dplyr::filter(grepl("0041", FileName))
@@ -73,8 +82,6 @@ wsx_get_popstats <- function(ws,
   if (!length(res)) {
     return(out)
   } else {
-    message("Found differences between new and legacy method. Returning legacy.
-            You may report that workspace to vonskopnik@pm.me.")
     return(out_legacy)
   }
 }
