@@ -42,7 +42,7 @@ if NULL all samples (from selected groups) are read}
 data columns available for plotting with fcexpr::plot_gates}
 
 \item{pData_join_col}{column name in pData for joining; joinable columns
-are found with fcexpr:::find_unique_level_columns(pData, pData_join_col)}
+are found with brathering::get_unique_level_columns(pData, pData_join_col)}
 
 \item{get_gates}{run fcexpr::gs_get_gates and include results in the return list}
 

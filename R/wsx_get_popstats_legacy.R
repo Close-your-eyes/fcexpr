@@ -56,7 +56,7 @@ wsx_get_popstats_legacy <- function(ws,
 
     Count <- xml2::xml_attr(p_nodes[1], "count")
     if (Count == -1) {
-      stop("Count = -1 detected. One or more nodes a boolean gate (Or/And) depends may not have been found.
+      message("Count = -1 detected. One or more nodes a boolean gate (Or/And) depends may not have been found.
             Cannot derive correct Count.
             Did you rename the nodes an Or- or And-Gate depends on?
                  If so, please re-define the respective boolean gate.")

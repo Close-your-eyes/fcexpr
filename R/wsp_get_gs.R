@@ -21,7 +21,7 @@
 #' @param pData data frame to join via rownames of pData(gs), this will make meta
 #' data columns available for plotting with fcexpr::plot_gates
 #' @param pData_join_col column name in pData for joining; joinable columns
-#' are found with fcexpr:::find_unique_level_columns(pData, pData_join_col)
+#' are found with brathering::get_unique_level_columns(pData, pData_join_col)
 #' @param get_gates run fcexpr::gs_get_gates and include results in the return list
 #' @param force_gs_merge try to eliminate non-congruent populations from gating
 #' hierarchies to allow merging of all samples into one gs
@@ -185,17 +185,17 @@ wsp_get_gs <- function(wsp,
 
 
 
-find_unique_level_columns <- function(df, refcol) {
-  if (!refcol %in% names(df)) {
-    stop("refcol not in df")
-  }
-  col_level_df <-
-    df |>
-    dplyr::group_by(!!rlang::sym(refcol)) |>
-    dplyr::summarise(dplyr::across(.cols = dplyr::everything(), ~dplyr::n_distinct(.x)), .groups = "drop")
-  uniquelevelcols <- c(refcol, names(which(apply(col_level_df == 1, 2, all))))
-  return(uniquelevelcols)
-}
+# find_unique_level_columns <- function(df, refcol) {
+#   if (!refcol %in% names(df)) {
+#     stop("refcol not in df")
+#   }
+#   col_level_df <-
+#     df |>
+#     dplyr::group_by(!!rlang::sym(refcol)) |>
+#     dplyr::summarise(dplyr::across(.cols = dplyr::everything(), ~dplyr::n_distinct(.x)), .groups = "drop")
+#   uniquelevelcols <- c(refcol, names(which(apply(col_level_df == 1, 2, all))))
+#   return(uniquelevelcols)
+# }
 
 
 
