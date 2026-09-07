@@ -45,7 +45,7 @@ gs_get_gates <- function(gs,
                          scatter_equal = T,
                          marginal_filter = c("none", "scatter"),
                          fluo_equal = T) {
-  .ensure_packages(c("flowCore", "flowWorkspace"))
+  fcexpr:::.ensure_packages(c("flowCore", "flowWorkspace"))
 
 
   if (!is.null(min_max_vals_scatter)) {
@@ -217,7 +217,7 @@ matsplitter<-function(M, r, c) {
 }
 
 get_inds <- function(channel, fs, fs_name, min_max = c(0, 300)) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   if (is.na(channel)) {return(NULL)}
   if (nrow(flowCore::exprs(fs[[fs_name]])) == 0) {return(NULL)}
   inds_in_range <- dplyr::between(flowCore::exprs(fs[[fs_name]])[,channel], min_max[1], min_max[2])
@@ -229,7 +229,7 @@ get_quantiles_and_count <- function(gate,
                                     min_max_vals_scatter,
                                     min_max_vals,
                                     quantile_lim_filter) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   # inds are rows for which all values above or below min_max_vals; not 100 % correct as outliers in one column are also removed for all columns
   xy_channel <- stats::setNames(c(gate$x, gate$y), c("x", "y"))

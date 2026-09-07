@@ -26,7 +26,7 @@ get_louvain_cluster <- function(exprs,
                                 unique_only = T,
                                 one_res_per_cluster_num_only = F,
                                 min_cluster = 1) {
-  .ensure_packages(c("brathering", "digest", "parallel", "Seurat"))
+  fcexpr:::.ensure_packages(c("brathering", "digest", "parallel", "Seurat"))
 
   return_as <- rlang::arg_match(return_as)
 

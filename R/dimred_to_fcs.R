@@ -123,7 +123,7 @@ dimred_to_fcs <- function(ff.list,
                           timeChannel = c("Time", "HDR-T"),
                           seed = 42,
                           ...) {
-  .ensure_packages(c("flowCore", "parallel"))
+  fcexpr:::.ensure_packages(c("flowCore", "parallel"))
 
 
   ## ---- checks --------

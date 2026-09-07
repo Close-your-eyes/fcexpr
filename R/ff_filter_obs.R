@@ -28,7 +28,7 @@ ff_filter_obs <- function(ff,
                           limits_include = c(F, F),
                           quantiles = c(0, 1),
                           verbose = T) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
   if (!is.list(ff)) {
     ff <- list(ff)
   }

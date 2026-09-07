@@ -26,7 +26,7 @@ heatmap_ordering <- function(df,
                              values = "mean_cluster_scale",
                              feature_order = c("custom", "hclust", "none"),
                              group_order = c("hclust", "none", "custom")) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
 
   cols <- groups
   rows <- features

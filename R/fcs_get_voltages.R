@@ -27,7 +27,7 @@
 #' }))
 #' }
 fcs_get_voltages <- function(file_path) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
     if (!any(file.exists(file_path))) {
         warning("Not all files found.")

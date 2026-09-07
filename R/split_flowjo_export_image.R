@@ -25,7 +25,7 @@ split_flowjo_export_image <- function(img,
                                       pptx_name,
                                       pptx_image_size = 1,
                                       pptx_border_space = 0.2) {
-  .ensure_packages(c("magick"))
+  fcexpr:::.ensure_packages(c("magick"))
 
 
   if (missing(folder)) {
@@ -55,7 +55,7 @@ split_flowjo_export_image <- function(img,
 
 
   if (!missing(pptx_name)) {
-    .ensure_package("officer")
+    fcexpr:::.ensure_package("officer")
     pptx <- officer::read_pptx()
     pptx <- officer::add_slide(pptx, layout = "Title and Content", master = "Office Theme")
 

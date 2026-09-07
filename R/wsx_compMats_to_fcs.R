@@ -22,7 +22,7 @@ wsx_compMats_to_fcs <- function(ws,
                                 groups = NULL,
                                 alt_FCS_file_folder = NULL,
                                 ...) {
-  .ensure_packages(c("flowCore", "lubridate"))
+  fcexpr:::.ensure_packages(c("flowCore", "lubridate"))
 
   ws <- fcexpr:::check_ws(ws)
 

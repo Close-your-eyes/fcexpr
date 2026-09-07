@@ -26,7 +26,7 @@ fcs_write_comp_mat <- function(fcs_file_path,
                                comp_mat_file_path,
                                max_match_dist = 1,
                                skip_check = F) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
 
   if (!file.exists(comp_mat_file_path)) {
@@ -124,7 +124,7 @@ prep_spill <- function(sp, comp_mat, max_match_dist = 1, skip_check = T, verbose
 fcs_write_comp_mat_neutral <- function(fcs_file_path,
                                        comp_mat_keyword = "SPILL",
                                        channel_names = NULL) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (!file.exists(fcs_file_path)) {
     stop("fcs_file not found.")

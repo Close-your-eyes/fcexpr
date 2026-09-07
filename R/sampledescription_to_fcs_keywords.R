@@ -20,7 +20,7 @@
 sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
                                               FCS.file.folder) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
 
   fcs_files <- get_fcs_identities(folder_path = FCS.file.folder,

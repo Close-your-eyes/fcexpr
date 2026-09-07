@@ -22,7 +22,7 @@ ff_calc_marker <- function(ff,
                            global = T,
                            pairwise = F,
                            ...) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   # messages if chnalle not found
 

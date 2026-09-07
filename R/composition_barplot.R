@@ -4,7 +4,7 @@
                                  fill_cat,
                                  col_pal = colrr::col_pal("custom"),
                                  plot_labels = F) {
-  .ensure_packages(c("colrr", "ggplot2"))
+  fcexpr:::.ensure_packages(c("colrr", "ggplot2"))
 
 
   if (!x_cat %in% names(x)) {

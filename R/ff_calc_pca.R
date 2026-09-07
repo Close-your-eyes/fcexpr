@@ -18,7 +18,7 @@ ff_calc_pca <- function(ff,
                         args = list(scale. = F, center = F),
                         return = c("pca", "ff"),
                         ...) {
-  .ensure_packages(c("flowCore", "Gmisc"))
+  fcexpr:::.ensure_packages(c("flowCore", "Gmisc"))
 
   return <- rlang::arg_match(return)
   if (return == "ff" && missing(ff)) {

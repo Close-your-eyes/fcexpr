@@ -51,7 +51,7 @@ ff_simulate <- function(model,
                         n = 50000,
                         m = 1,
                         seed = 42) {
-  .ensure_packages(c("flowCore", "mclust"))
+  fcexpr:::.ensure_packages(c("flowCore", "mclust"))
   # model or path to folder with models to choose
   if (!is.null(path)) {
     modelfiles <- list.files(path, "\\.rds$", full.names = T)

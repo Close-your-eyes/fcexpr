@@ -57,7 +57,7 @@ wsp_get_gs <- function(wsp,
                        get_gates_args = list(n_bins = 30000),
                        force_gs_merge = F,
                        dir = tempdir()) {
-  .ensure_packages(c("brathering", "flowCore", "Gmisc"))
+  fcexpr:::.ensure_packages(c("brathering", "flowCore", "Gmisc"))
 
 
   if (!is.null(pData)) {
@@ -212,7 +212,7 @@ make_smpl_list <- function(smpl) {
 
 
 compare_gating_hierarchies <- function(wsp, sample_df = NULL) {
-  .ensure_packages(c("digest"))
+  fcexpr:::.ensure_packages(c("digest"))
   gatings_list <- purrr::map(stats::setNames(wsp, wsp), function(ws) {
     ps <- wsx_get_popstats_legacy(ws = ws, return_stats = F)[["counts"]]
     if (!is.null(sample_df)) {

@@ -1,5 +1,5 @@
 lgcl_trsfrm_ff <- function(ff, m_max = 500, channels = NULL, ...) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   # ... argument like .progress
   #future::plan(future::multisession, workers = 3)
   #future::plan(future::sequential)
@@ -117,7 +117,7 @@ get_ff <- function(gs,
                    channels = NULL,
                    leverage_score_for_sampling = F,
                    return_ind_mat = F) {
-  .ensure_packages(c("flowCore", "flowWorkspace"))
+  fcexpr:::.ensure_packages(c("flowCore", "flowWorkspace"))
 
   if ("downsample" %in% names(attributes(gs))) {
     downsample <- suppressWarnings(as.numeric(attr(gs, "downsample"))) # when min --> NA
@@ -204,7 +204,7 @@ get_ff <- function(gs,
   attr(ff[[1]], "trafolistinv") <- flowWorkspace:::gs_get_transformlists(gs, inverse = T)
 
   if (leverage_score_for_sampling) {
-    .ensure_package("Seurat")
+    fcexpr:::.ensure_package("Seurat")
     message("Calculating leverage scores.")
     downsample_channels <- .get.channels(ff[[1]], channels = downsample_channels)
     lev_scores <- lapply(asplit(inds, 2), function(x) {
@@ -282,7 +282,7 @@ get_ff2 <- function(x,
                     leverage_score_for_sampling = F,
                     channels = NULL,
                     seed = 42) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (!path_attr_name %in% names(attributes(x))) {
     message(path_attr_name, " not found in attributes.")
@@ -329,7 +329,7 @@ get_ff2 <- function(x,
   ff <- flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F)
 
   if (leverage_score_for_sampling) {
-    .ensure_package("Seurat")
+    fcexpr:::.ensure_package("Seurat")
     message("Calculating leverage scores.")
     channels <- .get.channels(ff[[1]], channels = channels)
     lev_scores <- lapply(asplit(inds, 2), function(x) {
@@ -375,7 +375,7 @@ get_gs <- function(x,
                    remove_redundant_channels = F,
                    dir = tempdir(),
                    merge_to_gs = T) {
-  .ensure_packages(c("CytoML", "flowCore", "flowWorkspace"))
+  fcexpr:::.ensure_packages(c("CytoML", "flowCore", "flowWorkspace"))
 
   # split(x, (seq(nrow(x))-1) %/% split_size
   message("tempdir: ", dir, "\n")
@@ -435,7 +435,7 @@ get_kw_and_pars <- function(exprs,
                             keywrd = list(),
                             params = NULL,
                             insert_neutral_spill = T) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (!is.null(ff)) {
     # provide the flowframe which was basis for creation of modified/extended exprs
@@ -544,7 +544,7 @@ get_kw_and_pars <- function(exprs,
 #fix_spill_kw <- function()
 
 get_fluo_channels <- function(channels, ff = NULL) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (is.null(ff)) {
     # use channels argument
@@ -604,7 +604,7 @@ get_new_kw_and_pars <- function(exprs,
                                 new_kw,
                                 new_desc = NULL,
                                 new_pars) {
-  .ensure_packages(c("BiocGenerics", "flowCore"))
+  fcexpr:::.ensure_packages(c("BiocGenerics", "flowCore"))
 
 
   if (is.null(new_desc)) {
@@ -671,7 +671,7 @@ get_new_kw_and_pars <- function(exprs,
 .get.channels <- function(ff,
                           timeChannel = NULL,
                           channels = NULL) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   if (!is.null(timeChannel)) {
     timeChannel <- trimws(timeChannel)
     timeChannel <- unlist(lapply(timeChannel, function(x) grep(paste0("^",x,"$"),
@@ -722,7 +722,7 @@ get_new_kw_and_pars <- function(exprs,
 
 
 .check.ff.list <- function(ff.list, channels = NULL, strict = T) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   ## combine with .get.channels?
   ## check if untransformed and transformed ffs are equal
@@ -834,7 +834,7 @@ shift.to.positive <- function(x, rm.na = F) {
 }
 
 .calc.pairwise.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
-  .ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
+  fcexpr:::.ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
   mc.cores <- min(mc.cores, parallel::detectCores() - 1)
 
   dat_split <- split_mat(x = dat, f = cluster)
@@ -917,7 +917,7 @@ shift.to.positive <- function(x, rm.na = F) {
 }
 
 .calc.global.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
-  .ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
+  fcexpr:::.ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
 
   #method = c("presto", "matrixTests")
   #method <- match.arg(method, c("presto", "matrixTests"))

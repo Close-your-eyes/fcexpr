@@ -32,7 +32,7 @@ ab_info_to_panel <- function(panel_file,
                              antibody_list,
                              antibody_list_sheet = 1,
                              antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")) {
-  .ensure_packages(c("openxlsx"))
+  fcexpr:::.ensure_packages(c("openxlsx"))
 
   if (missing(panel_file)) {
     stop("Please provide a panel_file.")

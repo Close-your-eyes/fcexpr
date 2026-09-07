@@ -11,7 +11,7 @@
 fcs_keyword_increase_max_range <- function(fcs_file_path,
                                            channel_reg_expr = NULL,
                                            value = 5000) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
 
 

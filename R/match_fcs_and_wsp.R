@@ -19,7 +19,7 @@ match_fcs_and_wsp <- function(FCS.file.folder = NULL,
                               FCS.file.paths = NULL,
                               exclude.folders = NULL,
                               wsp) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (missing(wsp)) {
     stop("wsp missing. Please provide a vector of paths to wsp files.")

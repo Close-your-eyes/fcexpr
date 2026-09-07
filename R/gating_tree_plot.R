@@ -40,7 +40,7 @@ gating_tree_plot <- function(PopulationFullPath,
                              names = c("final_node", "short_path", "full_path"),
                              label_repel = F,
                              ...) {
-  .ensure_packages(c("ggplot2", "ggraph", "igraph"))
+  fcexpr:::.ensure_packages(c("ggplot2", "ggraph", "igraph"))
 
 
   names <- rlang::arg_match(names)

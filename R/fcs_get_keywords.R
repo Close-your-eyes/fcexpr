@@ -13,7 +13,7 @@
 fcs_get_keywords <- function(file_paths,
                              keywords = NULL,
                              return = c("data.frame", "vector")) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   return <- rlang::arg_match(return)
 

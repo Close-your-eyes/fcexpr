@@ -27,7 +27,7 @@ ff_get_channels <- function(ff,
                             rm_wo_desc = F,
                             replace_NA_desc = F,
                             return = c("vector", "data.frame")) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   stopifnot("only one flow frame" = length(ff) == 1)
 

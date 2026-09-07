@@ -18,7 +18,7 @@
 keywords_to_sampledescription <- function(sd_path,
                                           keywords,
                                           FCS.file.folder = "FCS_files") {
-  .ensure_packages(c("brathering", "flowCore", "openxlsx"))
+  fcexpr:::.ensure_packages(c("brathering", "flowCore", "openxlsx"))
 
 
   xlsx <- openxlsx::read.xlsx(sd_path)

@@ -24,7 +24,7 @@ nPE_to_fcs <- function(file_path,
                        kfactor_df = NULL,
                        output_folder = NULL,
                        new_file_suffix = "nPE") {
-  .ensure_packages(c("BiocGenerics", "flowCore"))
+  fcexpr:::.ensure_packages(c("BiocGenerics", "flowCore"))
 
   if (!file.exists(file_path)) {
     stop(file_path, " not found.")

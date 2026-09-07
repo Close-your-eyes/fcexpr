@@ -32,7 +32,7 @@ wsx_get_popstats_0 <- function(ws,
                               invert_groups = F,
                               return_stats = F,
                               strip_data = T) {
-  .ensure_packages(c("igraph", "stringdist"))
+  fcexpr:::.ensure_packages(c("igraph", "stringdist"))
   show_progress = F
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
@@ -453,7 +453,7 @@ get_node_details2 <- function(nodeset, more_gate_data = F, conv = NULL) {
 
 
 add_full_paths <- function(df, graph, edges = NULL, show_progress = F) {
-  .ensure_packages(c("igraph"))
+  fcexpr:::.ensure_packages(c("igraph"))
   # providing end_edges speeds up the process
   # starting from end edges should catch all gates (nodes) at least once (logic, maybe)
   if (is.null(edges)) {
@@ -526,7 +526,7 @@ add_boolean_gate_data <- function(df,
                                   node_details_list,
                                   nodes_name = c("OrNodes", "AndNodes", "NotNodes"),
                                   more_gate_data = F) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
   nodes_name <- rlang::arg_match(nodes_name)
 
   # browser()
@@ -640,7 +640,7 @@ add_boolean_gate_data <- function(df,
 
 
 add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNodes", "AndNodes")) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
 
   #grandparent_id
   #GateDepth

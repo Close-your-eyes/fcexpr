@@ -116,7 +116,7 @@ sync_sampledescription <- function(FCS.file.folder,
 }
 
 write_desc_log <- function(wd, file.name, desc, write.log) {
-  .ensure_packages(c("openxlsx"))
+  fcexpr:::.ensure_packages(c("openxlsx"))
   if (write.log) {
     if (Sys.info()[["sysname"]] %in% c("Linux", "Darwin")) {
       file <- file.path(wd, paste0(".log_", file.name))
@@ -153,7 +153,7 @@ write_desc_log <- function(wd, file.name, desc, write.log) {
 
 
 write_desc <- function(named.sheet.list, wd, file.name) {
-  .ensure_packages(c("openxlsx"))
+  fcexpr:::.ensure_packages(c("openxlsx"))
 
   ext <- tolower(tools::file_ext(file.name))
   ## make repetitive elements more compact
@@ -341,7 +341,7 @@ add_fcs_update_desc_on_disk <- function(desc,
                                         wd,
                                         file.name,
                                         write.log) {
-  .ensure_packages(c("lubridate"))
+  fcexpr:::.ensure_packages(c("lubridate"))
 
   new_fcs <- fcs.files[which(!fcs.files %in% desc[["identity"]])]
   if (length(new_fcs)) {
@@ -413,7 +413,7 @@ move_fcs_update_desc_on_disk <- function(desc,
 
 
 read_desc <- function(wd, file.name, fcs.files) {
-  .ensure_packages(c("openxlsx"))
+  fcexpr:::.ensure_packages(c("openxlsx"))
 
   if (tools::file_ext(file.name) == "xlsx") {
     desc <- as.data.frame(openxlsx::read.xlsx(file.path(wd, file.name), sheet = 1, skipEmptyCols = F, detectDates = T), stringsAsFactors = F)
@@ -477,7 +477,7 @@ mv_files_safe <- function(from, to) {
 
 
 init_desc <- function(wd, file.name, fcs.files) {
-  .ensure_packages(c("lubridate", "openxlsx"))
+  fcexpr:::.ensure_packages(c("lubridate", "openxlsx"))
 
   other_putative_sd <- stats::na.omit(purrr::map_chr(list.files(wd, "\\.xlsx$|\\.tsv$", full.names = T), function(x){
     ext <- tolower(tools::file_ext(x))

@@ -41,7 +41,7 @@ ab_panel_to_fcs <- function(sampledescription,
                             ignore_duplicate_ag = F,
                             machine = NULL,
                             manual_df = NULL) {
-  .ensure_packages(c("flowCore", "openxlsx"))
+  fcexpr:::.ensure_packages(c("flowCore", "openxlsx"))
 
   # how to handle non-fluorochrome conjugates?
 
@@ -286,7 +286,7 @@ conjugate_to_channel <- function(conjugates,
 }
 
 .check.and.get.ccm <- function(ccm) {
-  .ensure_packages(c("openxlsx"))
+  fcexpr:::.ensure_packages(c("openxlsx"))
 
   if (is.character(ccm)) {
     if (length(ccm) != 1) {
@@ -317,7 +317,7 @@ conjugate_to_channel <- function(conjugates,
 }
 
 .check_comp_mat <- function(ff) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   spill_ind <- which(flowCore:::.spillover_pattern %in% names(flowCore::keyword(ff)))
   if (length(spill_ind) == 0) {

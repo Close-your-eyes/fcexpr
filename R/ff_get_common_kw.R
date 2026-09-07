@@ -7,7 +7,7 @@
 #'
 #' @examples
 ff_get_common_kw <- function(ff_list) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   # get common (intersecting keywords)
   # a bit unhandy but vectorized version (below) did not work
   kw_list <- lapply(ff_list, flowCore::keyword)

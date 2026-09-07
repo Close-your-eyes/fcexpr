@@ -254,7 +254,7 @@ heatmap_long_df <- function(df,
                             lower_tri = F,
                             col_na = "..auto..",
                             ...) {
-  .ensure_packages(c("brathering", "colrr", "ggplot2", "ggtext", "Gmisc", "scales"))
+  fcexpr:::.ensure_packages(c("brathering", "colrr", "ggplot2", "ggtext", "Gmisc", "scales"))
 
 
 
@@ -630,7 +630,7 @@ heatmap_long_df <- function(df,
 
 
 repel_features <- function(df, plot, repel_args, featurelabels, featuresitalic) {
-  .ensure_packages(c("cowplot", "ggplot2", "ggrepel"))
+  fcexpr:::.ensure_packages(c("cowplot", "ggplot2", "ggrepel"))
 
   axis.df <- data.frame(
     y = 1:length(levels(df$feature)),

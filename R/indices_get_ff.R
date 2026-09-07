@@ -36,7 +36,7 @@ indices_get_ff <- function(ind_mat,
                            channels = NULL,
                            leverage_score_for_sampling = F,
                            ...) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   ## check and update
 

@@ -30,7 +30,7 @@ fcs_files_df_get_ff <- function(df,
                                 compensate = T,
                                 comp_keyword = "SPILL",
                                 match_channels = T) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   message("reading flowframes into memory:")
   ffs <- purrr::map(stats::setNames(df$FilePathUse, df$FlowJoFileName), function(x) {
     message(basename(x))

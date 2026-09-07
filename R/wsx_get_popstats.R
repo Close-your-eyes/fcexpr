@@ -29,7 +29,7 @@ wsx_get_popstats <- function(ws,
                              strip_data = T,
                              skip_legacy = F,
                              ...) {
-  .ensure_packages(c("waldo"))
+  fcexpr:::.ensure_packages(c("waldo"))
 
   dots <- list(...)
 

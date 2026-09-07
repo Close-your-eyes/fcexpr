@@ -21,7 +21,7 @@ ff_simulate2 <- function(exprs = NULL,
                          m = 1,
                          annotate_channels = F,
                          ...) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   seed <- 42
   dots <- list(...)

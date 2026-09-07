@@ -73,7 +73,7 @@ ff_model_GMM <- function(ff,
                          seed = 42,
                          source_file = "$FIL",
                          ...) {
-  .ensure_packages(c("brathering", "flowCore", "mclust"))
+  fcexpr:::.ensure_packages(c("brathering", "flowCore", "mclust"))
 
   stopifnot("ff has to be a flowframe" = methods::is(ff, "flowFrame"))
 

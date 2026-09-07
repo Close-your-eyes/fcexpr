@@ -16,7 +16,7 @@ get_hclust_clusters <- function(exprs,
                                 method = c("complete", "ward.D", "ward.D2", "ward", "single", "average", "mcquitty", "median", "centroid"),
                                 k = c(5,10,20),
                                 mc.cores = 1) {
-  .ensure_packages(c("Gmisc", "parallel", "parallelDist"))
+  fcexpr:::.ensure_packages(c("Gmisc", "parallel", "parallelDist"))
 
 
   mc.cores <- min(mc.cores, parallel::detectCores()-1)

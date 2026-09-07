@@ -26,7 +26,7 @@
 ff_apply_compensation <- function(ff,
                                   compmat,
                                   match_channels = T) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
   if (is.list(compmat) && length(compmat) == 1) {
     compmat <- compmat[[1]]
   } else if (is.list(compmat)) {

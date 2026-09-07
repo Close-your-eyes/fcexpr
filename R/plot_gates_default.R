@@ -133,7 +133,7 @@ plot_gates <- function(gs,
                                         linewidth = 0.3),
                        as_ggplot = F,
                        style_preset = c("technical", "clean", "none")) {
-  .ensure_packages(c("colrr", "ggcyto", "ggplot2", "ggtext", "Gmisc", "scales"))
+  fcexpr:::.ensure_packages(c("colrr", "ggcyto", "ggplot2", "ggtext", "Gmisc", "scales"))
 
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
@@ -141,11 +141,11 @@ plot_gates <- function(gs,
 
 
   if (geom == "scattermore") {
-    .ensure_package("scattermore")
+    fcexpr:::.ensure_package("scattermore")
   }
 
   if (geom == "pointdensity") {
-    .ensure_package("ggpointdensity")
+    fcexpr:::.ensure_package("ggpointdensity")
   }
 
   if (plot_contours) {

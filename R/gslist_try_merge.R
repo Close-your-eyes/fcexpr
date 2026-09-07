@@ -15,7 +15,7 @@
 #' gs <- gslist_try_merge(list(gslist1[[1]][[1]], gslist2[[1]][[1]]))
 #' }
 gslist_try_merge <- function(gs_list) {
-  .ensure_packages(c("flowWorkspace"))
+  fcexpr:::.ensure_packages(c("flowWorkspace"))
   message("Trying to merge ", length(gs_list), " gs by removing non-common populations.\n")
 
   gs_pop <- lapply(gs_list, function(x) flowWorkspace::gh_get_pop_paths(x[[1]]))

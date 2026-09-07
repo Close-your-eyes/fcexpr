@@ -290,7 +290,7 @@ recursive_walk_xml <- function(x, parent_path = NULL) {
 }
 
 fix_missing_ids <- function(df) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
 
   repeat {
     df$old_id <- df$id
@@ -363,7 +363,7 @@ get_root <- function(x) {
 }
 
 rm_root <- function(x) {
-  .ensure_packages(c("brathering"))
+  fcexpr:::.ensure_packages(c("brathering"))
   sapply(brathering::strsplit2(x, "/"), "[", 2)
 }
 
@@ -391,7 +391,7 @@ get_channels_dims <- function(gate) {
 }
 
 make_graphs <- function(df) {
-  .ensure_packages(c("igraph"))
+  fcexpr:::.ensure_packages(c("igraph"))
   df2 <- df |>
     dplyr::filter(parent != ".") |>
     dplyr::rename("from" = PopulationFullPath, "to" = parent) |>
@@ -421,7 +421,7 @@ make_graphs <- function(df) {
 }
 
 check_fcs_namechange <- function(filenames, nodenames) {
-  .ensure_packages(c("stringdist"))
+  fcexpr:::.ensure_packages(c("stringdist"))
   conv <- NULL
   if (any(!filenames %in% nodenames)) {
     message("did you change filenames after loading fcs files into flowjo?")

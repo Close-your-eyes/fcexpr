@@ -89,7 +89,7 @@ wsp_get_ff <- function(wsp,
                        dir = tempdir(),
                        channels = NULL,
                        ...) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
   if (missing(population)) {
     stop("population missing. please provide one or more.")

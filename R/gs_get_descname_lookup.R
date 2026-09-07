@@ -16,7 +16,7 @@
 #' lookup <- gs_get_descname_lookup(gslist1[[1]][[1]])
 #' }
 gs_get_descname_lookup <- function(gs) {
-  .ensure_packages(c("flowCore", "flowWorkspace"))
+  fcexpr:::.ensure_packages(c("flowCore", "flowWorkspace"))
 
   pars <- purrr::map_dfr(stats::setNames(flowWorkspace::sampleNames(gs), flowWorkspace::sampleNames(gs)), function(x) {
     cf <- flowWorkspace::gh_pop_get_data(gs[[x]])

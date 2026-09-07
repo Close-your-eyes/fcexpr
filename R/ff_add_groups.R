@@ -17,7 +17,7 @@ ff_add_groups <- function(ff,
                           ident_col = "ident",
                           grouplist = NULL,
                           overwrite = F) {
-  .ensure_packages(c("flowCore"))
+  fcexpr:::.ensure_packages(c("flowCore"))
 
 
   if (is.null(grouplist)) {
