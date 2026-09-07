@@ -1,6 +1,6 @@
 Package: fcexpr
 Title: Complement the manual analysis of flow cytometric experiments and organize your fcs files in a consistent way
-Version: 0.3.2
+Version: 0.3.3
 Authors@R: 
     person(given = "Christopher Mark",
            family = "Skopnik",
@@ -13,7 +13,6 @@ Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
 Imports: 
-    openxlsx,
     stats,
     methods,
     tidyr,
@@ -23,43 +22,51 @@ Imports:
     stringr,
     tibble,
     rlang,
-    magrittr,
-    purrr,
-    BiocManager,
-    lubridate,
-    readODS
+    purrr
 Suggests: 
-    brathering,
-    rmarkdown,
-    EmbedSOM,
-    Seurat,
-    diptest,
-    matrixStats,
-    presto,
-    uwot,
-    devtools,
-    parallel,
-    BiocManager,
     BiocGenerics,
-    knitr,
-    ggplot2,
-    tidyverse,
-    officer,
-    magick,
+    BiocManager,
+    brathering,
+    colrr,
+    cowplot,
     CytoML,
+    digest,
+    diptest,
+    EmbedSOM,
     flowCore,
     flowWorkspace,
-    readODS,
-    scales,
-    ggpointdensity,
-    scattermore,
     ggcyto,
+    ggplot2,
+    ggpointdensity,
+    ggrepel,
+    ggtext,
     ggraph,
+    Gmisc,
     igraph,
+    knitr,
+    lubridate,
+    magick,
+    matrixStats,
     matrixTests,
+    mclust,
+    netstat,
+    officer,
+    openxlsx,
+    pak,
+    parallel,
+    parallelDist,
+    presto,
+    rmarkdown,
     RSelenium,
-    netstat
+    rstudioapi,
+    Rtsne,
+    scales,
+    scattermore,
+    Seurat,
+    stringdist,
+    uwot,
+    waldo
 VignetteBuilder: knitr
 Depends: 
     R (>= 3.5)
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

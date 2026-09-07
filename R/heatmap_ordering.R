@@ -26,6 +26,7 @@ heatmap_ordering <- function(df,
                              values = "mean_cluster_scale",
                              feature_order = c("custom", "hclust", "none"),
                              group_order = c("hclust", "none", "custom")) {
+  .ensure_packages(c("brathering"))
 
   cols <- groups
   rows <- features
@@ -108,7 +109,7 @@ cluster_mat = function(mat,
   distance <- rlang::arg_match(distance)
 
   if (distance == "correlation"){
-    d = stats::as.dist(1 - cor(t(mat)))
+    d = stats::as.dist(1 - stats::cor(t(mat)))
   } else if (distance == "euclidean") {
     d <- parallelDist::parallelDist(mat, threads = 12)
   } else{
@@ -135,6 +136,7 @@ cluster_mat = function(mat,
 #   return(mat)
 # }
 
+#' @importFrom rlang :=
 order_custom_for_heatmap <- function(df,
                                      col_to_order,
                                      order_metric,
@@ -152,11 +154,11 @@ order_custom_for_heatmap <- function(df,
   }
 
   df <-
-    df %>%
-    dplyr::group_by(!!rlang::sym(col_to_order)) %>%
-    dplyr::slice_max(order_by = !!rlang::sym(order_metric), n = 1, with_ties = F) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(!!col_secondary := factor(!!rlang::sym(col_secondary), levels = unlist(secondary_order))) %>%
+    df |>
+    dplyr::group_by(!!rlang::sym(col_to_order)) |>
+    dplyr::slice_max(order_by = !!rlang::sym(order_metric), n = 1, with_ties = F) |>
+    dplyr::ungroup() |>
+    dplyr::mutate(!!col_secondary := factor(!!rlang::sym(col_secondary), levels = unlist(secondary_order))) |>
     dplyr::arrange(!!rlang::sym(col_secondary), !!rlang::sym(order_metric))
 
   return(df[[col_to_order]])

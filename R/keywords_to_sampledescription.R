@@ -18,10 +18,8 @@
 keywords_to_sampledescription <- function(sd_path,
                                           keywords,
                                           FCS.file.folder = "FCS_files") {
+  .ensure_packages(c("brathering", "flowCore", "openxlsx"))
 
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
 
   xlsx <- openxlsx::read.xlsx(sd_path)
   fcs_files <- list.files(file.path(dirname(sd_path), FCS.file.folder), pattern = ".fcs", full.names = T, ignore.case = T)
@@ -34,7 +32,7 @@ keywords_to_sampledescription <- function(sd_path,
   }
   names(keys) <- get_fcs_identities(flowCore::read.FCSheader(fcs_files))
   keys_df <-
-    purrr::map_dfr(keys, stack, .id = "identity") |>
+    purrr::map_dfr(keys, utils::stack, .id = "identity") |>
     tidyr::pivot_wider(names_from = ind, values_from = values)
   xlsx <- brathering::coalesce_join(xlsx, keys_df, by = "identity")
   openxlsx::write.xlsx(xlsx, file = sd_path)

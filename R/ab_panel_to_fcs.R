@@ -20,7 +20,6 @@
 #' @return no return, but updated fcs files on disk
 #' @export
 #'
-#' @importFrom magrittr "%>%"
 #'
 #' @examples
 #' \dontrun{
@@ -42,17 +41,9 @@ ab_panel_to_fcs <- function(sampledescription,
                             ignore_duplicate_ag = F,
                             machine = NULL,
                             manual_df = NULL) {
+  .ensure_packages(c("flowCore", "openxlsx"))
 
   # how to handle non-fluorochrome conjugates?
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("CytoML", quietly = T)){
-    BiocManager::install("CytoML")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)){
-    BiocManager::install("flowWorkspace")
-  }
 
   ccm <- .check.and.get.ccm(ccm = channel_conjugate_match_file)
 
@@ -123,10 +114,10 @@ ab_panel_to_fcs <- function(sampledescription,
 
   # sd grouped by sheet and cytometers
   sd <-
-    sd %>%
-    dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col), config) %>%
-    #dplyr::summarise(FileNames = list(FileName), .groups = "drop") %>%
-    dplyr::summarise(FilePaths = list(FilePath), .groups = "drop") %>%
+    sd |>
+    dplyr::group_by(!!rlang::sym(AbCalcFile_col), !!rlang::sym(AbCalcSheet_col), config) |>
+    #dplyr::summarise(FileNames = list(FileName), .groups = "drop") |>
+    dplyr::summarise(FilePaths = list(FilePath), .groups = "drop") |>
     as.data.frame()
 
   # loop though ab info files
@@ -210,8 +201,8 @@ ab_panel_to_fcs <- function(sampledescription,
                   # collapse multiple information for same channel
                   collapse.fun <- function(x) paste0(x, collapse = ", ")
                   sh <-
-                    sh %>%
-                    dplyr::group_by(channel) %>%
+                    sh |>
+                    dplyr::group_by(channel) |>
                     dplyr::summarise(dplyr::across(c(Antigen, Conjugate, Antigen.Conjugate, dplyr::all_of(other_keywords)), collapse.fun), .groups = "drop")
                   sh <- as.data.frame(sh)
 
@@ -277,7 +268,7 @@ conjugate_to_channel <- function(conjugates,
 
   matches <- ccm[intersect(which(ccm[,"channel"] %in% channels), which(tolower(make.names(ccm[,"Conjugate"])) %in% tolower(make.names(conjugates)))), ]
 
-  matches_grouped <- dplyr::group_by(matches, Conjugate) %>% dplyr::summarise(n_ch = nlevels(as.factor(channel)))
+  matches_grouped <- dplyr::group_by(matches, Conjugate) |> dplyr::summarise(n_ch = nlevels(as.factor(channel)))
 
   if (any(matches_grouped$n_ch > 1)) {
     print(matches)
@@ -295,6 +286,7 @@ conjugate_to_channel <- function(conjugates,
 }
 
 .check.and.get.ccm <- function(ccm) {
+  .ensure_packages(c("openxlsx"))
 
   if (is.character(ccm)) {
     if (length(ccm) != 1) {
@@ -325,6 +317,7 @@ conjugate_to_channel <- function(conjugates,
 }
 
 .check_comp_mat <- function(ff) {
+  .ensure_packages(c("flowCore"))
 
   spill_ind <- which(flowCore:::.spillover_pattern %in% names(flowCore::keyword(ff)))
   if (length(spill_ind) == 0) {
@@ -346,4 +339,3 @@ conjugate_to_channel <- function(conjugates,
   }
   return(ff)
 }
-

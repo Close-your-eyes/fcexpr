@@ -11,10 +11,8 @@
 ff_plot_quantiles <- function(ff,
                               channels = NULL,
                               quantiles = seq(0,1,0.01)) {
+  .ensure_packages(c("brathering", "flowCore", "ggplot2"))
 
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
 
   if (!is.list(ff)) {
     ff <- list(ff)

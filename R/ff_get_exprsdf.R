@@ -14,6 +14,7 @@
 ff_get_exprsdf <- function(ff,
                            channels = c("umap", "som", "res\\.", "ident"),
                            ...) {
+  .ensure_packages(c("flowCore"))
 
 
   # convert numeric groups back to chars via grouplist attr

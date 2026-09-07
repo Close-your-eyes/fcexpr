@@ -13,6 +13,7 @@
 fcs_get_keywords <- function(file_paths,
                              keywords = NULL,
                              return = c("data.frame", "vector")) {
+  .ensure_packages(c("flowCore"))
 
   return <- rlang::arg_match(return)
 
@@ -50,7 +51,7 @@ fcs_get_keywords <- function(file_paths,
 
   if (return == "data.frame") {
     kwl <-
-      purrr::map_dfr(kwl, stack, .id = "FilePath") |>
+      purrr::map_dfr(kwl, utils::stack, .id = "FilePath") |>
       dplyr::mutate(FileName = basename(FilePath)) |>
       dplyr::rename("value" = values, "name" = ind) |>
       tidyr::pivot_wider()

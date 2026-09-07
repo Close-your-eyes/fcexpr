@@ -51,6 +51,7 @@ ff_simulate <- function(model,
                         n = 50000,
                         m = 1,
                         seed = 42) {
+  .ensure_packages(c("flowCore", "mclust"))
   # model or path to folder with models to choose
   if (!is.null(path)) {
     modelfiles <- list.files(path, "\\.rds$", full.names = T)
@@ -64,15 +65,10 @@ ff_simulate <- function(model,
     }
     seed <- seed+x
 
-    dtach <- !"mclust" %in% .packages()
-    library(mclust)
     y <- mclust::sim(modelName = model$modelName,
                      parameters = model$parameters,
                      seed = seed,
                      n = n)[,-1] # rm group column
-    if (dtach) {
-      detach("package:mclust", unload = T)
-    }
     colnames(y) <- model[["params"]]@data[["name"]]
 
     # rescale
@@ -88,7 +84,7 @@ ff_simulate <- function(model,
     # BED[4] is the diff of BTIM and ETIM, so analysis duration
     # first evt random between 0.2 and 0.9 sec
     BED <- random_BTIM_ETIM_DATE(seed = seed)
-    y <- cbind(y, matrix(seq(runif(1,0.2,0.9), as.numeric(BED[4]), length.out = n), ncol = 1,
+    y <- cbind(y, matrix(seq(stats::runif(1,0.2,0.9), as.numeric(BED[4]), length.out = n), ncol = 1,
                          dimnames = list(NULL, model[["time_channel"]])))
 
     kw_par <- get_kw_and_pars(exprs = y,
@@ -117,4 +113,3 @@ ff_simulate <- function(model,
 
   return(ff_list)
 }
-

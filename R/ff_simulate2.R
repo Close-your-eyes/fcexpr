@@ -9,16 +9,19 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # populations with different properties, pre-made
 #' pops1 <- make_hd_pops(npop = 3, range_sd_fct = 20, range_modes = 2, rm_ann_cols = T)
 #' pops2 <- make_hd_pops(npop = 3, range_sd_fct = 3:6, range_modes = 3, rm_ann_cols = T)
 #' ff_list1 <- ff_simulate2(exprs = dplyr::bind_rows(pops1, pops2))
 #' # have populations made within function
 #' ff_list <- ff_simulate2(npop = 2, dims = 10, m = 3)
+#' }
 ff_simulate2 <- function(exprs = NULL,
                          m = 1,
                          annotate_channels = F,
                          ...) {
+  .ensure_packages(c("flowCore"))
 
   seed <- 42
   dots <- list(...)
@@ -35,7 +38,7 @@ ff_simulate2 <- function(exprs = NULL,
     allcol <- unique(unlist(purrr::map(exprs, names)))
     ncols <- length(allcol)
     # system.file("extdata", "channel_conjugate_matches.tsv", package = "fcexpr")
-    ccmatch <- read.delim(system.file("extdata", "channel_conjugate_matches.tsv", package = "fcexpr"))
+    ccmatch <- utils::read.delim(system.file("extdata", "channel_conjugate_matches.tsv", package = "fcexpr"))
     ccmatchsum <-
       ccmatch |>
       dplyr::distinct(channel, machine) |>
@@ -82,8 +85,8 @@ ff_simulate2 <- function(exprs = NULL,
       colnames(y) <- channels[match(channels$col, colnames(y)),"channel", drop=T]
     }
 
-    BED <- fcexpr:::random_BTIM_ETIM_DATE(seed = seed + round(rnorm(1,100,50),0))
-    y <- cbind(y, matrix(seq(runif(1,0.2,0.9), as.numeric(BED[4]), length.out = nrow(y)), ncol = 1,
+    BED <- fcexpr:::random_BTIM_ETIM_DATE(seed = seed + round(stats::rnorm(1,100,50),0))
+    y <- cbind(y, matrix(seq(stats::runif(1,0.2,0.9), as.numeric(BED[4]), length.out = nrow(y)), ncol = 1,
                          dimnames = list(NULL, "Time")))
 
 
@@ -93,8 +96,8 @@ ff_simulate2 <- function(exprs = NULL,
     }
 
     # generate a few random keywords
-    kw_par[["keywrd"]][["$OP"]] <- fcexpr:::random_OP(seed = seed + round(rnorm(1,100,50),0))
-    kw_par[["keywrd"]][["$FIL"]] <- fcexpr:::random_FIL(seed = seed + round(rnorm(1,100,50),0))
+    kw_par[["keywrd"]][["$OP"]] <- fcexpr:::random_OP(seed = seed + round(stats::rnorm(1,100,50),0))
+    kw_par[["keywrd"]][["$FIL"]] <- fcexpr:::random_FIL(seed = seed + round(stats::rnorm(1,100,50),0))
     kw_par[["keywrd"]][["$BTIM"]] <- BED[1]
     kw_par[["keywrd"]][["$ETIM"]] <- BED[2]
     kw_par[["keywrd"]][["$DATE"]] <- BED[3]

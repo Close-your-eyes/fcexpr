@@ -73,15 +73,10 @@ ff_model_GMM <- function(ff,
                          seed = 42,
                          source_file = "$FIL",
                          ...) {
+  .ensure_packages(c("brathering", "flowCore", "mclust"))
 
   stopifnot("ff has to be a flowframe" = methods::is(ff, "flowFrame"))
 
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
-  if (!requireNamespace("flowCore", quietly = T)) {
-    BiocManager::install("flowCore")
-  }
 
   channels <- ff_get_channels(ff, channels = channels, rm_scatter = F, return = "vector", ...)
 
@@ -103,16 +98,11 @@ ff_model_GMM <- function(ff,
                  scale = scale_for_modelling,
                  center = scale_for_modelling)
 
-  dtach <- !"mclust" %in% .packages()
   # model the data
-  library(mclust) # necessary for mclust functions
   # fit different gaussian mix model to describe the data; BIC is used to find the best fit
   GMMs_BIC <- do.call(mclust::mclustBIC, args = c(list(data = exprs), mclustBIC_args))
   # select best model
   exprs_model <- mclust::mclustModel(data = exprs, BICvalues = GMMs_BIC)
-  if (dtach) {
-    detach("package:mclust", unload = T)
-  }
 
   exprs_model[["original_data"]] <- exprs
 

@@ -7,6 +7,7 @@
 #'
 #' @examples
 ff_get_common_desc <- function(ff_list) {
+  .ensure_packages(c("flowCore"))
   # flowCore::markernames(ff_list[[1]])
   desclist <- purrr::map(ff_list, ~flowCore::parameters(.x)@data$desc)
   unique_descs <- purrr::pmap_lgl(desclist, ~length(unique(.x)) == 1)

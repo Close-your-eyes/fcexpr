@@ -22,13 +22,8 @@ wsx_compMats_to_fcs <- function(ws,
                                 groups = NULL,
                                 alt_FCS_file_folder = NULL,
                                 ...) {
+  .ensure_packages(c("flowCore", "lubridate"))
 
-  if (!requireNamespace("CytoML", quietly = T)){
-    BiocManager::install("CytoML")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)){
-    BiocManager::install("flowWorkspace")
-  }
   ws <- fcexpr:::check_ws(ws)
 
   ids <- wsx_get_groups(ws)
@@ -116,11 +111,10 @@ wsx_compMats_to_fcs <- function(ws,
     }
     ff <- flowCore::read.FCS(names(compMats)[i], truncate_max_range = F, emptyValue = F)
     sp <- flowCore::keyword(ff)[["SPILL"]]
-    sp <- prep_spill(sp = sp, compMat = compMats[[i]], ...)
+    sp <- prep_spill(sp = sp, comp_mat = compMats[[i]], ...)
     flowCore::keyword(ff)[["SPILL"]] <- sp
     flowCore::write.FCS(ff, names(compMats)[i])
   }
 
 }
-
 

@@ -1,4 +1,5 @@
 lgcl_trsfrm_ff <- function(ff, m_max = 500, channels = NULL, ...) {
+  .ensure_packages(c("flowCore"))
   # ... argument like .progress
   #future::plan(future::multisession, workers = 3)
   #future::plan(future::sequential)
@@ -60,7 +61,30 @@ shortest_unique_path <- function(p) {
   return(p)
 }
 
+#' Validate and Read a Workspace File
+#'
+#' Validates a workspace supplied either as an XML document or as the path to
+#' a workspace file. File paths are read and returned as XML documents.
+#'
+#' @param ws A single character string containing the path to a `.wsp` or
+#'   `.wsp.gz` file, or an object of class [xml2::xml_document].
+#'
+#' @return An object of class [xml2::xml_document].
+#'
+#' @throws An error if `ws` is not a valid XML document or a path to an
+#'   existing workspace file with a supported extension.
+#'
+#' @export
+#'
+#' @examples
+#' workspace <- xml2::read_xml("<workspace/>")
+#' check_ws(workspace)
+#'
+#' \dontrun{
+#' check_ws("path/to/workspace.wsp")
+#' }
 check_ws <- function(ws) {
+
   if (is.character(ws)) {
     if (!file.exists(ws)) {
       stop("ws not found.")
@@ -71,7 +95,8 @@ check_ws <- function(ws) {
     if (!grepl("\\.", basename(ws))) {
       stop("Did you pass a directory as ws? Please pass the full path to the wsp-file.")
     }
-    if (!gsub(tools::file_path_sans_ext(ws, compression = T), "", ws) %in% c(".wsp", ".wsp.gz")) {
+
+    if (!tools::file_ext(ws) %in% c("wsp", "gz")) {
       stop("ws has to be a file path that ends with .wsp or wsp.gz.")
     }
 
@@ -92,6 +117,7 @@ get_ff <- function(gs,
                    channels = NULL,
                    leverage_score_for_sampling = F,
                    return_ind_mat = F) {
+  .ensure_packages(c("flowCore", "flowWorkspace"))
 
   if ("downsample" %in% names(attributes(gs))) {
     downsample <- suppressWarnings(as.numeric(attr(gs, "downsample"))) # when min --> NA
@@ -111,9 +137,6 @@ get_ff <- function(gs,
     leverage_score_for_sampling <- F
   }
 
-  if (downsample != 1 && leverage_score_for_sampling && !requireNamespace("Seurat", quietly = T)) {
-    utils::install.packages("Seurat")
-  }
 
   if (!is.null(downsample_channels) && !leverage_score_for_sampling) {
     message("downsample_channels are only needed for leverage score aided sampling. since leverage_score_for_sampling = F downsample_channels are ignored.")
@@ -181,6 +204,7 @@ get_ff <- function(gs,
   attr(ff[[1]], "trafolistinv") <- flowWorkspace:::gs_get_transformlists(gs, inverse = T)
 
   if (leverage_score_for_sampling) {
+    .ensure_package("Seurat")
     message("Calculating leverage scores.")
     downsample_channels <- .get.channels(ff[[1]], channels = downsample_channels)
     lev_scores <- lapply(asplit(inds, 2), function(x) {
@@ -258,6 +282,7 @@ get_ff2 <- function(x,
                     leverage_score_for_sampling = F,
                     channels = NULL,
                     seed = 42) {
+  .ensure_packages(c("flowCore"))
 
   if (!path_attr_name %in% names(attributes(x))) {
     message(path_attr_name, " not found in attributes.")
@@ -283,9 +308,6 @@ get_ff2 <- function(x,
     leverage_score_for_sampling <- F
   }
 
-  if (leverage_score_for_sampling && (!requireNamespace("Seurat", quietly = T))) {
-    install.packages("Seurat")
-  }
 
   if (!is.null(channels) && !leverage_score_for_sampling) {
     message("channels are only needed for leverage score aided sampling. leverage_score_for_sampling = F though, so channels are ignored.")
@@ -307,6 +329,7 @@ get_ff2 <- function(x,
   ff <- flowCore::read.FCS(attr(x, path_attr_name), truncate_max_range = F, emptyValue = F)
 
   if (leverage_score_for_sampling) {
+    .ensure_package("Seurat")
     message("Calculating leverage scores.")
     channels <- .get.channels(ff[[1]], channels = channels)
     lev_scores <- lapply(asplit(inds, 2), function(x) {
@@ -352,6 +375,7 @@ get_gs <- function(x,
                    remove_redundant_channels = F,
                    dir = tempdir(),
                    merge_to_gs = T) {
+  .ensure_packages(c("CytoML", "flowCore", "flowWorkspace"))
 
   # split(x, (seq(nrow(x))-1) %/% split_size
   message("tempdir: ", dir, "\n")
@@ -411,6 +435,7 @@ get_kw_and_pars <- function(exprs,
                             keywrd = list(),
                             params = NULL,
                             insert_neutral_spill = T) {
+  .ensure_packages(c("flowCore"))
 
   if (!is.null(ff)) {
     # provide the flowframe which was basis for creation of modified/extended exprs
@@ -519,6 +544,7 @@ get_kw_and_pars <- function(exprs,
 #fix_spill_kw <- function()
 
 get_fluo_channels <- function(channels, ff = NULL) {
+  .ensure_packages(c("flowCore"))
 
   if (is.null(ff)) {
     # use channels argument
@@ -549,7 +575,7 @@ match_spill_and_channels <- function(spillcols, channels) {
   # optionally removing leading comp was neccessary for adist to work properly
   # these two modification to spillcols and channels should allow a near-perfect match
   channels <- get_fluo_channels(channels)
-  dists <- adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
+  dists <- utils::adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
   min_inds <- apply(dists, 1, which.min)
   min_dist <- apply(dists, 1,  min)
   if (length(unique(min_inds)) != length(min_inds)) {
@@ -564,7 +590,7 @@ match_channels_and_spill <- function(spillcols, channels, strict = T) {
   # optionally removing leading comp was neccessary for adist to work properly
   # these two modification to spillcols and channels should allow a near-perfect match
   channels <- get_fluo_channels(channels)
-  dists <- adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
+  dists <- utils::adist(gsub("/", "_", spillcols), gsub("^Comp-", "", channels))
   min_inds <- apply(dists, 1, which.min)
   min_dist <- apply(dists, 1,  min)
   if (length(unique(min_inds)) != length(min_inds) && strict) {
@@ -578,6 +604,7 @@ get_new_kw_and_pars <- function(exprs,
                                 new_kw,
                                 new_desc = NULL,
                                 new_pars) {
+  .ensure_packages(c("BiocGenerics", "flowCore"))
 
 
   if (is.null(new_desc)) {
@@ -644,6 +671,7 @@ get_new_kw_and_pars <- function(exprs,
 .get.channels <- function(ff,
                           timeChannel = NULL,
                           channels = NULL) {
+  .ensure_packages(c("flowCore"))
   if (!is.null(timeChannel)) {
     timeChannel <- trimws(timeChannel)
     timeChannel <- unlist(lapply(timeChannel, function(x) grep(paste0("^",x,"$"),
@@ -694,6 +722,7 @@ get_new_kw_and_pars <- function(exprs,
 
 
 .check.ff.list <- function(ff.list, channels = NULL, strict = T) {
+  .ensure_packages(c("flowCore"))
 
   ## combine with .get.channels?
   ## check if untransformed and transformed ffs are equal
@@ -805,6 +834,7 @@ shift.to.positive <- function(x, rm.na = F) {
 }
 
 .calc.pairwise.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
+  .ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
   mc.cores <- min(mc.cores, parallel::detectCores() - 1)
 
   dat_split <- split_mat(x = dat, f = cluster)
@@ -825,9 +855,9 @@ shift.to.positive <- function(x, rm.na = F) {
 
                                                out <-
                                                  presto::wilcoxauc(X = cbind(t(dat_split[[x]]),t(dat_split[[y]])), y = c(rep("y", length(which(as.character(cluster) == x))),
-                                                                                                                         rep("z", length(which(as.character(cluster) == y))))) %>%
-                                                 dplyr::filter(group == "y") %>%
-                                                 dplyr::select(feature, pval) %>%
+                                                                                                                         rep("z", length(which(as.character(cluster) == y))))) |>
+                                                 dplyr::filter(group == "y") |>
+                                                 dplyr::select(feature, pval) |>
                                                  dplyr::rename("pvalue" = pval, "channel" = feature)
 
                                                out[,"mean_1"] <- round(matrixStats::colMeans2(dat_split[[x]]), 2)
@@ -839,21 +869,21 @@ shift.to.positive <- function(x, rm.na = F) {
                                                out[,"cluster_2"] <- as.character(y) #sapply(strsplit(out$cluster12, "_____"), "[", 2, simplify = T)
                                                out[,"diff_sign"] <- ifelse(out[,"mean_diff"] == 0, "+/-", ifelse(out[,"mean_diff"] > 0, "+", "-"))
 
-                                               #cluster_sizes <- utils::stack(table(cluster)) %>% dplyr::mutate(ind = as.character(ind))
+                                               #cluster_sizes <- utils::stack(table(cluster)) |> dplyr::mutate(ind = as.character(ind))
                                                out <-
-                                                 out %>%
-                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_1" = "ind")) %>%
-                                                 #dplyr::rename("cluster_1_events" = "values") %>%
-                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_2" = "ind")) %>%
-                                                 #dplyr::rename("cluster_2_events" = "values") %>%
+                                                 out |>
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_1" = "ind")) |>
+                                                 #dplyr::rename("cluster_1_events" = "values") |>
+                                                 #dplyr::left_join(cluster_sizes, by = c("cluster_2" = "ind")) |>
+                                                 #dplyr::rename("cluster_2_events" = "values") |>
                                                  #, cluster_1_events, cluster_2_events
-                                                 dplyr::select(channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_pvalue_1, diptest_pvalue_2) %>%
+                                                 dplyr::select(channel, cluster_1, cluster_2, pvalue, mean_1, mean_2, mean_diff, diff_sign, diptest_pvalue_1, diptest_pvalue_2) |>
                                                  dplyr::arrange(pvalue)
 
                                                'tryCatch({
       out <- suppressWarnings(matrixTests::col_wilcoxon_twosample(dat_split[[x]],
-                                                                  dat_split[[y]])) %>%
-        dplyr::select(pvalue) %>%
+                                                                  dat_split[[y]])) |>
+        dplyr::select(pvalue) |>
         tibble::rownames_to_column("channel")
     }, error=function(err) {
       message("Ran matrixTests::col_wilcoxon_twosample with error in level : ", x, " vs ", y, ": ")
@@ -861,9 +891,9 @@ shift.to.positive <- function(x, rm.na = F) {
       message("Trying presto::wilcoxauc.")
       out <-
         presto::wilcoxauc(cbind(t(dat_split[[x]]),t(dat_split[[y]])), c(rep("y", length(which(as.character(cluster) == x))),
-                                                                        rep("z", length(which(as.character(cluster) == y))))) %>%
-        dplyr::filter(group == "y") %>%
-        dplyr::select(feature, pval) %>%
+                                                                        rep("z", length(which(as.character(cluster) == y))))) |>
+        dplyr::filter(group == "y") |>
+        dplyr::select(feature, pval) |>
         dplyr::rename("pvalue" = pval, "channel" = feature)
     }, warning = function(war) {
       message("Ran matrixTests::col_wilcoxon_twosample with warning in level : ", x, " vs ", y, ": ")
@@ -871,9 +901,9 @@ shift.to.positive <- function(x, rm.na = F) {
       message("Trying presto::wilcoxauc.")
       out <-
         presto::wilcoxauc(cbind(t(dat_split[[x]]),t(dat_split[[y]])), c(rep("y", length(which(as.character(cluster) == x))),
-                                                                        rep("z", length(which(as.character(cluster) == y))))) %>%
-        dplyr::filter(group == "y") %>%
-        dplyr::select(feature, pval) %>%
+                                                                        rep("z", length(which(as.character(cluster) == y))))) |>
+        dplyr::filter(group == "y") |>
+        dplyr::select(feature, pval) |>
         dplyr::rename("pvalue" = pval, "channel" = feature)
     })'
 
@@ -887,6 +917,7 @@ shift.to.positive <- function(x, rm.na = F) {
 }
 
 .calc.global.cluster.marker <- function(dat, cluster, levels = NULL, mc.cores = 1) {
+  .ensure_packages(c("diptest", "matrixStats", "matrixTests", "parallel", "presto"))
 
   #method = c("presto", "matrixTests")
   #method <- match.arg(method, c("presto", "matrixTests"))
@@ -995,15 +1026,15 @@ random_BTIM_ETIM_DATE <- function(seed = 1) {
   set.seed(seed)
   # random begin and end time
   base_time <- as.POSIXct(Sys.time())
-  random_seconds <- runif(1, min = 0, max = 86400) # 24h
+  random_seconds <- stats::runif(1, min = 0, max = 86400) # 24h
   BTIM <- base_time + random_seconds
-  random_seconds <- as.integer(runif(1, min = 60, max = 600))
+  random_seconds <- as.integer(stats::runif(1, min = 60, max = 600))
   ETIM <- BTIM + random_seconds
 
   # random date
   start_date <- as.Date("2015-01-01")
   end_date <- as.Date(Sys.Date())
-  random_date <- as.Date(runif(1, min = as.numeric(start_date), max = as.numeric(end_date)), origin = "1970-01-01")
+  random_date <- as.Date(stats::runif(1, min = as.numeric(start_date), max = as.numeric(end_date)), origin = "1970-01-01")
   DATE <- format(random_date, "%d-%b-%Y")
   DATE <- toupper(random_date)
 
@@ -1015,6 +1046,4 @@ random_OP <- function(seed = 1) {
   set.seed(seed)
   return(sample(fcexpr:::random_operators, 1))
 }
-
-
 

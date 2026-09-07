@@ -18,6 +18,7 @@
 #' fflist[["flowframes"]][[1]][[1]][["transformed2"]] <- ff_transform(ff = ff_un, trafollist = attr(ff, "trafolist"))
 #' }
 ff_transform <- function(ff, trafolist) {
+  .ensure_packages(c("flowWorkspace"))
 
   if (is.list(ff)) {
     if (!all(purrr::map_lgl(ff, ~trafolist %in% names(attributes(.x))))) {

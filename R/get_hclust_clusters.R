@@ -16,6 +16,7 @@ get_hclust_clusters <- function(exprs,
                                 method = c("complete", "ward.D", "ward.D2", "ward", "single", "average", "mcquitty", "median", "centroid"),
                                 k = c(5,10,20),
                                 mc.cores = 1) {
+  .ensure_packages(c("Gmisc", "parallel", "parallelDist"))
 
 
   mc.cores <- min(mc.cores, parallel::detectCores()-1)
@@ -24,7 +25,7 @@ get_hclust_clusters <- function(exprs,
 
 
   if (distance == "correlation") {
-    d = as.dist(1 - cor(t(exprs)))
+    d = stats::as.dist(1 - stats::cor(t(exprs)))
   } else if (distance == "euclidean") {
     d <- parallelDist::parallelDist(exprs, threads = 12)
   } else {

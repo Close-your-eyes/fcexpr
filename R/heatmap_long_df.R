@@ -1,116 +1,192 @@
-#' Plot heatmap from data frame in long format
+#' Plot a heatmap from long-format data
 #'
-#' @param df data frame in long format
-#' @param groups column with groups
-#' @param features column with features
-#' @param values column with fill values for color scale
-#' @param dotsizes column for dot sizes, if provided will cause plotting of
-#' dots instead of tiles
-#' @param fill color palette vector for fill of tiles or dots. when auto,
-#' RColorBrewer::RdBu is used
-#' @param color color of stroke (border) around tiles or dots; "NA" means no
-#' stroke is plotted; NA has
-#' to be put in quotation mark ("NA"), such that geom_point accepts it.
-#' other choices may be black, white or any other color code; when "auto",
-#' grey70 is used by default when is.null(dotsizes) and a the number of
-#' features is below 100.
-#' @param scale how to scale values: not, zscore or from -1 to 1
-#' @param features_topn only plot the top n features (ordered by value) per
-#' group
-#' @param color_linewidth linewidth of borders (stroke) around tiles or dots
-#' @param legendbreaks a single number, a vector of explicit breaks, or "auto"
-#' for ggplot default or "minmidmax" for three breaks at minimum, middle and
-#' maximum of value range
-#' @param legendlabels labels for breaks, e.g. c("min", "mid", "max")
-#' @param colorsteps NULL to have normal colorbar, auto for default colorsteps,
-#' a single number or a vector of explicit steps; may not work with any number
-#' when colorsteps_nice is TRUE
-#' @param colorsteps_nice heuristic for pretty steps
-#' @param axes_flip do flip them?
-#' @param group_seplines plot lines that separate features belonging to
-#' different groups
-#' @param seplines_args arguments to geom_hline for seplines
-#' @param legend_fill_args arguments to ggplot2::guide_colorsteps or
-#' ggplot2::guide_colorbar, depend upon the color scale
-#' @param legend_size_args arguments to ggplot2::guide_legend to modify the
-#' size legend; e.g. use override.aes = list(size = c(1,3,5)) to adjust dot size
-#' in legend in contrast to dotsize_range, one number for each dot in legend
-#' needed
-#' @param heatmap_ordering_args arguments to heatmap_ordering like feature_order or group_order
-#' @param ... arguments to heatmap_ordering like feature_order or group_order
-#' @param featurelabels subset of feature labels to plot; NULL to plot all,
-#' "" to plot none; can be a named vector with names being aliases to use for
-#' plotting e.g. c("CD20" = "MS4A1", "CD3", "KLRG1") to only alter MS4A1;
-#' auto to omit labels by default when more than 100 features are there
-#' @param featurelabels_repel do repel feature axis labels?
-#' @param featuresitalic shorthand to plot feature labels in italic
-#' @param theme_args arguments to ggplot2::theme
-#' @param repel_args fine tuning for featurelabel repelling
-#' @param theme ggplot2 theme
-#' @param dotsize_range range for dot size
-#' @param topn_cols columns in df to use for ordering when selecting
-#' features_topn with dplyr::slice_max. hint: p-values have to multiplied
-#' by -1 to make this work properly
-#' @param topn_ties break ties for features_topn? if TRUE, more then
-#' features_topn may be plotted
-#' @param featuregroup column name in df that groups features
-#' @param featuregroup_style how to show feature groups, by colored axis text and/or separate facets
-#' @param featuregroup_col_name color legend name
-#' @param featuregroup_col_pal color palette name passed to colrr::col_pal
-#' @param values_zscored say if values are z-scored; if NULL inferred from data
-#' with brathering::is_z_scored
-#' @param pvals
-#' @param pval_features
-#' @param pval_max
-#' @param pval_symnum_args
-#' @param pval_filter
-#' @param pval_logfc
-#' @param pval_text_args
-#' @param scale_range
-#' @param impute_missing_to
-#' @param color_trans_log
-#' @param lower_tri for a symmetric matrix when only one obj is provided:
-#' plot the lower triangle only? (remove redundancy)
-#' @param col_na color for NA; if ..auto.. plot.background color is picked
-#' @param color_center_zero center color scale of legend at zero?
+#' `heatmap_long_df()` plots one observation for each group-feature combination.
+#' By default, observations are drawn as tiles whose fill represents `values`.
+#' Supplying `dotsizes` switches to a dot heatmap in which fill represents
+#' `values` and point size represents a second variable.
 #'
-#' @return ggplot2 object
+#' @param df A data frame in long format. Each row should describe a
+#'   group-feature combination. The columns named by `groups`, `features`, and
+#'   `values` must be present; the value column must be numeric.
+#' @param groups A single character string naming the column that defines the
+#'   heatmap groups. If omitted, the function attempts to infer it from the
+#'   first two character or factor columns in `df`.
+#' @param features A single character string naming the feature column. If
+#'   omitted, the function attempts to infer it from the first two character or
+#'   factor columns in `df`, choosing the column with more unique values when
+#'   both `groups` and `features` are omitted.
+#' @param values A single character string naming the numeric column mapped to
+#'   fill. If omitted, the first numeric column in `df` is used.
+#' @param featuregroup Optional single character string naming a column that
+#'   assigns features to higher-level feature groups.
+#' @param featuregroup_style One or both of `"facet"` and `"color"`. Faceting
+#'   separates feature groups into panels; coloring renders feature-axis labels
+#'   in group-specific colors.
+#' @param featuregroup_col_name Character string used as the feature-group
+#'   color legend title.
+#' @param featuregroup_col_pal Palette name passed to [colrr::col_pal()] for
+#'   feature-group label colors.
+#' @param dotsizes Optional single character string naming a numeric column to
+#'   map to point size. When supplied, points are drawn instead of tiles.
+#' @param dotsize_range Numeric vector of length two giving the minimum and
+#'   maximum plotted point sizes.
+#' @param fill A vector of colors or a palette name understood by
+#'   [colrr::col_pal()]. The sentinel `"..auto.."` uses a reversed 11-color
+#'   `"RdBu"` palette.
+#' @param color Border color for tiles or points. Use `"NA"` for no border.
+#'   With `"..auto.."`, dot borders are omitted; tile borders are `"grey70"`
+#'   for at most 100 features and omitted otherwise.
+#' @param scale Value transformation applied separately within each feature:
+#'   `"none"` leaves values unchanged, `"zscore"` standardizes them, and
+#'   `"1"` rescales them to `scale_range`.
+#' @param scale_range Numeric vector of length two giving the output range used
+#'   when `scale = "1"`.
+#' @param features_topn Optional positive integer. If supplied, retain the top
+#'   features selected per group before plotting.
+#' @param topn_cols Character vector naming columns used, in order, to rank
+#'   features for `features_topn` via [dplyr::slice_max()]. Transform columns
+#'   first when smaller values should rank higher (for example, negate
+#'   p-values).
+#' @param topn_ties Logical; whether ties may cause more than `features_topn`
+#'   features to be retained.
+#' @param featurelabels Controls feature-axis labels. `NULL` labels all
+#'   features, `""` labels none, and `"..auto.."` omits labels when there are
+#'   more than 200 features. A character vector selects labels; a named vector
+#'   uses its names as display labels and its values as feature names, for
+#'   example `c("CD20" = "MS4A1", "CD3", "KLRG1")`.
+#' @param featurelabels_repel Logical; whether to draw feature labels in a
+#'   separate repelled-label panel using [ggrepel::geom_text_repel()].
+#' @param featuresitalic Logical; whether to render feature labels in italics.
+#' @param color_linewidth Numeric border width for tiles or points.
+#' @param legendbreaks A numeric vector of fill-scale breaks, `"..auto.."` for
+#'   automatic breaks, or `"minmidmax"` for breaks at the minimum, midpoint,
+#'   and maximum of the value range.
+#' @param legendlabels A character vector of labels corresponding to
+#'   `legendbreaks`, or `"..auto.."` for automatic labels.
+#' @param colorsteps Controls discretization of the fill guide. Use `NULL` for
+#'   a continuous color bar, `"..auto.."` for automatic steps, a single number
+#'   for the requested number of steps, or a numeric vector of explicit step
+#'   boundaries.
+#' @param colorsteps_nice Logical; whether to adjust color-step boundaries to
+#'   visually convenient values. Some requested step counts may be adjusted.
+#' @param color_trans_log Logical; whether to use a logarithmic transformation
+#'   for the fill scale.
+#' @param color_center_zero Logical; whether to center the fill scale at zero.
+#' @param axes_flip Logical; whether to exchange the group and feature axes
+#'   with [ggplot2::coord_flip()].
+#' @param group_seplines Logical; whether to draw lines between runs of features
+#'   assigned to different groups by their maximum value.
+#' @param seplines_args Named list of additional arguments passed to
+#'   [ggplot2::geom_hline()] when `group_seplines = TRUE`.
+#' @param theme A complete or partial ggplot2 theme added to the plot.
+#' @param legend_fill_args Named list of arguments passed to
+#'   [ggplot2::guide_colorsteps()] or [ggplot2::guide_colorbar()], depending on
+#'   the selected fill scale.
+#' @param legend_size_args Named list of arguments passed to
+#'   [ggplot2::guide_legend()] for the dot-size legend. For example,
+#'   `override.aes = list(size = c(1, 3, 5))` customizes the sizes shown in the
+#'   legend independently of `dotsize_range`.
+#' @param theme_args Named list of arguments passed to [ggplot2::theme()] after
+#'   `theme` is added.
+#' @param repel_args Named list controlling the repelled feature-label panel.
+#'   Supported entries include `featurelabels_width` and
+#'   `featurelabels_nudge_x`.
+#' @param heatmap_ordering_args Named list of arguments passed to
+#'   [heatmap_ordering()], such as `feature_order` and `group_order`.
+#' @param values_zscored Logical indicating whether `values` are already
+#'   z-scored. If `NULL`, this is inferred from the plotted matrix with
+#'   [brathering::is_z_scored()].
+#' @param pvals Optional single character string naming a p-value column. When
+#'   supplied, significant cells are annotated with symbols.
+#' @param pval_features Optional vector of feature values eligible for p-value
+#'   annotation. `NULL` makes all plotted features eligible.
+#' @param pval_max Numeric significance threshold; only p-values less than or
+#'   equal to this value are annotated.
+#' @param pval_symnum_args Named list passed to [stats::symnum()] to convert
+#'   p-values to annotation symbols.
+#' @param pval_filter Rule used to choose cells for p-value annotation. `"top"`
+#'   selects the highest-value cell for each feature; `"pos_fc"` selects rows
+#'   with a positive value in the column named by `pval_logfc`.
+#' @param pval_logfc Single character string naming the fold-change column used
+#'   when `pval_filter = "pos_fc"`.
+#' @param pval_text_args Named list of additional arguments passed to
+#'   [ggplot2::geom_text()] for p-value symbols.
+#' @param impute_missing_to Optional scalar used to replace missing `values`
+#'   after completing all group-feature combinations. If `NULL`, rows with
+#'   missing values are removed.
+#' @param lower_tri Logical; whether to retain only the lower triangle of the
+#'   group-by-feature value matrix. This is primarily useful when the groups
+#'   and features describe the same entities.
+#' @param col_na Color used for missing values. With `"..auto.."`, the plot
+#'   background color is used.
+#' @param ... Additional arguments intended for [heatmap_ordering()], including
+#'   `feature_order` and `group_order`.
+#'
+#' @details
+#' The function first optionally selects top features, completes the grid of
+#' group-feature combinations, handles missing values, and scales values within
+#' each feature. It then orders the axes with [heatmap_ordering()] and constructs
+#' either a tile or dot heatmap. Optional layers add significance symbols,
+#' feature-group facets or label colors, and separation lines.
+#'
+#' `groups`, `features`, `values`, `dotsizes`, `featuregroup`, `pvals`, and
+#' `pval_logfc` use column names supplied as character strings rather than tidy
+#' evaluation expressions.
+#'
+#' @return A ggplot2 plot object. When `featurelabels_repel = TRUE`, a cowplot
+#'   object containing the label panel and heatmap is returned.
+#'
+#' @importFrom rlang :=
+#'
 #' @export
 #'
 #' @examples
 #' df <- readRDS(system.file("extdata", "heatmap_df.rds", package = "fcexpr"))
-#' # everything default
-#' fcexpr::heatmap_long_df(df = df,
-#'                 groups = "cluster",
-#'                 features = "channel",
-#'                 values = "mean_cluster_scale")
-#' # -log10(pvalues) as dot size
-#' fcexpr::heatmap_long_df(df = df,
-#'                 groups = "cluster",
-#'                 features = "channel",
-#'                 values = "mean_cluster_scale",
-#'                 dotsizes = "pvalue2")
-#' # continuuos color scale, no feature axis text, flipped axes
-#' # only 4 features per group, lines to separate features
-#' fcexpr::heatmap_long_df(df = df,
-#'                 groups = "cluster",
-#'                 features = "channel",
-#'                 values = "mean_cluster_scale",
-#'                 dotsizes = "pvalue2",
-#'                 featurelabels_omit = T,
-#'                 axes_flip = T,
-#'                 features_topn = 4,
-#'                 group_seplines = T,
-#'                 colorsteps = NULL)
-#' # scale in function, alter legend text
-#' fcexpr::heatmap_long_df(df = df,
-#'                 groups = "cluster",
-#'                 features = "channel",
-#'                 values = "mean_cluster",
-#'                 scale = "zscore",
-#'                 colorsteps = NULL,
-#'                 legendlabels = c("min", "mid", "max"),
-#'                 legendbreaks = "minmidmax")
+#'
+#' # Tile heatmap with default styling
+#' heatmap_long_df(
+#'   df = df,
+#'   groups = "cluster",
+#'   features = "channel",
+#'   values = "mean_cluster_scale"
+#' )
+#'
+#' # Dot heatmap: fill shows scaled mean and size shows -log10(p-value)
+#' heatmap_long_df(
+#'   df = df,
+#'   groups = "cluster",
+#'   features = "channel",
+#'   values = "mean_cluster_scale",
+#'   dotsizes = "pvalue2"
+#' )
+#'
+#' # Show four top features per group, omit labels, flip axes, and use a
+#' # continuous color bar
+#' heatmap_long_df(
+#'   df = df,
+#'   groups = "cluster",
+#'   features = "channel",
+#'   values = "mean_cluster_scale",
+#'   dotsizes = "pvalue2",
+#'   featurelabels = "",
+#'   axes_flip = TRUE,
+#'   features_topn = 4,
+#'   group_seplines = TRUE,
+#'   colorsteps = NULL
+#' )
+#'
+#' # Scale within features and label the fill legend at its range endpoints
+#' # and midpoint
+#' heatmap_long_df(
+#'   df = df,
+#'   groups = "cluster",
+#'   features = "channel",
+#'   values = "mean_cluster",
+#'   scale = "zscore",
+#'   colorsteps = NULL,
+#'   legendbreaks = "minmidmax",
+#'   legendlabels = c("min", "mid", "max")
+#' )
 heatmap_long_df <- function(df,
                             groups,
                             features,
@@ -178,14 +254,9 @@ heatmap_long_df <- function(df,
                             lower_tri = F,
                             col_na = "..auto..",
                             ...) {
+  .ensure_packages(c("brathering", "colrr", "ggplot2", "ggtext", "Gmisc", "scales"))
 
 
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
-  if (!requireNamespace("colrr", quietly = T)) {
-    pak::pak("Close-your-eyes/colrr")
-  }
 
   stopifnot("df must be a data frame" = is.data.frame(df))
 
@@ -323,7 +394,7 @@ heatmap_long_df <- function(df,
 
 
   if (length(fill) == 1 && fill == "..auto..") {
-    fill <- colrr::col_pal(name = "RColorBrewer::RdBu", n = 11, direction = -1)
+    fill <- colrr::col_pal(name = "RdBu", n = 11, direction = -1)
   } else if (length(fill) == 1) {
     fill <- colrr::col_pal(name = fill)
   }
@@ -428,12 +499,12 @@ heatmap_long_df <- function(df,
   if ("override.aes" %in% names(legend_size_args)) {
     if ("color" %in% names(legend_size_args[["override.aes"]])) {
       if (legend_size_args[["override.aes"]][["color"]] == "..auto..") {
-        legend_size_args[["override.aes"]][["color"]] <- brathering:::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
+        legend_size_args[["override.aes"]][["color"]] <- brathering::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
       }
     }
     if ("fill" %in% names(legend_size_args[["override.aes"]])) {
       if (legend_size_args[["override.aes"]][["fill"]] == "..auto..") {
-        legend_size_args[["override.aes"]][["fill"]] <- brathering:::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
+        legend_size_args[["override.aes"]][["fill"]] <- brathering::bw_txt(brathering::gg_get_theme_element(plot, "plot.background")@fill)
       }
     }
   }
@@ -559,6 +630,7 @@ heatmap_long_df <- function(df,
 
 
 repel_features <- function(df, plot, repel_args, featurelabels, featuresitalic) {
+  .ensure_packages(c("cowplot", "ggplot2", "ggrepel"))
 
   axis.df <- data.frame(
     y = 1:length(levels(df$feature)),

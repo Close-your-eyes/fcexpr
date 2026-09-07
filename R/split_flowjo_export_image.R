@@ -25,10 +25,8 @@ split_flowjo_export_image <- function(img,
                                       pptx_name,
                                       pptx_image_size = 1,
                                       pptx_border_space = 0.2) {
+  .ensure_packages(c("magick"))
 
-  if (!requireNamespace("magick", quietly = T)){
-    utils::install.packages("magick")
-  }
 
   if (missing(folder)) {
     folder <- format(Sys.time(), "%Y%m%d_%H%M%S")
@@ -57,9 +55,7 @@ split_flowjo_export_image <- function(img,
 
 
   if (!missing(pptx_name)) {
-    if (!requireNamespace("officer", quietly = T)){
-      utils::install.packages("officer")
-    }
+    .ensure_package("officer")
     pptx <- officer::read_pptx()
     pptx <- officer::add_slide(pptx, layout = "Title and Content", master = "Office Theme")
 

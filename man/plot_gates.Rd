@@ -125,9 +125,9 @@ gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
 
 ## write meta data to pData of gs; sd is sampledescription
 p.df <-
-flowCore::pData(gs) \%>\%
-tibble::rownames_to_column("FileName") \%>\%
-dplyr::left_join(sd) \%>\%
+flowCore::pData(gs) |>
+tibble::rownames_to_column("FileName") |>
+dplyr::left_join(sd) |>
 tibble::column_to_rownames("FileName")
 p.df$FileName <- rownames(p.df)
 flowCore::pData(gs) <- p.df

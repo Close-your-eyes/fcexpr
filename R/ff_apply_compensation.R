@@ -26,6 +26,7 @@
 ff_apply_compensation <- function(ff,
                                   compmat,
                                   match_channels = T) {
+  .ensure_packages(c("flowCore"))
   if (is.list(compmat) && length(compmat) == 1) {
     compmat <- compmat[[1]]
   } else if (is.list(compmat)) {
@@ -55,7 +56,7 @@ ff_apply_compensation <- function(ff,
     for (n in seq_along(colnames(compmat))) {
       if (!colnames(compmat)[n] %in% channels) {
         message("compmat col ", colnames(compmat)[n], " not found in channels of ff.")
-        best_match_channel <- channels[which.min(adist(colnames(compmat)[n], channels))]
+        best_match_channel <- channels[which.min(utils::adist(colnames(compmat)[n], channels))]
         message("Will use ", best_match_channel, " as best matching channel.")
         colnames(compmat)[n] <- best_match_channel
       }

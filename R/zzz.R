@@ -14,18 +14,6 @@
                            "diptest_pvalue_notcluster", "diptest_pvalue_1", "diptest_pvalue_2"))
   }
 
-  if (!requireNamespace("BiocManager", quietly = T)) {
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)) {
-    BiocManager::install("flowCore")
-  }
-  if (!requireNamespace("CytoML", quietly = T)) {
-    BiocManager::install("CytoML")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)) {
-    BiocManager::install("flowWorkspace")
-  }
 
 }
 

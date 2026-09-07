@@ -19,13 +19,11 @@ library(CytoML)
 
 Install necessary packages in RStudio:
 ```{r setup, eval=F,message=F}
-install.packages("devtools")
-devtools::install_github("Close-your-eyes/fcexpr")
-install.packages("tidyverse")
+
+pak::pak("Close-your-eyes/fcexpr")
 ```
 ```{r setup2, message=F,warning=F}
 library(fcexpr)
-library(tidyverse)
 ```
 
 Many information are stored in FlowJos wsp file which is an xml file. This includes gated event counts, statistics like MFI and meta data from the FCS files like keywords. These information can be accessed without a FlowJo dongle - e.g. with the xml2 package in R.   
@@ -91,7 +89,7 @@ It is preferable though to tidy up, filter, select and plot in R. This can be do
 ```{r,fig.width=8}
 # filter for the GFP+ population only
 ps_counts <-
-  ps_counts %>%
+  ps_counts |>
   dplyr::filter(Population == "GFP+")
 # plot the frequency of GFP+ events with respect to the parent gate
 ggplot(ps_counts, aes(x = incubation.time.h, y = FractionOfParent)) +

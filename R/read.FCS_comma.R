@@ -42,16 +42,8 @@ read.FCS_comma <- function (filename, transformation = "linearize", which.lines 
                             decades = 0, ncdf = FALSE, min.limit = NULL, truncate_max_range = TRUE,
                             dataset = NULL, emptyValue = TRUE, channel_alias = NULL,
                             ...) {
+  .ensure_packages(c("flowCore", "flowWorkspace"))
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)){
-    BiocManager::install("flowWorkspace")
-  }
 
   channel_alias <- flowCore:::check_channel_alias(channel_alias)
   if (ncdf)
@@ -180,6 +172,7 @@ read.FCS_comma <- function (filename, transformation = "linearize", which.lines 
 
 
 txt2spillmatrix_comma <- function (txt, cpp = TRUE) {
+  .ensure_packages(c("flowCore"))
   if (cpp) {
     flowCore:::string_to_spill(txt)
   }

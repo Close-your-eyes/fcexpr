@@ -24,16 +24,8 @@ nPE_to_fcs <- function(file_path,
                        kfactor_df = NULL,
                        output_folder = NULL,
                        new_file_suffix = "nPE") {
+  .ensure_packages(c("BiocGenerics", "flowCore"))
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
-  if (!requireNamespace("BiocGenerics", quietly = T)){
-    BiocManager::install("BiocGenerics")
-  }
   if (!file.exists(file_path)) {
     stop(file_path, " not found.")
   }

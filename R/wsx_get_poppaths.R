@@ -12,8 +12,8 @@
 #' pp <- wsx_get_poppaths(ws, collapse = F)
 #' # check which files have equal gating trees
 #' # and get the node (or path, or population) names
-#' pp <- pp %>%
-#' dplyr::group_by(PopulationFullPath, Population, ws) %>%
+#' pp <- pp |>
+#' dplyr::group_by(PopulationFullPath, Population, ws) |>
 #' dplyr::summarise(FileName = list(FileName), .groups = "drop")
 #' }
 wsx_get_poppaths <- function(ws,
@@ -101,8 +101,8 @@ wsx_get_poppaths <- function(ws,
 
   if (collapse) {
     gates_out <-
-      gates_out %>%
-      dplyr::group_by(PopulationFullPath, Population, ws) %>%
+      gates_out |>
+      dplyr::group_by(PopulationFullPath, Population, ws) |>
       dplyr::summarise(FileName = list(FileName), .groups = "drop")
   }
 

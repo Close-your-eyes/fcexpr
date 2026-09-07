@@ -11,6 +11,7 @@
 ff_compare_channels <- function(ff_list,
                                 channels = NULL,
                                 strict = T) {
+  .ensure_packages(c("flowCore"))
 
 
   if (strict) {

@@ -36,16 +36,11 @@ indices_get_ff <- function(ind_mat,
                            channels = NULL,
                            leverage_score_for_sampling = F,
                            ...) {
+  .ensure_packages(c("flowCore"))
 
   ## check and update
 
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
   if (missing(population)) {
     stop("Plesae provide a population to get flowframes for. To get all events, set population = 'root'.")
   }

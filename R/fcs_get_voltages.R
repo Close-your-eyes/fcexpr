@@ -27,12 +27,7 @@
 #' }))
 #' }
 fcs_get_voltages <- function(file_path) {
-    if (!requireNamespace("BiocManager", quietly = T)){
-        utils::install.packages("BiocManager")
-    }
-    if (!requireNamespace("flowCore", quietly = T)){
-        BiocManager::install("flowCore")
-    }
+  .ensure_packages(c("flowCore"))
 
     if (!any(file.exists(file_path))) {
         warning("Not all files found.")

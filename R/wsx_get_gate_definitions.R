@@ -40,14 +40,14 @@ wsx_get_gate_definitions <- function(ws,
   gates <- lapply(gg, function(n) xml2::as_list(n))
   names(gates) <- lapply(gates, function(x) attributes(x)[["id"]])
 
-  gates_df <- stack(lapply(gates, names))
+  gates_df <- utils::stack(lapply(gates, names))
   gates_df$ind <- as.character(gates_df$ind)
   names(gates_df) <- c("gate_type", "gate_id")
   gates_df$parentgate_id
 
   # attach parent gate ids
   parentgates_df <- sapply(gates, function(x) attributes(x)[["parent_id"]])
-  parentgates_df <- stack(parentgates_df[which(!sapply(parentgates_df, is.null))])
+  parentgates_df <- utils::stack(parentgates_df[which(!sapply(parentgates_df, is.null))])
   names(parentgates_df) <- c("parentgate_id", "gate_id")
   gates_df <- dplyr::left_join(gates_df, parentgates_df, by = "gate_id")
 

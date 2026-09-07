@@ -37,6 +37,7 @@ data frame
 Create a random population in high dimensional space
 }
 \examples{
+\dontrun{
 # unimodal only
 df <- create_pop(range_modes = 1, dims = 3)
 brathering::plot3d(df, color = "group")
@@ -46,4 +47,5 @@ brathering::plot3d(df, color = "group")
 # tight modes
 df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 2)
 brathering::plot3d(df, color = "group")
+}
 }

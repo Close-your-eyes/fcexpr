@@ -20,7 +20,6 @@
 #' @return No return value, but an appended panel_file written to disk.
 #' @export
 #'
-#' @importFrom magrittr "%>%"
 #' @importFrom rlang .data
 #'
 #' @examples
@@ -33,6 +32,7 @@ ab_info_to_panel <- function(panel_file,
                              antibody_list,
                              antibody_list_sheet = 1,
                              antibody_list_cols = c("Reactivity", "Isotype", "Clone", "Vendor", "Cat", "Expiry.date", "Concentration.ug.ml", "Recomm.dilution")) {
+  .ensure_packages(c("openxlsx"))
 
   if (missing(panel_file)) {
     stop("Please provide a panel_file.")
@@ -90,20 +90,20 @@ ab_info_to_panel <- function(panel_file,
   panel <- panel[which(!is.na(panel$Antigen)),]
 
   panel_add <-
-    panel %>%
-    dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))) %>%
-    dplyr::left_join(ab.list %>% dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))), by = c("antigen_case", "conjugate_case")) %>%
-    dplyr::select(-c(antigen_case, conjugate_case)) %>%
-    #fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) %>% # this would match CD45RO and CD4 - not useful
-    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) %>% # take names from Ab list
-    dplyr::select(-c(Antigen.x, Conjugate.x)) %>%
-    dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) %>%
-    dplyr::filter(is.na(Box.x) | Box.x == Box.y) %>%
-    dplyr::mutate(Box = ifelse(!is.na(Box.x), Box.x, Box.y)) %>%
-    dplyr::filter(is.na(Lot.x) | Lot.x == Lot.y) %>%
-    dplyr::mutate(Lot = ifelse(!is.na(Lot.x), Lot.x, Lot.y)) %>%
-    dplyr::select(Antigen, Conjugate, Box, Lot, dplyr::all_of(antibody_list_cols), row.num) %>%
-    dplyr::arrange(row.num) %>%
+    panel |>
+    dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))) |>
+    dplyr::left_join(ab.list |> dplyr::mutate(antigen_case = make.names(gsub(" ", "", tolower(Antigen))), conjugate_case = make.names(gsub(" ", "", tolower(Conjugate)))), by = c("antigen_case", "conjugate_case")) |>
+    dplyr::select(-c(antigen_case, conjugate_case)) |>
+    #fuzzyjoin::regex_left_join(ab.list, by = c("Antigen", "Conjugate"), ignore_case = T) |> # this would match CD45RO and CD4 - not useful
+    dplyr::filter(!is.na(Antigen.y) & !is.na(Conjugate.y)) |> # take names from Ab list
+    dplyr::select(-c(Antigen.x, Conjugate.x)) |>
+    dplyr::rename("Antigen" = Antigen.y, "Conjugate" = Conjugate.y) |>
+    dplyr::filter(is.na(Box.x) | Box.x == Box.y) |>
+    dplyr::mutate(Box = ifelse(!is.na(Box.x), Box.x, Box.y)) |>
+    dplyr::filter(is.na(Lot.x) | Lot.x == Lot.y) |>
+    dplyr::mutate(Lot = ifelse(!is.na(Lot.x), Lot.x, Lot.y)) |>
+    dplyr::select(Antigen, Conjugate, Box, Lot, dplyr::all_of(antibody_list_cols), row.num) |>
+    dplyr::arrange(row.num) |>
     dplyr::distinct()
 
   if (nrow(panel_add) == 0) {
@@ -117,8 +117,8 @@ ab_info_to_panel <- function(panel_file,
 
   if (length(setdiff(min(panel_add$row.num):max(panel_add$row.num), panel_add$row.num)) > 0) {
     panel_add <-
-      panel_add %>%
-      dplyr::bind_rows(data.frame(row.num = setdiff(min(panel_add$row.num):max(panel_add$row.num), panel_add$row.num))) %>%
+      panel_add |>
+      dplyr::bind_rows(data.frame(row.num = setdiff(min(panel_add$row.num):max(panel_add$row.num), panel_add$row.num))) |>
       dplyr::arrange(row.num)
   }
 

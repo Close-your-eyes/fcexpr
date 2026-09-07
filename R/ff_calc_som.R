@@ -26,6 +26,7 @@ ff_calc_som <- function(ff,
                         names = c("SOM_1", "SOM_2"),
                         return = c("som", "ff"),
                         ...) {
+  .ensure_packages(c("EmbedSOM", "flowCore", "Gmisc"))
 
   return <- rlang::arg_match(return)
   if (return == "ff" && missing(ff)) {

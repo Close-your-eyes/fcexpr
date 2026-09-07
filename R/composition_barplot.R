@@ -1,8 +1,10 @@
+#' @importFrom rlang :=
 .composition_barplot <- function(x,
                                  x_cat,
                                  fill_cat,
-                                 col_pal = fcexpr::col_pal("custom"),
+                                 col_pal = colrr::col_pal("custom"),
                                  plot_labels = F) {
+  .ensure_packages(c("colrr", "ggplot2"))
 
 
   if (!x_cat %in% names(x)) {
@@ -13,13 +15,13 @@
   }
 
   table <-
-    x %>%
-    dplyr::count(!!rlang::sym(x_cat), !!rlang::sym(fill_cat)) %>%
-    dplyr::left_join(dplyr::count(x, !!rlang::sym(x_cat), name = "total"), by = x_cat) %>%
+    x |>
+    dplyr::count(!!rlang::sym(x_cat), !!rlang::sym(fill_cat)) |>
+    dplyr::left_join(dplyr::count(x, !!rlang::sym(x_cat), name = "total"), by = x_cat) |>
     dplyr::mutate(rel = n/total)
 
   if (is.numeric(table[,fill_cat])) {
-    table <- table %>% dplyr::mutate({{ fill_cat }} := as.character(!!rlang::sym(fill_cat)))
+    table <- table |> dplyr::mutate({{ fill_cat }} := as.character(!!rlang::sym(fill_cat)))
   }
 
   table <- tibble::as_tibble(table)

@@ -14,8 +14,8 @@ cytometric experiments.
 Install fcexpr from GitHub. This requires devtools.
 
 ``` r
-install.packages("devtools")
-devtools::install_github("Close-your-eyes/fcexpr")
+
+pak::pak("Close-your-eyes/fcexpr")
 ```
 
 ## The idea

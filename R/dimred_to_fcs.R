@@ -123,30 +123,10 @@ dimred_to_fcs <- function(ff.list,
                           timeChannel = c("Time", "HDR-T"),
                           seed = 42,
                           ...) {
+  .ensure_packages(c("flowCore", "parallel"))
 
 
   ## ---- checks --------
-  if (!requireNamespace("diptest", quietly = T)) {
-    utils::install.packages("diptest")
-  }
-  if (!requireNamespace("matrixStats", quietly = T)) {
-    utils::install.packages("matrixStats")
-  }
-  if (run.umap && !requireNamespace("uwot", quietly = T)) {
-    utils::install.packages("uwot")
-  }
-  if (!requireNamespace("pak", quietly = T)) {
-    utils::install.packages("pak")
-  }
-  if (calc_cluster_marker && !requireNamespace("presto", quietly = T)) {
-    pak::pak('immunogenomics/presto')
-  }
-  if (calc_cluster_marker && !requireNamespace("matrixTests", quietly = T)) {
-    utils::install.packages("matrixTests")
-  }
-  if (run.som && !requireNamespace("EmbedSOM", quietly = T)) {
-    pak::pak("exaexa/EmbedSOM")
-  }
 
   if (!is.null(save.to.disk)) {
     save.to.disk <- match.arg(save.to.disk, c("fcs", "rds"), several.ok = T)
@@ -410,5 +390,4 @@ dimred_to_fcs <- function(ff.list,
       message("run.louvain with error: ", err)
     })
   }'
-
 

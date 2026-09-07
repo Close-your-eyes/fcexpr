@@ -21,10 +21,12 @@ list of flow frames
 Create a random flow frame
 }
 \examples{
+\dontrun{
 # populations with different properties, pre-made
 pops1 <- make_hd_pops(npop = 3, range_sd_fct = 20, range_modes = 2, rm_ann_cols = T)
 pops2 <- make_hd_pops(npop = 3, range_sd_fct = 3:6, range_modes = 3, rm_ann_cols = T)
 ff_list1 <- ff_simulate2(exprs = dplyr::bind_rows(pops1, pops2))
 # have populations made within function
 ff_list <- ff_simulate2(npop = 2, dims = 10, m = 3)
+}
 }

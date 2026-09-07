@@ -11,6 +11,7 @@
 ff_add_columns <- function(ff,
                            mat = NULL,
                            overwrite = F) {
+  .ensure_packages(c("flowCore"))
 
   stopifnot("mat must be a matrix" = is.matrix(mat),
             "row numbers of ff and mat do not match." = nrow(flowCore::exprs(ff)) == nrow(mat),

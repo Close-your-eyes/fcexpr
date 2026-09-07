@@ -42,15 +42,6 @@ wsp_get_indices <- function(wsp,
   # also note that compensation may be done with fs_apply_comp
   # and get compmat fromflowjo wsp or from fcs keyword
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("CytoML", quietly = T)){
-    BiocManager::install("CytoML")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)){
-    BiocManager::install("flowWorkspace")
-  }
   lapply_fun <- match.fun(lapply_fun)
 
   all_smpl <- wsx_get_sample_df_light(wsp)
@@ -88,6 +79,5 @@ wsp_get_indices <- function(wsp,
   message("temporary .h5 were removed.")
   return(list(ind_mats = ind_mats, FCS_files = smpl))
 }
-
 
 

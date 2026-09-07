@@ -6,8 +6,10 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' df <- wsx_get_popstats(ws_path, strip_data = F)[[1]]
 #' df2 <- guess_marker_channels(df)
+#' }
 guess_marker_channels <- function(popstats_df) {
   ps2 <- popstats_df |>
     dplyr::select(Population, xChannel, yChannel) |>

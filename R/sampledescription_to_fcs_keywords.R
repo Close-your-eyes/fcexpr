@@ -20,13 +20,8 @@
 sampledescription_to_fcs_keywords <- function(sampledescription,
                                               columns,
                                               FCS.file.folder) {
+  .ensure_packages(c("flowCore"))
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
 
   fcs_files <- get_fcs_identities(folder_path = FCS.file.folder,
                                   allow_duplicates = F)
@@ -61,5 +56,4 @@ sampledescription_to_fcs_keywords <- function(sampledescription,
 
 
 }
-
 

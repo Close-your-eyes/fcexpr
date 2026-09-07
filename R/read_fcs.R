@@ -16,6 +16,7 @@ read_fcs <- function(file_path,
                      truncate_max_range = F,
                      transformation = F,
                      ...) {
+  .ensure_packages(c("flowCore"))
 
 
   flowCore::read.FCS(filename = file_path,

@@ -16,7 +16,7 @@
 #' @export
 #'
 #' @examples
-#' split_mat(matrix(rnorm(60), ncol = 6), rep(c(1:3),2), byrow = F)
+#' split_mat(matrix(stats::rnorm(60), ncol = 6), rep(c(1:3),2), byrow = F)
 split_mat <- function(x, f, byrow = T, ...) {
 
 

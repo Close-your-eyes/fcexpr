@@ -60,9 +60,9 @@
 #'
 #' ## write meta data to pData of gs; sd is sampledescription
 #' p.df <-
-#' flowCore::pData(gs) %>%
-#' tibble::rownames_to_column("FileName") %>%
-#' dplyr::left_join(sd) %>%
+#' flowCore::pData(gs) |>
+#' tibble::rownames_to_column("FileName") |>
+#' dplyr::left_join(sd) |>
 #' tibble::column_to_rownames("FileName")
 #' p.df$FileName <- rownames(p.df)
 #' flowCore::pData(gs) <- p.df
@@ -133,31 +133,19 @@ plot_gates <- function(gs,
                                         linewidth = 0.3),
                        as_ggplot = F,
                        style_preset = c("technical", "clean", "none")) {
+  .ensure_packages(c("colrr", "ggcyto", "ggplot2", "ggtext", "Gmisc", "scales"))
 
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
   style_preset <- rlang::arg_match(style_preset)
 
-  if (!requireNamespace("ggcyto", quietly = T)) {
-    BiocManager::install("ggcyto")
-  }
-  if (!requireNamespace("colrr", quietly = T)) {
-    pak::pak("Close-your-eyes/colrr")
-  }
 
   if (geom == "scattermore") {
-    if (!requireNamespace("pak", quietly = T)) {
-      utils::install.packages("pak")
-    }
-    if (!requireNamespace("scattermore", quietly = T)) {
-      pak::pak("exaexa/scattermore")
-    }
+    .ensure_package("scattermore")
   }
 
   if (geom == "pointdensity") {
-    if (!requireNamespace("ggpointdensity", quietly = T)) {
-      utils::install.packages("ggpointdensity")
-    }
+    .ensure_package("ggpointdensity")
   }
 
   if (plot_contours) {
@@ -250,7 +238,7 @@ plot_gates <- function(gs,
         p <- p + do.call(ggplot2::stat_density_2d, args = contour_args)
       }
       # capture.output only to suppress text about coord system
-      bin <- suppressMessages(capture.output(
+      bin <- suppressMessages(utils::capture.output(
         p <- p +
           ggplot2::xlab(gg[1,"x_lab"]) +
           ggplot2::ylab(gg[1,"y_lab"]) +
@@ -350,4 +338,3 @@ plot_gates <- function(gs,
 
   return(out)
 }
-

@@ -2,7 +2,7 @@
 % Please edit documentation in R/heatmap_long_df.R
 \name{heatmap_long_df}
 \alias{heatmap_long_df}
-\title{Plot heatmap from data frame in long format}
+\title{Plot a heatmap from long-format data}
 \usage{
 heatmap_long_df(
   df,
@@ -58,145 +58,236 @@ heatmap_long_df(
 )
 }
 \arguments{
-\item{df}{data frame in long format}
+\item{df}{A data frame in long format. Each row should describe a
+group-feature combination. The columns named by \code{groups}, \code{features}, and
+\code{values} must be present; the value column must be numeric.}
 
-\item{groups}{column with groups}
+\item{groups}{A single character string naming the column that defines the
+heatmap groups. If omitted, the function attempts to infer it from the
+first two character or factor columns in \code{df}.}
 
-\item{features}{column with features}
+\item{features}{A single character string naming the feature column. If
+omitted, the function attempts to infer it from the first two character or
+factor columns in \code{df}, choosing the column with more unique values when
+both \code{groups} and \code{features} are omitted.}
 
-\item{values}{column with fill values for color scale}
+\item{values}{A single character string naming the numeric column mapped to
+fill. If omitted, the first numeric column in \code{df} is used.}
 
-\item{featuregroup}{column name in df that groups features}
+\item{featuregroup}{Optional single character string naming a column that
+assigns features to higher-level feature groups.}
 
-\item{featuregroup_style}{how to show feature groups, by colored axis text and/or separate facets}
+\item{featuregroup_style}{One or both of \code{"facet"} and \code{"color"}. Faceting
+separates feature groups into panels; coloring renders feature-axis labels
+in group-specific colors.}
 
-\item{featuregroup_col_name}{color legend name}
+\item{featuregroup_col_name}{Character string used as the feature-group
+color legend title.}
 
-\item{featuregroup_col_pal}{color palette name passed to colrr::col_pal}
+\item{featuregroup_col_pal}{Palette name passed to \code{\link[colrr:col_pal]{colrr::col_pal()}} for
+feature-group label colors.}
 
-\item{dotsizes}{column for dot sizes, if provided will cause plotting of
-dots instead of tiles}
+\item{dotsizes}{Optional single character string naming a numeric column to
+map to point size. When supplied, points are drawn instead of tiles.}
 
-\item{dotsize_range}{range for dot size}
+\item{dotsize_range}{Numeric vector of length two giving the minimum and
+maximum plotted point sizes.}
 
-\item{fill}{color palette vector for fill of tiles or dots. when auto,
-RColorBrewer::RdBu is used}
+\item{fill}{A vector of colors or a palette name understood by
+\code{\link[colrr:col_pal]{colrr::col_pal()}}. The sentinel \code{"..auto.."} uses a reversed 11-color
+\code{"RdBu"} palette.}
 
-\item{color}{color of stroke (border) around tiles or dots; "NA" means no
-stroke is plotted; NA has
-to be put in quotation mark ("NA"), such that geom_point accepts it.
-other choices may be black, white or any other color code; when "auto",
-grey70 is used by default when is.null(dotsizes) and a the number of
-features is below 100.}
+\item{color}{Border color for tiles or points. Use \code{"NA"} for no border.
+With \code{"..auto.."}, dot borders are omitted; tile borders are \code{"grey70"}
+for at most 100 features and omitted otherwise.}
 
-\item{scale}{how to scale values: not, zscore or from -1 to 1}
+\item{scale}{Value transformation applied separately within each feature:
+\code{"none"} leaves values unchanged, \code{"zscore"} standardizes them, and
+\code{"1"} rescales them to \code{scale_range}.}
 
-\item{features_topn}{only plot the top n features (ordered by value) per
-group}
+\item{scale_range}{Numeric vector of length two giving the output range used
+when \code{scale = "1"}.}
 
-\item{topn_cols}{columns in df to use for ordering when selecting
-features_topn with dplyr::slice_max. hint: p-values have to multiplied
-by -1 to make this work properly}
+\item{features_topn}{Optional positive integer. If supplied, retain the top
+features selected per group before plotting.}
 
-\item{topn_ties}{break ties for features_topn? if TRUE, more then
-features_topn may be plotted}
+\item{topn_cols}{Character vector naming columns used, in order, to rank
+features for \code{features_topn} via \code{\link[dplyr:slice_max]{dplyr::slice_max()}}. Transform columns
+first when smaller values should rank higher (for example, negate
+p-values).}
 
-\item{featurelabels}{subset of feature labels to plot; NULL to plot all,
-"" to plot none; can be a named vector with names being aliases to use for
-plotting e.g. c("CD20" = "MS4A1", "CD3", "KLRG1") to only alter MS4A1;
-auto to omit labels by default when more than 100 features are there}
+\item{topn_ties}{Logical; whether ties may cause more than \code{features_topn}
+features to be retained.}
 
-\item{featurelabels_repel}{do repel feature axis labels?}
+\item{featurelabels}{Controls feature-axis labels. \code{NULL} labels all
+features, \code{""} labels none, and \code{"..auto.."} omits labels when there are
+more than 200 features. A character vector selects labels; a named vector
+uses its names as display labels and its values as feature names, for
+example \code{c("CD20" = "MS4A1", "CD3", "KLRG1")}.}
 
-\item{featuresitalic}{shorthand to plot feature labels in italic}
+\item{featurelabels_repel}{Logical; whether to draw feature labels in a
+separate repelled-label panel using \code{\link[ggrepel:geom_text_repel]{ggrepel::geom_text_repel()}}.}
 
-\item{color_linewidth}{linewidth of borders (stroke) around tiles or dots}
+\item{featuresitalic}{Logical; whether to render feature labels in italics.}
 
-\item{legendbreaks}{a single number, a vector of explicit breaks, or "auto"
-for ggplot default or "minmidmax" for three breaks at minimum, middle and
-maximum of value range}
+\item{color_linewidth}{Numeric border width for tiles or points.}
 
-\item{legendlabels}{labels for breaks, e.g. c("min", "mid", "max")}
+\item{legendbreaks}{A numeric vector of fill-scale breaks, \code{"..auto.."} for
+automatic breaks, or \code{"minmidmax"} for breaks at the minimum, midpoint,
+and maximum of the value range.}
 
-\item{colorsteps}{NULL to have normal colorbar, auto for default colorsteps,
-a single number or a vector of explicit steps; may not work with any number
-when colorsteps_nice is TRUE}
+\item{legendlabels}{A character vector of labels corresponding to
+\code{legendbreaks}, or \code{"..auto.."} for automatic labels.}
 
-\item{colorsteps_nice}{heuristic for pretty steps}
+\item{colorsteps}{Controls discretization of the fill guide. Use \code{NULL} for
+a continuous color bar, \code{"..auto.."} for automatic steps, a single number
+for the requested number of steps, or a numeric vector of explicit step
+boundaries.}
 
-\item{color_center_zero}{center color scale of legend at zero?}
+\item{colorsteps_nice}{Logical; whether to adjust color-step boundaries to
+visually convenient values. Some requested step counts may be adjusted.}
 
-\item{axes_flip}{do flip them?}
+\item{color_trans_log}{Logical; whether to use a logarithmic transformation
+for the fill scale.}
 
-\item{group_seplines}{plot lines that separate features belonging to
-different groups}
+\item{color_center_zero}{Logical; whether to center the fill scale at zero.}
 
-\item{seplines_args}{arguments to geom_hline for seplines}
+\item{axes_flip}{Logical; whether to exchange the group and feature axes
+with \code{\link[ggplot2:coord_flip]{ggplot2::coord_flip()}}.}
 
-\item{theme}{ggplot2 theme}
+\item{group_seplines}{Logical; whether to draw lines between runs of features
+assigned to different groups by their maximum value.}
 
-\item{legend_fill_args}{arguments to ggplot2::guide_colorsteps or
-ggplot2::guide_colorbar, depend upon the color scale}
+\item{seplines_args}{Named list of additional arguments passed to
+\code{\link[ggplot2:geom_hline]{ggplot2::geom_hline()}} when \code{group_seplines = TRUE}.}
 
-\item{legend_size_args}{arguments to ggplot2::guide_legend to modify the
-size legend; e.g. use override.aes = list(size = c(1,3,5)) to adjust dot size
-in legend in contrast to dotsize_range, one number for each dot in legend
-needed}
+\item{theme}{A complete or partial ggplot2 theme added to the plot.}
 
-\item{theme_args}{arguments to ggplot2::theme}
+\item{legend_fill_args}{Named list of arguments passed to
+\code{\link[ggplot2:guide_colorsteps]{ggplot2::guide_colorsteps()}} or \code{\link[ggplot2:guide_colorbar]{ggplot2::guide_colorbar()}}, depending on
+the selected fill scale.}
 
-\item{repel_args}{fine tuning for featurelabel repelling}
+\item{legend_size_args}{Named list of arguments passed to
+\code{\link[ggplot2:guide_legend]{ggplot2::guide_legend()}} for the dot-size legend. For example,
+\code{override.aes = list(size = c(1, 3, 5))} customizes the sizes shown in the
+legend independently of \code{dotsize_range}.}
 
-\item{heatmap_ordering_args}{arguments to heatmap_ordering like feature_order or group_order}
+\item{theme_args}{Named list of arguments passed to \code{\link[ggplot2:theme]{ggplot2::theme()}} after
+\code{theme} is added.}
 
-\item{values_zscored}{say if values are z-scored; if NULL inferred from data
-with brathering::is_z_scored}
+\item{repel_args}{Named list controlling the repelled feature-label panel.
+Supported entries include \code{featurelabels_width} and
+\code{featurelabels_nudge_x}.}
 
-\item{lower_tri}{for a symmetric matrix when only one obj is provided:
-plot the lower triangle only? (remove redundancy)}
+\item{heatmap_ordering_args}{Named list of arguments passed to
+\code{\link[=heatmap_ordering]{heatmap_ordering()}}, such as \code{feature_order} and \code{group_order}.}
 
-\item{col_na}{color for NA; if ..auto.. plot.background color is picked}
+\item{values_zscored}{Logical indicating whether \code{values} are already
+z-scored. If \code{NULL}, this is inferred from the plotted matrix with
+\code{\link[brathering:is_z_scored]{brathering::is_z_scored()}}.}
 
-\item{...}{arguments to heatmap_ordering like feature_order or group_order}
+\item{pvals}{Optional single character string naming a p-value column. When
+supplied, significant cells are annotated with symbols.}
+
+\item{pval_features}{Optional vector of feature values eligible for p-value
+annotation. \code{NULL} makes all plotted features eligible.}
+
+\item{pval_max}{Numeric significance threshold; only p-values less than or
+equal to this value are annotated.}
+
+\item{pval_symnum_args}{Named list passed to \code{\link[stats:symnum]{stats::symnum()}} to convert
+p-values to annotation symbols.}
+
+\item{pval_filter}{Rule used to choose cells for p-value annotation. \code{"top"}
+selects the highest-value cell for each feature; \code{"pos_fc"} selects rows
+with a positive value in the column named by \code{pval_logfc}.}
+
+\item{pval_logfc}{Single character string naming the fold-change column used
+when \code{pval_filter = "pos_fc"}.}
+
+\item{pval_text_args}{Named list of additional arguments passed to
+\code{\link[ggplot2:geom_text]{ggplot2::geom_text()}} for p-value symbols.}
+
+\item{impute_missing_to}{Optional scalar used to replace missing \code{values}
+after completing all group-feature combinations. If \code{NULL}, rows with
+missing values are removed.}
+
+\item{lower_tri}{Logical; whether to retain only the lower triangle of the
+group-by-feature value matrix. This is primarily useful when the groups
+and features describe the same entities.}
+
+\item{col_na}{Color used for missing values. With \code{"..auto.."}, the plot
+background color is used.}
+
+\item{...}{Additional arguments intended for \code{\link[=heatmap_ordering]{heatmap_ordering()}}, including
+\code{feature_order} and \code{group_order}.}
 }
 \value{
-ggplot2 object
+A ggplot2 plot object. When \code{featurelabels_repel = TRUE}, a cowplot
+object containing the label panel and heatmap is returned.
 }
 \description{
-Plot heatmap from data frame in long format
+\code{heatmap_long_df()} plots one observation for each group-feature combination.
+By default, observations are drawn as tiles whose fill represents \code{values}.
+Supplying \code{dotsizes} switches to a dot heatmap in which fill represents
+\code{values} and point size represents a second variable.
+}
+\details{
+The function first optionally selects top features, completes the grid of
+group-feature combinations, handles missing values, and scales values within
+each feature. It then orders the axes with \code{\link[=heatmap_ordering]{heatmap_ordering()}} and constructs
+either a tile or dot heatmap. Optional layers add significance symbols,
+feature-group facets or label colors, and separation lines.
+
+\code{groups}, \code{features}, \code{values}, \code{dotsizes}, \code{featuregroup}, \code{pvals}, and
+\code{pval_logfc} use column names supplied as character strings rather than tidy
+evaluation expressions.
 }
 \examples{
 df <- readRDS(system.file("extdata", "heatmap_df.rds", package = "fcexpr"))
-# everything default
-fcexpr::heatmap_long_df(df = df,
-                groups = "cluster",
-                features = "channel",
-                values = "mean_cluster_scale")
-# -log10(pvalues) as dot size
-fcexpr::heatmap_long_df(df = df,
-                groups = "cluster",
-                features = "channel",
-                values = "mean_cluster_scale",
-                dotsizes = "pvalue2")
-# continuuos color scale, no feature axis text, flipped axes
-# only 4 features per group, lines to separate features
-fcexpr::heatmap_long_df(df = df,
-                groups = "cluster",
-                features = "channel",
-                values = "mean_cluster_scale",
-                dotsizes = "pvalue2",
-                featurelabels_omit = T,
-                axes_flip = T,
-                features_topn = 4,
-                group_seplines = T,
-                colorsteps = NULL)
-# scale in function, alter legend text
-fcexpr::heatmap_long_df(df = df,
-                groups = "cluster",
-                features = "channel",
-                values = "mean_cluster",
-                scale = "zscore",
-                colorsteps = NULL,
-                legendlabels = c("min", "mid", "max"),
-                legendbreaks = "minmidmax")
+
+# Tile heatmap with default styling
+heatmap_long_df(
+  df = df,
+  groups = "cluster",
+  features = "channel",
+  values = "mean_cluster_scale"
+)
+
+# Dot heatmap: fill shows scaled mean and size shows -log10(p-value)
+heatmap_long_df(
+  df = df,
+  groups = "cluster",
+  features = "channel",
+  values = "mean_cluster_scale",
+  dotsizes = "pvalue2"
+)
+
+# Show four top features per group, omit labels, flip axes, and use a
+# continuous color bar
+heatmap_long_df(
+  df = df,
+  groups = "cluster",
+  features = "channel",
+  values = "mean_cluster_scale",
+  dotsizes = "pvalue2",
+  featurelabels = "",
+  axes_flip = TRUE,
+  features_topn = 4,
+  group_seplines = TRUE,
+  colorsteps = NULL
+)
+
+# Scale within features and label the fill legend at its range endpoints
+# and midpoint
+heatmap_long_df(
+  df = df,
+  groups = "cluster",
+  features = "channel",
+  values = "mean_cluster",
+  scale = "zscore",
+  colorsteps = NULL,
+  legendbreaks = "minmidmax",
+  legendlabels = c("min", "mid", "max")
+)
 }

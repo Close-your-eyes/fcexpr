@@ -67,6 +67,7 @@ make_hd_pops <- function(npop = 5,
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # unimodal only
 #' df <- create_pop(range_modes = 1, dims = 3)
 #' brathering::plot3d(df, color = "group")
@@ -76,6 +77,7 @@ make_hd_pops <- function(npop = 5,
 #' # tight modes
 #' df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 2)
 #' brathering::plot3d(df, color = "group")
+#' }
 create_pop <- function(range_n = c(5e1:1e3),
                        dims = 5,
                        range_mean = c(1:1e5),
@@ -83,9 +85,7 @@ create_pop <- function(range_n = c(5e1:1e3),
                        range_modes = c(1:3),
                        mean_prob_vec_args = list(),
                        ...) {
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
+  .ensure_packages(c("brathering"))
   n <- sample(range_n, 1)
 
   # one list entry of m modalities for each dim
@@ -117,7 +117,7 @@ create_pop <- function(range_n = c(5e1:1e3),
     purrr::pmap_dfr(asplit(x,2), function(means,sds,inds) {
 
       data.frame(cell = inds,
-                 FI = rnorm(n = length(inds), mean = means, sd = sds))
+                 FI = stats::rnorm(n = length(inds), mean = means, sd = sds))
     }, .id = "channel_mode")
   }, .id = "channel")
   out[["cell"]] <- stringr::str_pad(out[["cell"]], max(nchar(as.character(out[["cell"]]))), pad = "0")
@@ -182,7 +182,7 @@ prob_vec <- function(n = 1e3,
       beta_ab <- c(beta_ab, beta_ab)
     }
 
-    prob <- dbeta(seq(0,1, length.out = n+2), beta_ab[1], beta_ab[2])
+    prob <- stats::dbeta(seq(0,1, length.out = n+2), beta_ab[1], beta_ab[2])
     prob <- prob[-c(1,length(prob))] # rm Inf
 
   }
@@ -192,8 +192,8 @@ prob_vec <- function(n = 1e3,
     if (length(peakshift) == 1) {
       peakshift <- c(peakshift, peakshift)
     }
-    peak1 <- dnorm(seq(0, 1, length.out = n), mean = peakshift[1], sd = 0.08)
-    peak2 <- dnorm(seq(0, 1, length.out = n), mean = 1-peakshift[2], sd = 0.08)
+    peak1 <- stats::dnorm(seq(0, 1, length.out = n), mean = peakshift[1], sd = 0.08)
+    peak2 <- stats::dnorm(seq(0, 1, length.out = n), mean = 1-peakshift[2], sd = 0.08)
     prob <- peak1 + peak2
     prob <- prob^power
   }

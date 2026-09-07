@@ -32,6 +32,7 @@ wsx_get_popstats_0 <- function(ws,
                               invert_groups = F,
                               return_stats = F,
                               strip_data = T) {
+  .ensure_packages(c("igraph", "stringdist"))
   show_progress = F
   ws_raw <- ws
   ws <- fcexpr:::check_ws(ws) #fcexpr:::
@@ -319,37 +320,6 @@ wsx_get_popstats_0 <- function(ws,
 }
 
 
-
-'  ggraph::ggraph(ggraph::create_layout(gate_graph_samples[[2]], layout = "tree")) +
-    ggraph::geom_edge_link() +
-    ggraph::geom_node_point(ggplot2::aes(color = label), size = 2) +
-    ggraph::geom_node_text(ggplot2::aes(label = name)) +
-    ggplot2::theme_void() +
-    ggplot2::scale_color_manual(values = fcexpr::col_pal("custom"))'
-
-'  gate_graphs <- lapply(unique(pop_df$FileName), function(x) {
-    pop_df2 <- dplyr::filter(pop_df, FileName == x)
-    igraph::graph_from_data_frame(data.frame(from = pop_df2[which(!is.na(pop_df2$parent_id)), "parent_id"],
-                                             to = pop_df2[which(!is.na(pop_df2$parent_id)), "id"]), directed = T)
-  })
-
-  igraph::subgraph_isomorphic(gate_graphs[[2]], gate_graphs[[1]])
-  igraph::isomorphic(gate_graphs[[2]], gate_graphs[[3]])'
-
-'  igraph::V(gate_graph)$label <- pop_df[match(names(igraph::V(gate_graph)), unique(pop_df$id)),"name_root"]
-  ggraph::ggraph(ggraph::create_layout(gate_graph, layout = "tree")) +
-    ggraph::geom_edge_link() +
-    ggraph::geom_node_point(ggplot2::aes(color = label), size = 2) +
-    ggraph::geom_node_text(ggplot2::aes(label = name)) +
-    ggplot2::theme_void() +
-    ggplot2::scale_color_manual(values = fcexpr::col_pal("custom"))'
-
-'ggraph::ggraph(ggraph::create_layout(gate_graph_samples[[2]], layout = "tree")) +
-  ggraph::geom_edge_link() +
-  ggraph::geom_node_point() +
-  ggraph::geom_node_text(ggplot2::aes(label = name))'
-
-
 get_node_details2 <- function(nodeset, more_gate_data = F, conv = NULL) {
 
   temp_attr_list <- purrr::map(nodeset, xml2::xml_attrs)
@@ -483,6 +453,7 @@ get_node_details2 <- function(nodeset, more_gate_data = F, conv = NULL) {
 
 
 add_full_paths <- function(df, graph, edges = NULL, show_progress = F) {
+  .ensure_packages(c("igraph"))
   # providing end_edges speeds up the process
   # starting from end edges should catch all gates (nodes) at least once (logic, maybe)
   if (is.null(edges)) {
@@ -555,9 +526,7 @@ add_boolean_gate_data <- function(df,
                                   node_details_list,
                                   nodes_name = c("OrNodes", "AndNodes", "NotNodes"),
                                   more_gate_data = F) {
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
+  .ensure_packages(c("brathering"))
   nodes_name <- rlang::arg_match(nodes_name)
 
   # browser()
@@ -671,6 +640,7 @@ add_boolean_gate_data <- function(df,
 
 
 add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNodes", "AndNodes")) {
+  .ensure_packages(c("brathering"))
 
   #grandparent_id
   #GateDepth
@@ -692,7 +662,7 @@ add_OrNode_AndNode_data <- function(df, node_details_list, nodes_name = c("OrNod
 
   ## add ids to OrNode
   temp_df <- purrr::map_dfr(sapply(node_details_list, "[", nodes_name), function(x) {
-    temp <- stack(unlist(sapply(xml2::as_list(xml2::xml_find_all(x, "Dependents"))[[1]], attributes)))[,-2,drop=F]
+    temp <- utils::stack(unlist(sapply(xml2::as_list(xml2::xml_find_all(x, "Dependents"))[[1]], attributes)))[,-2,drop=F]
     temp$name <- xml2::xml_attr(x, "name")
     temp$Count <- as.numeric(xml2::xml_attr(x, "count"))
     return(temp)
@@ -762,5 +732,4 @@ assign_root_as_parentid <- function(pop_df, node_details_list) {
 
   return(pop_df)
 }
-
 

@@ -27,5 +27,5 @@ in case of large matrices. So here you can define if
 you want to split the matrix along its rows or columns.
 }
 \examples{
-split_mat(matrix(rnorm(60), ncol = 6), rep(c(1:3),2), byrow = F)
+split_mat(matrix(stats::rnorm(60), ncol = 6), rep(c(1:3),2), byrow = F)
 }

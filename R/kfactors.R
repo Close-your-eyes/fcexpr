@@ -8,7 +8,7 @@ tab <- lapply(list.files(wd, "\\.xlsx$", full.names = T)[which(!grepl("\\~", lis
     y <- paste0(y[1], "-", y[2], " ", y[3], "/", y[4], "-", y[5])
     tab$channel <- y
     return(tab)
-    #read_xlsx(file.path(wd, "Results_Fortessa.xlsx"), sheet = x, range = "A9:N15") %>% dplyr::rename("variable" = `...1`) %>% tidyr::gather(key = "voltage", value = "value", -c(variable)) %>% dplyr::filter(str_detect(variable, "K-factor")) %>% dplyr::mutate(channel = x)
+    #read_xlsx(file.path(wd, "Results_Fortessa.xlsx"), sheet = x, range = "A9:N15") |> dplyr::rename("variable" = `...1`) |> tidyr::gather(key = "voltage", value = "value", -c(variable)) |> dplyr::filter(str_detect(variable, "K-factor")) |> dplyr::mutate(channel = x)
   }))
   tab <- tidyr::pivot_longer(tab, cols = -channel, names_to = "volt", values_to = "k")
   tab$volt <- as.numeric(tab$volt)

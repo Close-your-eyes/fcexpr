@@ -60,13 +60,8 @@ get_fcs_identities <- function(kwl = NULL,
                                exclude_folders = NULL,
                                recursive = T,
                                allow_duplicates = T) {
+  .ensure_packages(c("flowCore"))
 
-  if (!requireNamespace("BiocManager", quietly = T)){
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("flowCore", quietly = T)){
-    BiocManager::install("flowCore")
-  }
 
   # list_fcs_files()
   # read_fcs_headers()
@@ -105,6 +100,7 @@ get_fcs_identities <- function(kwl = NULL,
 }
 
 get_idents_from_kwl <- function(kwl) {
+  .ensure_packages(c("lubridate"))
   if (is.null(kwl)) {
     stop("provide kwl, folder_path or fcs_file_paths.")
   }

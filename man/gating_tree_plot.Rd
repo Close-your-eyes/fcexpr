@@ -33,7 +33,7 @@ Plot gating tree as a graph to explore how populations are gated in a simple way
 # Get count data frame from flowjo wsp
 ps_counts <- fcexpr::wsx_get_popstats(ws = ws, return_stats = F)[["counts"]]
 # check if gatingtree is unique
-dplyr::group_by(ps_counts, PopulationFullPath) \%>\% dplyr::count()
+dplyr::group_by(ps_counts, PopulationFullPath) |> dplyr::count()
 # generate graph
 graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = unique(ps_counts$PopulationFullPath))
 # manual plotting graph to modify (e.g. layout)

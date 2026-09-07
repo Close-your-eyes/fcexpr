@@ -2,8 +2,8 @@
                        login_pw = NULL,
                        link_week = "https://eu.ilabsolutions.com/schedules/270426#/schedule/week7/2023-09-22",
                        link_slot = "https://eu.ilabsolutions.com/schedules/270426#/schedule/week7/2023-09-22/events/new/2023-09-22%2018:00/2023-09-22%2019:00") {
+  .ensure_packages(c("lubridate", "netstat", "RSelenium"))
 
-  library(RSelenium)
 
   rD <- RSelenium::rsDriver(port = netstat::free_port(), browser = "firefox", chromever = NULL)
   remDr <- rD[["client"]]

@@ -33,12 +33,9 @@ wsx_get_popstats2 <- function(ws,
                               return_stats = F,
                               strip_data = F) {
 
-  if (!requireNamespace("brathering", quietly = T)) {
-    pak::pak("Close-your-eyes/brathering")
-  }
 
   ws_raw <- ws
-  ws <- fcexpr:::check_ws(ws) #fcexpr:::
+  ws <- check_ws(ws)
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
   samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
   samplenodenames <- do.call(dplyr::bind_rows, xml2::xml_attrs(xml2::xml_find_all(samples, "SampleNode", flatten = T)))
@@ -293,6 +290,7 @@ recursive_walk_xml <- function(x, parent_path = NULL) {
 }
 
 fix_missing_ids <- function(df) {
+  .ensure_packages(c("brathering"))
 
   repeat {
     df$old_id <- df$id
@@ -322,8 +320,8 @@ fix_missing_ids <- function(df) {
     if (identical(df$old_id, df$id)) break
   }
 
-  dup_counts <- ave(df$old_id, df$old_id, FUN = length)
-  dup_index  <- ave(df$old_id, df$old_id, FUN = seq_along)
+  dup_counts <- stats::ave(df$old_id, df$old_id, FUN = length)
+  dup_index  <- stats::ave(df$old_id, df$old_id, FUN = seq_along)
 
   df$id <- ifelse(
     dup_counts > 1,
@@ -365,6 +363,7 @@ get_root <- function(x) {
 }
 
 rm_root <- function(x) {
+  .ensure_packages(c("brathering"))
   sapply(brathering::strsplit2(x, "/"), "[", 2)
 }
 
@@ -392,6 +391,7 @@ get_channels_dims <- function(gate) {
 }
 
 make_graphs <- function(df) {
+  .ensure_packages(c("igraph"))
   df2 <- df |>
     dplyr::filter(parent != ".") |>
     dplyr::rename("from" = PopulationFullPath, "to" = parent) |>
@@ -421,6 +421,7 @@ make_graphs <- function(df) {
 }
 
 check_fcs_namechange <- function(filenames, nodenames) {
+  .ensure_packages(c("stringdist"))
   conv <- NULL
   if (any(!filenames %in% nodenames)) {
     message("did you change filenames after loading fcs files into flowjo?")
@@ -456,7 +457,7 @@ add_channel_desc <- function(df, ws, keys_list = NULL) {
   #get keys from above
   if (is.null(keys_list)) {
     file_names <- purrr::map_chr(xml2::xml_children(xml2::xml_child(ws, "SampleList")), function(x) xml2::xml_attrs(xml2::xml_child(x, "SampleNode"))[["name"]])
-    keys_list <- purrr::map(setNames(xml2::xml_children(xml2::xml_child(ws, "SampleList")), file_names), function(x) {
+    keys_list <- purrr::map(stats::setNames(xml2::xml_children(xml2::xml_child(ws, "SampleList")), file_names), function(x) {
       keys <- xml2::xml_attrs(xml2::xml_contents(xml2::xml_child(x, "Keywords")))
       keys <- stats::setNames(sapply(keys, "[", 2), sapply(keys, "[", 1))
       keys <- utils::stack(keys)

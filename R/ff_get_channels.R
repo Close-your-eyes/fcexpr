@@ -27,6 +27,7 @@ ff_get_channels <- function(ff,
                             rm_wo_desc = F,
                             replace_NA_desc = F,
                             return = c("vector", "data.frame")) {
+  .ensure_packages(c("flowCore"))
 
   stopifnot("only one flow frame" = length(ff) == 1)
 
@@ -107,11 +108,10 @@ ff_get_channels <- function(ff,
   if (return == "vector") {
     channels <- stats::setNames(as.character(channels), names(channels))
   } else if (return == "data.frame") {
-    channels <- stack(channels)
+    channels <- utils::stack(channels)
     channels$ind <- as.character(channels$ind)
     names(channels) <- c("name", "desc")
   }
 
   return(channels)
 }
-

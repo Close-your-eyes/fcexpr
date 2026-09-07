@@ -16,7 +16,7 @@
 #' # Get count data frame from flowjo wsp
 #' ps_counts <- fcexpr::wsx_get_popstats(ws = ws, return_stats = F)[["counts"]]
 #' # check if gatingtree is unique
-#' dplyr::group_by(ps_counts, PopulationFullPath) %>% dplyr::count()
+#' dplyr::group_by(ps_counts, PopulationFullPath) |> dplyr::count()
 #' # generate graph
 #' graph_list <- fcexpr::gating_tree_plot(PopulationFullPath = unique(ps_counts$PopulationFullPath))
 #' # manual plotting graph to modify (e.g. layout)
@@ -40,13 +40,8 @@ gating_tree_plot <- function(PopulationFullPath,
                              names = c("final_node", "short_path", "full_path"),
                              label_repel = F,
                              ...) {
+  .ensure_packages(c("ggplot2", "ggraph", "igraph"))
 
-  if (!requireNamespace("ggraph", quietly = T)) {
-    utils::install.packages("ggraph")
-  }
-  if (!requireNamespace("igraph", quietly = T)) {
-    utils::install.packages("igraph")
-  }
 
   names <- rlang::arg_match(names)
 

@@ -72,6 +72,7 @@ ff_calc_umap_tsne <- function(ff,
                               return = c("coords", "ff"),
                               fun = uwot::umap,
                               ...) {
+  .ensure_packages(c("brathering", "flowCore", "Gmisc", "Rtsne", "Seurat", "uwot"))
 
   return <- rlang::arg_match(return)
   if (return == "ff" && missing(ff)) {

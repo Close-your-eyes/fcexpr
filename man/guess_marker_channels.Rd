@@ -16,6 +16,8 @@ data frame
 Narrow channels of stained antibody
 }
 \examples{
+\dontrun{
 df <- wsx_get_popstats(ws_path, strip_data = F)[[1]]
 df2 <- guess_marker_channels(df)
+}
 }

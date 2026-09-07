@@ -89,16 +89,8 @@ wsp_get_ff <- function(wsp,
                        dir = tempdir(),
                        channels = NULL,
                        ...) {
+  .ensure_packages(c("flowCore"))
 
-  if (!requireNamespace("BiocManager", quietly = T)) {
-    utils::install.packages("BiocManager")
-  }
-  if (!requireNamespace("CytoML", quietly = T)) {
-    BiocManager::install("CytoML")
-  }
-  if (!requireNamespace("flowWorkspace", quietly = T)) {
-    BiocManager::install("flowWorkspace")
-  }
   if (missing(population)) {
     stop("population missing. please provide one or more.")
   }

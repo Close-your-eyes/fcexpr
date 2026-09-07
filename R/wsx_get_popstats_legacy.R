@@ -33,7 +33,7 @@ wsx_get_popstats_legacy <- function(ws,
   lapply_fun <- match.fun(lapply_fun)
 
   ws_raw <- ws
-  ws <- fcexpr:::check_ws(ws) #fcexpr:::
+  ws <- check_ws(ws)
   group_df <- fcexpr:::get_group_df(ws, groups, invert_groups) #fcexpr:::
   samples <- fcexpr:::get_sample_nodes(ws, group_df) #fcexpr:::
 

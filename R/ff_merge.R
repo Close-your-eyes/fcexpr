@@ -33,6 +33,7 @@ ff_merge <- function(ff_list,
                      exclude = fcexpr:::non_fluo_channels,
                      exclude_from = c("raw", "trafo"),
                      order_first = c("trafo", "raw")) {
+  .ensure_packages(c("flowCore"))
 
   if (add_transformed_channels) {
     # check trafoname in attr of ff.list
@@ -123,9 +124,10 @@ ff_merge <- function(ff_list,
 
 ff_get_kw <- function(ff_list,
                       keywords) {
+  .ensure_packages(c("flowCore"))
 
   kw_df <-
-    purrr::map_dfr(ff.list, ~stack(unlist(flowCore::keyword(.x))), .id = "FileName") |>
+    purrr::map_dfr(ff.list, ~utils::stack(unlist(flowCore::keyword(.x))), .id = "FileName") |>
     dplyr::rename("value" = values, "name" = ind) |>
     tidyr::pivot_wider()
 
