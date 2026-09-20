@@ -1,95 +1,75 @@
-#' Plot a default layout of gated populations of a set of FCS files
+#' Plot gated populations in a GatingSet
 #'
-#' Getting an overview of the results of a flow cytometry experiment can be a
-#' generic task if gating and analysis strategy is fixed.
-#' Here, ggcyto is used to create an arrangement of pseudocolor plots. A number
-#' of default settings has been selected which may guarantee
-#' good looking plots for most cases. Upon problems, the function may be
-#' improved to handle edge cases. Currently, customization is limited to a few
-#' rather technical aspects of the plots. This may be subject to expansion but
-#' generally the range of customization is too large to fit it into a generic
-#' function with a finite number of arguments. Hence, for very specific and
-#' detailed requirements manual plotting and fiddling is unavoidable. For that,
-#' the code of this function may serve as a template.
+#' Create ggcyto plots for populations described by `gates_df`. Gates sharing
+#' a gating level, parent population, and x and y channels appear in one plot.
+#' By default, ggcyto facets the samples in the GatingSet.
 #'
-#' @param gs a gatingset, e.g. made with fcexpr::wsp_get_gs
-#' @param gates_df a data frame with information of how to plot gates,
-#' made with fcexpr::gs_get_gates
-#' @param facetting which facetting to apply, facet_wrap or facet_grid
-#' with respective arguments, check flowCore::pData(gs) for valid columns;
-#' facet_null will completely remove facets; by default facetting is done across
-#' each fcs file
-#' @param plot_gates logical whether to plot gates
-#' @param plot_gate_names logical whether to plot gate names
-#' @param plot_gate_pct logical whether to plot gate percentages
-#' (fraction of parent)
-#' @param inverse_trans logical whether to inverse transform axes numbers
-#' if TRUE this will make axes look like in flowjo
-#' @param geom how to plot data; recommendation is hex; hex = geom_hex taking
-#' the binwidths column of gates_df into account,
-#' pointdensity = ggpointdensity::geom_pointdensity
-#' scattermore = scattermore::geom_scattermore (only black-white currently)
-#' @param gate_stats_color font color of gate statistics
-#' @param plot_contours logical whether to plot contour lines on top with
-#' ggplot2::geom_density_2d
-#' @param pct_digits how many digits after comma to print;
-#' passed to 'digits' of ggcyto::geom_stats
-#' @param col_pal color palette to use for color gradient generation
-#' @param col_pal_trans argument passed as 'trans' in scale_fill_gradientn
-#' @param plot_title do plot titles?
-#' @param title title format
-#' @param contour_args arguments to stat_density_2d
-#' @param theme ggplot theme
-#' @param max_nrow_to_plot to ggcyto::ggcyto; defaults are chosen with respect
-#' to plotting time
-#' @param geom_args arguments to geom
-#' @param theme_args arguments to ggplot2::theme
-#' @param gate_args arguments to geom_gate
-#' @param as_ggplot convert to ggplot object?
-#' @param title_superscript plot plus and minus signs in superscript?
-#' @param style_preset setting options for axes etc
+#' @param gs A GatingSet, for example an element of the `gs_list` returned by
+#'   [wsp_get_gs()].
+#' @param gates_df A data frame from [gs_get_gates()]. Its columns control
+#'   channels, limits, bin widths, gate display, labels, and facet strips.
+#' @param facetting A ggplot2 facet specification, such as
+#'   `ggplot2::facet_wrap()` or `ggplot2::facet_grid()`. Use columns from
+#'   `flowCore::pData(gs)` for facet variables. `NULL` retains ggcyto's default
+#'   sample facets; `ggplot2::facet_null()` removes facets.
+#' @param plot_gates,plot_gate_names,plot_gate_pct Logical values that override
+#'   the corresponding `plot_gate`, `plot_gate_name`, and `plot_gate_pct` columns
+#'   of `gates_df` for every gate. The default `"gates_df"` uses each column's
+#'   existing values. Percentages are relative to the parent population.
+#' @param inverse_trans If `TRUE`, show inverse-transformed axis labels, as in
+#'   FlowJo.
+#' @param geom Event geometry: `"hex"` uses `ggplot2::geom_hex()` and the
+#'   `binwidths` column of `gates_df`; `"pointdensity"` uses
+#'   `ggpointdensity::geom_pointdensity()`; `"scattermore"` uses
+#'   `scattermore::geom_scattermore()` without a color gradient.
+#' @param gate_stats_color Color of gate name and percentage labels.
+#' @param pct_digits Number of decimal places in gate percentages, passed to
+#'   `ggcyto::geom_stats()`.
+#' @param plot_contours If `TRUE`, add density contours. These are calculated
+#'   across facets.
+#' @param plot_title If `TRUE`, show a title based on the parent population.
+#' @param title Title format: `"final_node"`, `"short_path"`, or `"full_path"`.
+#' @param title_superscript If `TRUE`, render plus and minus signs in titles as
+#'   superscripts.
+#' @param contour_args Named list passed to `ggplot2::stat_density_2d()` when
+#'   `plot_contours` is `TRUE`.
+#' @param col_pal Colors for the hex fill or point-density color gradient.
+#' @param col_pal_trans Transformation for that gradient. It does not apply to
+#'   `"scattermore"`.
+#' @param theme Base ggplot2 theme.
+#' @param theme_args Named list passed to `ggplot2::theme()`.
+#' @param theme_args_repl Named list that replaces matching entries in
+#'   `theme_args` before `style_preset` is applied.
+#' @param max_nrow_to_plot Maximum events passed to `ggcyto::ggcyto()` per plot.
+#'   Defaults depend on `geom`. This limit does not apply when a gate uses
+#'   `ggcyto::marginalFilter`.
+#' @param geom_args Named list passed to the selected event geometry.
+#' @param gate_args Named list passed to `ggcyto::geom_gate()`.
+#' @param as_ggplot If `TRUE`, convert each result with `ggcyto::as.ggplot()`.
+#' @param style_preset One of `"technical"` (show axis text and ticks),
+#'   `"clean"` (hide axis text, ticks, and grid), or `"none"` (add no preset).
 #'
-#' @return a list of ggplot2 objects, one for every gating level;
-#' each list index contains respective plots for every fcs file
+#' @return A list of plots, one per combination of gating level, parent
+#'   population, and x and y channels. Plots are ggcyto objects unless
+#'   `as_ggplot = TRUE`. The list has a `"Population"` attribute with the
+#'   population names represented by each plot.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' ## read gatingset
-#' gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
+#' gs_data <- fcexpr::wsp_get_gs(wsp = "path/to/workspace.wsp")
+#' gs <- gs_data$gs_list[[1]]
+#' gates <- gs_data$gate_dfs[[1]]
 #'
-#' ## write meta data to pData of gs; sd is sampledescription
-#' p.df <-
-#' flowCore::pData(gs) |>
-#' tibble::rownames_to_column("FileName") |>
-#' dplyr::left_join(sd) |>
-#' tibble::column_to_rownames("FileName")
-#' p.df$FileName <- rownames(p.df)
-#' flowCore::pData(gs) <- p.df
-#'
-#' ## get the gates_df, optionally select relevant gates, and modify
-#' gates <- fcexpr::gs_get_gates(gs, n_bins = 100^2)
-#' gates <- gates[which(gates$Population %in% c("CD8+", "CD8-")),]
-#' gates$facet_strip <- T
-#'
-#' ## selected gates; to order facetted plot the inline factor level
-#' ## ordering is required as flowCore::pData(gs) cannot contain factors
-#' ## axis.text = element_blank() is part of ... and will omit axis numbers (passed to ggplot2::theme)
-#' plotlist <-
-#' fcexpr::plot_gates(gs = gs,
-#' gates_df = gates,
-#' facetting = facet_grid(cols = vars(factor(dilution_factor, levels = c(unique(p.df$dilution_factor)))), rows = vars(CD8_biotin_batch)),
-#' axis.text = element_blank())
-#'
-#' ## paste plots together with patchwork and save
-#' ## patchwork is superior to cowplot as is will completely ignore ommitted facet_strips
-#' ggsave(patchwork::wrap_plots(plotlist, ncol = 1), filename = paste0("facsplots.png"), device = "png", path = im_path, dpi = "retina", width = 18, height = 7)
-#'
-#' ## save with new fun
-#' pngfiles <- purrr::map_chr(seq_along(plots), function(i) {
-#'   popname <-  gsub("/", "_",attr(plots[[i]], "Population"))
-#'   brathering::img_save(plotdata = plots[[i]], width = 10, height = 3, filename = paste0(popname, ".png"), path = im_path)
-#' })
+#' # Show gate outlines but omit gate statistics; set a smaller title.
+#' plots <- fcexpr::plot_gates(
+#'   gs = gs,
+#'   gates_df = gates,
+#'   plot_gate_names = FALSE,
+#'   plot_gate_pct = FALSE,
+#'   theme_args_repl = list(plot.title = ggplot2::element_text(size = 10))
+#' )
+#' print(plots[[1]])
 #' }
 plot_gates <- function(gs,
                        gates_df,
@@ -124,6 +104,7 @@ plot_gates <- function(gs,
                                          plot.title = ggplot2::element_text(margin = ggplot2::margin(1,1,1,1, unit = "pt"), size = 12),
                                          panel.spacing = grid::unit(2, "pt"),
                                          legend.position = "none"),
+                       theme_args_repl = list(),
                        max_nrow_to_plot = switch(geom,
                                                  "hex" = 5e4,
                                                  "pointdensity" = 2000,
@@ -138,6 +119,10 @@ plot_gates <- function(gs,
   geom <- rlang::arg_match(geom)
   title <- rlang::arg_match(title)
   style_preset <- rlang::arg_match(style_preset)
+
+  for (i in names(theme_args_repl)) {
+    theme_args[[i]] <- theme_args_repl[[i]]
+  }
 
 
   if (geom == "scattermore") {
@@ -191,20 +176,23 @@ plot_gates <- function(gs,
   }
 
   if (style_preset == "technical") {
-    theme_args <- c(theme_args,
-                    list(panel.grid.minor = ggplot2::element_blank(),
-                         axis.text.x = ggplot2::element_text(),
-                         axis.text.y = ggplot2::element_text(),
-                         axis.ticks.x = ggplot2::element_line(),
-                         axis.ticks.y = ggplot2::element_line()))
+    repl <- list(panel.grid.minor = ggplot2::element_blank(),
+                 axis.text.x = ggplot2::element_text(),
+                 axis.text.y = ggplot2::element_text(),
+                 axis.ticks.x = ggplot2::element_line(),
+                 axis.ticks.y = ggplot2::element_line())
+    for (i in names(repl)) {
+      theme_args[[i]] <- repl[[i]]
+    }
   } else if (style_preset == "clean") {
-    theme_args <- c(theme_args,
-                    list(panel.grid = ggplot2::element_blank(),
-                         axis.text.x = ggplot2::element_blank(),
-                         axis.text.y = ggplot2::element_blank(),
-                         axis.ticks.x = ggplot2::element_blank(),
-                         axis.ticks.y = ggplot2::element_blank()))
-
+    repl <- list(panel.grid = ggplot2::element_blank(),
+                 axis.text.x = ggplot2::element_blank(),
+                 axis.text.y = ggplot2::element_blank(),
+                 axis.ticks.x = ggplot2::element_blank(),
+                 axis.ticks.y = ggplot2::element_blank())
+    for (i in names(repl)) {
+      theme_args[[i]] <- repl[[i]]
+    }
   }
 
 

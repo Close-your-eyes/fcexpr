@@ -2,52 +2,65 @@
 % Please edit documentation in R/sync_sampledescription.R
 \name{sync_sampledescription}
 \alias{sync_sampledescription}
-\title{Synchronize a meta data table (sampledescription) with FCS files}
+\title{Synchronize a sample description with FCS files}
 \usage{
 sync_sampledescription(
   FCS.file.folder,
   file.name = "sampledescription.xlsx",
   exclude.folders = c("compensation", "other_fcs_files", "experiment.file",
     "deleted_fcs_files", "8_peak_bead", "rainbow_bead", "8_peak_beads", "rainbow_beads"),
-  write.log = T
+  write.log = T,
+  del_folder = "deleted_FCS_files"
 )
 }
 \arguments{
-\item{FCS.file.folder}{path to the folder which contains FCS files}
+\item{FCS.file.folder}{Path to the directory containing FCS files.}
 
-\item{file.name}{name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv}
+\item{file.name}{Name of the sample description workbook, stored in the
+parent directory of \code{FCS.file.folder}. Only \code{.xlsx} is supported.}
 
-\item{exclude.folders}{character vector of folders to exclude when checking for FCS files}
+\item{exclude.folders}{Character vector of path fragments to omit from the
+recursive FCS scan. Matching ignores case. Include a custom \code{del_folder}
+here so moved files are not scanned again.}
 
-\item{write.log}{write a hidden (not hidden on windows) log file every time changes take place}
+\item{write.log}{If \code{TRUE}, save a workbook log containing snapshots of the
+sample description. The log is hidden by name on macOS and Linux, but not
+on Windows.}
+
+\item{del_folder}{Name of the subfolder within \code{FCS.file.folder} to receive
+files whose \code{FileName} cell was left blank. It is created when needed.}
 }
 \value{
-No return value. Instead sampledescription table and FCS files are synchronized.
+An operation summary tibble, returned invisibly and printed. Its
+\code{operation} column lists \code{delete}, \code{add}, \code{rename}, and \code{reorder}; \code{done}
+contains the corresponding status flags.
 }
 \description{
-When running this function the rows in the 'file.name' (e.g. 'sampledescription.xlsx') and FCS files
-in the FCS.files.folder are synchronized. When new FCS files are added the sampledescription is appended.
-When entries in the FileName column of sampledescription are changed, FCS files are renamed accordingly.
-Always, sampledescription is written to the parent folder of FCS.file.folder.
-See Details below of the cases that can be handled.
+Create or update an Excel sample description in the parent directory of
+\code{FCS.file.folder}, keeping its \code{FileName} column and the FCS filenames on disk
+in sync. The folder is scanned recursively, except for \code{exclude.folders}.
 }
 \details{
-Five cases can be handled: (i) if no 'file.name'-file exists, one will be initiated based on
-FCS files in 'FCS.file.folder'. (ii) When new FCS files are added to 'FCS.file.folder'
-these are added in order of acquisition to the 'file.name'-file. (iii) When file names
-in the FileName column of the 'file.name'-file are altered, FCS files in FCS.file.folder
-are renamed accordingly. (iv) If FCS files are to be excluded or removed, the entry in the FileName column has to be left
-blank and the function has to be called. (v) When the order of rows in the xlsx-file
-is changed prefixes will be re-numbered.
+On the first call, the function creates \code{file.name} from the FCS files and
+prefixes their filenames with sequence numbers in acquisition order. Later
+calls append newly found files, rename files when their \code{FileName} entries
+change, and update numeric prefixes when rows are reordered. Leaving a
+\code{FileName} cell blank moves that file into \code{del_folder} and removes its row
+from the sample description. These operations change files on disk.
 
-Preferentially, do not have the file.name'-file open in another program when calling the the function.
-Never edit the 'identity' column in the 'file.name'-file manually.
-Never mix up rows of FileName and identity.
-The identity column contains a concatenated string of the $FIL keyword from FCS files, the number of events ($TOT)
-and the acquisition date time of the FCS file.
+Keep the workbook closed while synchronizing. Do not edit the \code{identity}
+column or separate an \code{identity} value from its \code{FileName} row. Each identity
+is built from the FCS \verb{$FIL} and \verb{$TOT} keywords and acquisition date and
+time; it is used to match rows to files after renaming.
 }
 \examples{
 \dontrun{
-sync_sampledescription(FCS.file.folder = file.path(wd, 'FCS_files'))
+# Add FCS files to this directory before the first call.
+fcs_dir <- "path/to/experiment/FCS_files"
+fcexpr::sync_sampledescription(FCS.file.folder = fcs_dir)
+
+# Edit sampledescription.xlsx in the experiment directory, save and close it,
+# then run the function again to apply filename and row-order changes.
+fcexpr::sync_sampledescription(FCS.file.folder = fcs_dir)
 }
 }

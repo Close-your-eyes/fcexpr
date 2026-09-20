@@ -196,7 +196,7 @@ dimred_to_fcs <- function(ff.list,
 
     umap.dims <- ff_calc_umap_tsne(exprs = expr.select,
                                    seed = seed,
-                                   args = UMAP_args)
+                                   fun_args = UMAP_args)
 
     message("End: ", Sys.time())
   }
@@ -317,7 +317,7 @@ dimred_to_fcs <- function(ff.list,
       sv_pth <- file.path(save.path, paste0(save.name, ".rds"))
     }
     if ("rds" %in% save.to.disk) {
-      saveRDS(list(flowframe = ff, marker = marker, pca = pca.result), file = sv_pth, compress = F)
+      brathering::saverds2(list(flowframe = ff, marker = marker, pca = pca.result), file = sv_pth, compress = F)
     }
     if (is.null(save.name)) {
       sv_pth <- file.path(save.path, paste0(t, "_dr.fcs"))

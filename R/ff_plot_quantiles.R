@@ -7,6 +7,8 @@
 #' @returns list
 #' @export
 #'
+#' @importFrom rlang .data
+#'
 #' @examples
 ff_plot_quantiles <- function(ff,
                               channels = NULL,
@@ -23,7 +25,7 @@ ff_plot_quantiles <- function(ff,
     qu <- apply(
       flowCore::exprs(x)[,chann],
       2,
-      quantile,
+      stats::quantile,
       probs = quantiles,
       simplify = T
     )
@@ -37,7 +39,7 @@ ff_plot_quantiles <- function(ff,
   })
 
   plots <- purrr::map(qdf, function(df) {
-    ggplot2::ggplot(df, ggplot2::aes(x=quantile, y=value)) +
+    ggplot2::ggplot(df, ggplot2::aes(x=.data$quantile, y=value)) +
       ggplot2::geom_point() +
       ggplot2::facet_wrap(ggplot2::vars(channel))
   })

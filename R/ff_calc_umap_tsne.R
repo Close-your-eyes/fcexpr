@@ -118,7 +118,7 @@ ff_calc_umap_tsne <- function(ff,
   }
 
   ## prep and check names to avoid error below
-  if (names == "..auto..") {
+  if (names[1] == "..auto..") {
     names <- paste(what, 1:ncol(coords), sep = "_")
   } else {
     if (length(names) < ncol(coords)) {

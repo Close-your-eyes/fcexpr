@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_gates_default.R
 \name{plot_gates}
 \alias{plot_gates}
-\title{Plot a default layout of gated populations of a set of FCS files}
+\title{Plot gated populations in a GatingSet}
 \usage{
 plot_gates(
   gs,
@@ -33,6 +33,7 @@ plot_gates(
     ggplot2::element_text(margin = ggplot2::margin(1, 
      1, 1, 1, unit = "pt"), size =
     12), panel.spacing = grid::unit(2, "pt"), legend.position = "none"),
+  theme_args_repl = list(),
   max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
   geom_args = list(),
   gate_args = list(colour = "black", linewidth = 0.3),
@@ -41,119 +42,98 @@ plot_gates(
 )
 }
 \arguments{
-\item{gs}{a gatingset, e.g. made with fcexpr::wsp_get_gs}
+\item{gs}{A GatingSet, for example an element of the \code{gs_list} returned by
+\code{\link[=wsp_get_gs]{wsp_get_gs()}}.}
 
-\item{gates_df}{a data frame with information of how to plot gates,
-made with fcexpr::gs_get_gates}
+\item{gates_df}{A data frame from \code{\link[=gs_get_gates]{gs_get_gates()}}. Its columns control
+channels, limits, bin widths, gate display, labels, and facet strips.}
 
-\item{facetting}{which facetting to apply, facet_wrap or facet_grid
-with respective arguments, check flowCore::pData(gs) for valid columns;
-facet_null will completely remove facets; by default facetting is done across
-each fcs file}
+\item{facetting}{A ggplot2 facet specification, such as
+\code{ggplot2::facet_wrap()} or \code{ggplot2::facet_grid()}. Use columns from
+\code{flowCore::pData(gs)} for facet variables. \code{NULL} retains ggcyto's default
+sample facets; \code{ggplot2::facet_null()} removes facets.}
 
-\item{plot_gates}{logical whether to plot gates}
+\item{plot_gates, plot_gate_names, plot_gate_pct}{Logical values that override
+the corresponding \code{plot_gate}, \code{plot_gate_name}, and \code{plot_gate_pct} columns
+of \code{gates_df} for every gate. The default \code{"gates_df"} uses each column's
+existing values. Percentages are relative to the parent population.}
 
-\item{plot_gate_names}{logical whether to plot gate names}
+\item{inverse_trans}{If \code{TRUE}, show inverse-transformed axis labels, as in
+FlowJo.}
 
-\item{plot_gate_pct}{logical whether to plot gate percentages
-(fraction of parent)}
+\item{geom}{Event geometry: \code{"hex"} uses \code{ggplot2::geom_hex()} and the
+\code{binwidths} column of \code{gates_df}; \code{"pointdensity"} uses
+\code{ggpointdensity::geom_pointdensity()}; \code{"scattermore"} uses
+\code{scattermore::geom_scattermore()} without a color gradient.}
 
-\item{inverse_trans}{logical whether to inverse transform axes numbers
-if TRUE this will make axes look like in flowjo}
+\item{gate_stats_color}{Color of gate name and percentage labels.}
 
-\item{geom}{how to plot data; recommendation is hex; hex = geom_hex taking
-the binwidths column of gates_df into account,
-pointdensity = ggpointdensity::geom_pointdensity
-scattermore = scattermore::geom_scattermore (only black-white currently)}
+\item{pct_digits}{Number of decimal places in gate percentages, passed to
+\code{ggcyto::geom_stats()}.}
 
-\item{gate_stats_color}{font color of gate statistics}
+\item{plot_contours}{If \code{TRUE}, add density contours. These are calculated
+across facets.}
 
-\item{pct_digits}{how many digits after comma to print;
-passed to 'digits' of ggcyto::geom_stats}
+\item{plot_title}{If \code{TRUE}, show a title based on the parent population.}
 
-\item{plot_contours}{logical whether to plot contour lines on top with
-ggplot2::geom_density_2d}
+\item{title}{Title format: \code{"final_node"}, \code{"short_path"}, or \code{"full_path"}.}
 
-\item{plot_title}{do plot titles?}
+\item{title_superscript}{If \code{TRUE}, render plus and minus signs in titles as
+superscripts.}
 
-\item{title}{title format}
+\item{contour_args}{Named list passed to \code{ggplot2::stat_density_2d()} when
+\code{plot_contours} is \code{TRUE}.}
 
-\item{title_superscript}{plot plus and minus signs in superscript?}
+\item{col_pal}{Colors for the hex fill or point-density color gradient.}
 
-\item{contour_args}{arguments to stat_density_2d}
+\item{col_pal_trans}{Transformation for that gradient. It does not apply to
+\code{"scattermore"}.}
 
-\item{col_pal}{color palette to use for color gradient generation}
+\item{theme}{Base ggplot2 theme.}
 
-\item{col_pal_trans}{argument passed as 'trans' in scale_fill_gradientn}
+\item{theme_args}{Named list passed to \code{ggplot2::theme()}.}
 
-\item{theme}{ggplot theme}
+\item{theme_args_repl}{Named list that replaces matching entries in
+\code{theme_args} before \code{style_preset} is applied.}
 
-\item{theme_args}{arguments to ggplot2::theme}
+\item{max_nrow_to_plot}{Maximum events passed to \code{ggcyto::ggcyto()} per plot.
+Defaults depend on \code{geom}. This limit does not apply when a gate uses
+\code{ggcyto::marginalFilter}.}
 
-\item{max_nrow_to_plot}{to ggcyto::ggcyto; defaults are chosen with respect
-to plotting time}
+\item{geom_args}{Named list passed to the selected event geometry.}
 
-\item{geom_args}{arguments to geom}
+\item{gate_args}{Named list passed to \code{ggcyto::geom_gate()}.}
 
-\item{gate_args}{arguments to geom_gate}
+\item{as_ggplot}{If \code{TRUE}, convert each result with \code{ggcyto::as.ggplot()}.}
 
-\item{as_ggplot}{convert to ggplot object?}
-
-\item{style_preset}{setting options for axes etc}
+\item{style_preset}{One of \code{"technical"} (show axis text and ticks),
+\code{"clean"} (hide axis text, ticks, and grid), or \code{"none"} (add no preset).}
 }
 \value{
-a list of ggplot2 objects, one for every gating level;
-each list index contains respective plots for every fcs file
+A list of plots, one per combination of gating level, parent
+population, and x and y channels. Plots are ggcyto objects unless
+\code{as_ggplot = TRUE}. The list has a \code{"Population"} attribute with the
+population names represented by each plot.
 }
 \description{
-Getting an overview of the results of a flow cytometry experiment can be a
-generic task if gating and analysis strategy is fixed.
-Here, ggcyto is used to create an arrangement of pseudocolor plots. A number
-of default settings has been selected which may guarantee
-good looking plots for most cases. Upon problems, the function may be
-improved to handle edge cases. Currently, customization is limited to a few
-rather technical aspects of the plots. This may be subject to expansion but
-generally the range of customization is too large to fit it into a generic
-function with a finite number of arguments. Hence, for very specific and
-detailed requirements manual plotting and fiddling is unavoidable. For that,
-the code of this function may serve as a template.
+Create ggcyto plots for populations described by \code{gates_df}. Gates sharing
+a gating level, parent population, and x and y channels appear in one plot.
+By default, ggcyto facets the samples in the GatingSet.
 }
 \examples{
 \dontrun{
-## read gatingset
-gs <- fcexpr::wsp_get_gs(wsp = ws, groups = "Group1")
+gs_data <- fcexpr::wsp_get_gs(wsp = "path/to/workspace.wsp")
+gs <- gs_data$gs_list[[1]]
+gates <- gs_data$gate_dfs[[1]]
 
-## write meta data to pData of gs; sd is sampledescription
-p.df <-
-flowCore::pData(gs) |>
-tibble::rownames_to_column("FileName") |>
-dplyr::left_join(sd) |>
-tibble::column_to_rownames("FileName")
-p.df$FileName <- rownames(p.df)
-flowCore::pData(gs) <- p.df
-
-## get the gates_df, optionally select relevant gates, and modify
-gates <- fcexpr::gs_get_gates(gs, n_bins = 100^2)
-gates <- gates[which(gates$Population \%in\% c("CD8+", "CD8-")),]
-gates$facet_strip <- T
-
-## selected gates; to order facetted plot the inline factor level
-## ordering is required as flowCore::pData(gs) cannot contain factors
-## axis.text = element_blank() is part of ... and will omit axis numbers (passed to ggplot2::theme)
-plotlist <-
-fcexpr::plot_gates(gs = gs,
-gates_df = gates,
-facetting = facet_grid(cols = vars(factor(dilution_factor, levels = c(unique(p.df$dilution_factor)))), rows = vars(CD8_biotin_batch)),
-axis.text = element_blank())
-
-## paste plots together with patchwork and save
-## patchwork is superior to cowplot as is will completely ignore ommitted facet_strips
-ggsave(patchwork::wrap_plots(plotlist, ncol = 1), filename = paste0("facsplots.png"), device = "png", path = im_path, dpi = "retina", width = 18, height = 7)
-
-## save with new fun
-pngfiles <- purrr::map_chr(seq_along(plots), function(i) {
-  popname <-  gsub("/", "_",attr(plots[[i]], "Population"))
-  brathering::img_save(plotdata = plots[[i]], width = 10, height = 3, filename = paste0(popname, ".png"), path = im_path)
-})
+# Show gate outlines but omit gate statistics; set a smaller title.
+plots <- fcexpr::plot_gates(
+  gs = gs,
+  gates_df = gates,
+  plot_gate_names = FALSE,
+  plot_gate_pct = FALSE,
+  theme_args_repl = list(plot.title = ggplot2::element_text(size = 10))
+)
+print(plots[[1]])
 }
 }

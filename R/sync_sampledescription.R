@@ -1,42 +1,63 @@
-#' Synchronize a meta data table (sampledescription) with FCS files
+#' Synchronize a sample description with FCS files
 #'
-#' When running this function the rows in the 'file.name' (e.g. 'sampledescription.xlsx') and FCS files
-#' in the FCS.files.folder are synchronized. When new FCS files are added the sampledescription is appended.
-#' When entries in the FileName column of sampledescription are changed, FCS files are renamed accordingly.
-#' Always, sampledescription is written to the parent folder of FCS.file.folder.
-#' See Details below of the cases that can be handled.
+#' Create or update an Excel sample description in the parent directory of
+#' `FCS.file.folder`, keeping its `FileName` column and the FCS filenames on disk
+#' in sync. The folder is scanned recursively, except for `exclude.folders`.
 #'
-#' Five cases can be handled: (i) if no 'file.name'-file exists, one will be initiated based on
-#' FCS files in 'FCS.file.folder'. (ii) When new FCS files are added to 'FCS.file.folder'
-#' these are added in order of acquisition to the 'file.name'-file. (iii) When file names
-#' in the FileName column of the 'file.name'-file are altered, FCS files in FCS.file.folder
-#' are renamed accordingly. (iv) If FCS files are to be excluded or removed, the entry in the FileName column has to be left
-#' blank and the function has to be called. (v) When the order of rows in the xlsx-file
-#' is changed prefixes will be re-numbered.
+#' @details
+#' On the first call, the function creates `file.name` from the FCS files and
+#' prefixes their filenames with sequence numbers in acquisition order. Later
+#' calls append newly found files, rename files when their `FileName` entries
+#' change, and update numeric prefixes when rows are reordered. Leaving a
+#' `FileName` cell blank moves that file into `del_folder` and removes its row
+#' from the sample description. These operations change files on disk.
 #'
-#' Preferentially, do not have the file.name'-file open in another program when calling the the function.
-#' Never edit the 'identity' column in the 'file.name'-file manually.
-#' Never mix up rows of FileName and identity.
-#' The identity column contains a concatenated string of the $FIL keyword from FCS files, the number of events ($TOT)
-#' and the acquisition date time of the FCS file.
+#' Keep the workbook closed while synchronizing. Do not edit the `identity`
+#' column or separate an `identity` value from its `FileName` row. Each identity
+#' is built from the FCS `$FIL` and `$TOT` keywords and acquisition date and
+#' time; it is used to match rows to files after renaming.
 #'
-#' @param FCS.file.folder path to the folder which contains FCS files
-#' @param file.name name of the sampledescription file, one of the following file types: .xlsx, .ods, .txt, .tsv, .csv
-#' @param exclude.folders character vector of folders to exclude when checking for FCS files
-#' @param write.log write a hidden (not hidden on windows) log file every time changes take place
+#' @param FCS.file.folder Path to the directory containing FCS files.
+#' @param file.name Name of the sample description workbook, stored in the
+#'   parent directory of `FCS.file.folder`. Only `.xlsx` is supported.
+#' @param exclude.folders Character vector of path fragments to omit from the
+#'   recursive FCS scan. Matching ignores case. Include a custom `del_folder`
+#'   here so moved files are not scanned again.
+#' @param write.log If `TRUE`, save a workbook log containing snapshots of the
+#'   sample description. The log is hidden by name on macOS and Linux, but not
+#'   on Windows.
+#' @param del_folder Name of the subfolder within `FCS.file.folder` to receive
+#'   files whose `FileName` cell was left blank. It is created when needed.
 #'
-#' @return No return value. Instead sampledescription table and FCS files are synchronized.
+#' @return An operation summary tibble, returned invisibly and printed. Its
+#'   `operation` column lists `delete`, `add`, `rename`, and `reorder`; `done`
+#'   contains the corresponding status flags.
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' sync_sampledescription(FCS.file.folder = file.path(wd, 'FCS_files'))
+#' # Add FCS files to this directory before the first call.
+#' fcs_dir <- "path/to/experiment/FCS_files"
+#' fcexpr::sync_sampledescription(FCS.file.folder = fcs_dir)
+#'
+#' # Edit sampledescription.xlsx in the experiment directory, save and close it,
+#' # then run the function again to apply filename and row-order changes.
+#' fcexpr::sync_sampledescription(FCS.file.folder = fcs_dir)
 #' }
 sync_sampledescription <- function(FCS.file.folder,
                                    file.name = "sampledescription.xlsx",
-                                   exclude.folders = c("compensation", "other_fcs_files", "experiment.file", "deleted_fcs_files",
-                                                       "8_peak_bead", "rainbow_bead", "8_peak_beads", "rainbow_beads"),
-                                   write.log = T) {
+                                   exclude.folders = c(
+                                     "compensation",
+                                     "other_fcs_files",
+                                     "experiment.file",
+                                     "deleted_fcs_files",
+                                     "8_peak_bead",
+                                     "rainbow_bead",
+                                     "8_peak_beads",
+                                     "rainbow_beads"
+                                   ),
+                                   write.log = T,
+                                   del_folder = "deleted_FCS_files") {
 
   file.suffix <- tools::file_ext(file.name)
   if (!file.suffix %in% c("xlsx")) { # c("xlsx", "ods", "tsv")
@@ -57,9 +78,14 @@ sync_sampledescription <- function(FCS.file.folder,
 
   ### initiate
   if (!file.exists(file.path(wd, file.name))) {
-    desc_file <- init_desc(wd, file.name = file.name, fcs.files = fcs.files)
+    desc_file <- init_desc(
+      wd,
+      file.name = file.name,
+      fcs.files = fcs.files,
+      write.log = write.log
+    )
     message(desc_file, "initiated.")
-    invisible(desc_file)
+    return(invisible(desc_file))
   }
 
   desc <- read_desc(wd = wd, file.name = file.name, fcs.files = fcs.files)
@@ -71,7 +97,8 @@ sync_sampledescription <- function(FCS.file.folder,
                                           fcs.files = fcs.files,
                                           wd = wd,
                                           file.name = file.name,
-                                          write.log = write.log)
+                                          write.log = write.log,
+                                          del_folder = del_folder)
   if (change1) {
     fcs.files <- get_fcs_identities(folder_path = FCS.file.folder,
                                     exclude_folders = exclude.folders,
@@ -476,7 +503,10 @@ mv_files_safe <- function(from, to) {
 }
 
 
-init_desc <- function(wd, file.name, fcs.files) {
+init_desc <- function(wd,
+                      file.name,
+                      fcs.files,
+                      write.log = T) {
   fcexpr:::.ensure_packages(c("lubridate", "openxlsx"))
 
   other_putative_sd <- stats::na.omit(purrr::map_chr(list.files(wd, "\\.xlsx$|\\.tsv$", full.names = T), function(x){

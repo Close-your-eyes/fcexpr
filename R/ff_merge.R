@@ -127,7 +127,7 @@ ff_get_kw <- function(ff_list,
   fcexpr:::.ensure_packages(c("flowCore"))
 
   kw_df <-
-    purrr::map_dfr(ff.list, ~utils::stack(unlist(flowCore::keyword(.x))), .id = "FileName") |>
+    purrr::map_dfr(ff_list, ~utils::stack(unlist(flowCore::keyword(.x))), .id = "FileName") |>
     dplyr::rename("value" = values, "name" = ind) |>
     tidyr::pivot_wider()
 
