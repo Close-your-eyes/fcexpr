@@ -20,6 +20,19 @@
 #' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
 #' # read counts
 #' counts <- wsx_get_popstats(ws = ws[[1]])[["counts"]]
+#'
+#' # When the script is saved to R_scripts in the experiment folder,
+#' # get the absolute path to the folder
+#' wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
+#' # find workspaces
+#' ws <- list.files(path = wd, pattern = '\\.wsp$', recursive = T, full.names = T)
+#' # import the population counts:
+#' lst <- wsx_get_popstats(ws = ws[[1]])
+#' # plot graph
+#' ggraph::ggraph(lst$graph_sample[[1]]) +
+#'   ggraph::geom_node_point() +
+#'   ggraph::geom_edge_link() +
+#'   ggraph::geom_node_label(ggplot2::aes(label = name))
 #' }
 wsx_get_popstats <- function(ws,
                              groups = NULL,
