@@ -11,28 +11,28 @@
 #' \dontrun{
 #' new_exp(path = '/Users/CMS/Documents/experiments', name = 'CD3_titration')
 #' }
-new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
+new_exp <- function(path = getwd(), name = "fcexp", date_prefix = T) {
 
-  if (is.null(path)) {
+  if (is.null(path) || path == "") {
     stop("Please provide a directory (path) to create the folder in.")
+  }
+  if (is.null(name)) {
+    stop("Please provide a name.")
   }
 
   path <- path.expand(path)
 
   if (date_prefix) {
     if (is.null(name)) {
-      name <- paste0(gsub("-", "", Sys.Date()), "_experiment")
+      suffix <- "_experiment"
     } else {
-      name <- paste0(gsub("-", "", Sys.Date()), "_", name)
+      suffix <- paste0("_", name)
     }
-  } else {
-    if (is.null(name)) {
-      name <- "experiment"
-    }
+    name <- paste0(gsub("-", "", format(Sys.Date(), "%y-%m-%d")), suffix)
   }
 
   if (dir.exists(file.path(path, name))) {
-    stop(paste0(file.path(path, name), " already exists."))
+    stop(file.path(path, name), " already exists.")
   }
 
   utils::untar(system.file("extdata", "template_folder.tgz", package = "fcexpr"), exdir = path)
@@ -43,7 +43,7 @@ new_exp <- function(path = NULL, name = NULL, date_prefix = T) {
     file.remove(files[which(grepl("^\\.", basename(files)))])
   }
 
-  message(paste0(file.path(path, name), " created."))
+  message(file.path(path, name), " created.")
   invisible(file.path(path, name))
 }
 
@@ -55,3 +55,4 @@ getOS <- function() {
                     Darwin = "Mac")
   return(machine)
 }
+

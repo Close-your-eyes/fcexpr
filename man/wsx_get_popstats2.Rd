@@ -40,7 +40,7 @@ wd <- dirname(dirname(rstudioapi::getActiveDocumentContext()$path))
 ws <- list.files(path = wd, pattern = '\\\\.wsp$', recursive = T, full.names = T)
 # import the population counts:
 lst <- wsx_get_popstats(ws = ws[[1]])
-#' # plot graph
+# plot graph
 ggraph::ggraph(lst$graph_sample[[1]]) +
   ggraph::geom_node_point() +
   ggraph::geom_edge_link() +
