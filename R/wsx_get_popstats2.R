@@ -162,6 +162,7 @@ wsx_get_popstats2 <- function(ws,
     tt <- tt[,cols]
   }
 
+  tt <- dplyr::arrange(tt, FileName)
 
   stats_out <- NULL
   if (return_stats) {

@@ -5,9 +5,9 @@
 \title{Create a random population in high dimensional space}
 \usage{
 create_pop(
-  range_n = c(50:1000),
+  range_n = c(500:10000),
   dims = 5,
-  range_mean = c(1:1e+05),
+  range_mean = c(1:100000),
   range_sd_fct = c(2:10),
   range_modes = c(1:3),
   mean_prob_vec_args = list(),
@@ -15,37 +15,113 @@ create_pop(
 )
 }
 \arguments{
-\item{range_n}{range of random total size}
+\item{range_n}{Integer vector of candidate cell counts for this population.
+One entry is sampled uniformly. A single value fixes the cell count;
+c(500, 1000) selects either count, whereas 500:1000 allows every integer
+count in that interval.}
 
-\item{dims}{number of dimensions (columns)}
+\item{dims}{Number of marker dimensions, named protein1, protein2, and so on.
+Annotation columns are additional to these dimensions.}
 
-\item{range_mean}{range of random population means}
+\item{range_mean}{Numeric vector of candidate mode means. Each mode mean is
+sampled with replacement using weights from prob_vec(). A single value
+fixes all mode means. The default candidates span 1 to 100000.}
 
-\item{range_sd_fct}{population spread: mean/sample(range_sd_fct,1)}
+\item{range_sd_fct}{Positive numeric vector of candidate spread factors.
+One entry is sampled uniformly with replacement for each mode. The mode's
+standard deviation is its mean divided by the sampled factor. Larger
+factors produce tighter modes; smaller factors produce wider modes.
+A single value fixes the factor for all modes.}
 
-\item{range_modes}{random number peaks (modes, modalities) per dim,
-set 1 to have unimodality only, range_n is split by modes randomly
-with fcexpr:::random_split_with_bounds}
+\item{range_modes}{Positive integer vector of candidate mode counts. One
+entry is sampled uniformly for each dimension. Set to 1 for one mode per
+dimension, to 3 for three modes per dimension, or to 1:3 to choose randomly
+among one, two, and three modes. Mode counts do not specify the number of
+populations or guarantee the number of visibly separated clusters.}
 
-\item{mean_prob_vec_args}{create a probability vector with
-fcexpr::prob_vec and provide its arguments here}
+\item{mean_prob_vec_args}{Named list of additional arguments passed to
+prob_vec() to control the weights used to sample mode means. Weights follow
+the order of entries in range_mean. By default, the weights are U-shaped,
+favoring both ends of the ordered default candidate vector.}
+
+\item{...}{Additional arguments; currently unused by create_pop().}
 }
 \value{
-data frame
+A data frame with one row per cell, marker columns named protein1,
+protein2, and so on, a cell identifier column, and a group column encoding
+the combination of mode memberships across dimensions. This function does
+not add a population identifier or a Time channel.
 }
 \description{
-Create a random population in high dimensional space
+Generate one population with one or more normally distributed modes in each
+marker dimension. Mode counts, means, and spreads are sampled independently
+for each dimension; cell membership is coordinated across dimensions.
+}
+\details{
+The generation procedure is:
+\enumerate{
+\item Sample one cell count from range_n for the whole population.
+\item For each marker dimension, sample a mode count from range_modes,
+then sample a mean and a spread factor for each mode.
+\item Split the cell indices into shared blocks using
+random_split_with_bounds(), with as many blocks as the largest mode
+count across dimensions. For dimensions with fewer modes, randomly
+combine blocks using collapse_vectors(). This coordinates mode
+membership across dimensions instead of assigning each cell independently
+in every dimension.
+\item For each mode, generate values from a normal distribution with the
+selected mean and standard deviation. Combine the dimensions by cell
+identity and retain each cell's combination of mode memberships in group.
+}
+
+One generated population can therefore contain several visible clusters.
+Modes can also overlap, so the number of visible clusters need not match
+either the mode counts or the number of populations requested elsewhere.
+With range_modes set to 1, each population has one normal mode per dimension,
+but separate populations may still overlap.
+
+Means are sampled separately for each dimension. With the default U-shaped
+weights, a population may have several dimensions with very low means and
+others with high means. Low values can appear to be zero on a wide axis.
+If range_mean includes zero and it is selected, that mode has zero standard
+deviation and all its generated values are exactly zero. Normal draws are
+not truncated, so positive mode means can also produce negative values.
+
+make_hd_pops() calls create_pop() once per requested population; its npop
+argument controls the population count. ff_simulate2() generates m samples,
+each with independently generated populations when exprs is not supplied.
+It removes the annotation columns, appends a Time channel, and optionally
+renames and annotates marker channels when annotate_channels is TRUE.
+Thus, dims specifies marker dimensions; each resulting flow frame also
+contains the additional Time channel.
 }
 \examples{
 \dontrun{
-# unimodal only
+# One mode per dimension
 df <- create_pop(range_modes = 1, dims = 3)
 brathering::plot3d(df, color = "group")
-# trimodal
+# Randomly choose one to three modes separately for each dimension
 df <- create_pop(range_modes = 1:3, dims = 3)
 brathering::plot3d(df, color = "group")
-# tight modes
-df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 2)
+# Tighter modes using a larger spread factor
+df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 20)
 brathering::plot3d(df, color = "group")
+# Fix the cell count, mode count, means, and spread factor
+df <- create_pop(range_n = 500, dims = 3, range_modes = 1,
+                 range_mean = 10000, range_sd_fct = 20)
+#umap
+tt <- ff_simulate2(
+  npop = 6,
+  range_n = 1e3:1e4,
+  dims = 6,
+  m = 2,
+  annotate_channels = T,
+  range_modes = 3
+)
+um <- fcexpr::ff_calc_umap_tsne(tt[[1]])
+brathering::plot2(um)
 }
+}
+\seealso{
+make_hd_pops(), ff_simulate2(), prob_vec()
 }

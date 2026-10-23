@@ -5,6 +5,7 @@ export(ab_panel_to_fcs)
 export(check_ws)
 export(create_pop)
 export(dimred_to_fcs)
+export(extract_gates)
 export(fcs_files_df_get_ff)
 export(fcs_get_keywords)
 export(fcs_get_voltages)
@@ -76,6 +77,7 @@ export(wsx_get_popstats_legacy)
 export(wsx_get_sample_df)
 export(wsx_get_sample_df_light)
 export(wsx_get_transformations)
+export(wsx_relink_fcs)
 importFrom(rlang,
   ":=",
   .data

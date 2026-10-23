@@ -8,7 +8,7 @@ ff_calc_umap_tsne(
   ff,
   channels = NULL,
   exprs = NULL,
-  fun_args = list(n_neighbors = 20, metric = "cosine", verbose = T, scale = T),
+  fun_args = NULL,
   seed = 42,
   names = "..auto..",
   return = c("coords", "ff"),
@@ -17,29 +17,42 @@ ff_calc_umap_tsne(
 )
 }
 \arguments{
-\item{ff}{flow frame}
+\item{ff}{A flow frame. Required when exprs is NULL. If omitted, coordinates
+are returned even when return is "ff".}
 
-\item{channels}{which channels to use, see ff_get_channels for selection
-options}
+\item{channels}{Channels to use when extracting expression values from ff;
+see ff_get_channels for selection options. Ignored when exprs is supplied.}
 
-\item{exprs}{expression matrix, either provide ff or exprs}
+\item{exprs}{An expression matrix with observations in rows and channels in
+columns. If NULL, values are extracted from ff.}
 
-\item{fun_args}{arguments to fun}
+\item{fun_args}{A list of arguments passed to fun. The default is NULL,
+which uses list(n_neighbors = 20, metric = "cosine", verbose = TRUE,
+scale = TRUE) for uwot::umap and an empty list for all other backends,
+leaving their defaults in effect. Supply list() to use uwot's own defaults.
+An explicit list replaces the wrapper defaults rather than merging with them.}
 
-\item{seed}{random seed}
+\item{seed}{Random seed, default 42. Also passed as rand_seed to
+brathering::fft_tsne or seed.use to the Seurat backends, unless that argument
+is already supplied in fun_args. Explicit backend seed arguments take precedence.}
 
-\item{names}{names of new dimensions to add as channels, when auto
-adjusted to UMAP or tSNE with trailing dimension numbers}
+\item{names}{Names of the output dimensions. The default, "..auto..", uses
+UMAP or tSNE followed by an underscore and the dimension number. If too few
+names are supplied, Dim names with trailing dimension numbers are used.
+Duplicate names are made unique and excess names are discarded.}
 
-\item{return}{return UMAP object or flow frame with umap channels added}
+\item{return}{Either "coords" (the default) for a coordinate matrix or "ff"
+for the input flow frame with the dimensions added as channels.}
 
-\item{fun}{uwot::umap or Rtsne::Rtsne or Seurat::RunTSNE or Seurat::RunUMAP
-or brathering::fft_tsne}
+\item{fun}{Dimension reduction function: uwot::umap (the default),
+Rtsne::Rtsne, Seurat::RunTSNE, Seurat::RunUMAP, or brathering::fft_tsne.}
 
-\item{...}{arguments to ff_get_channels}
+\item{...}{Additional arguments passed to ff_get_channels when exprs is NULL.}
 }
 \value{
-flow frame or umap object
+A coordinate matrix with one row per observation, or a flow frame
+with the dimensions added as channels. For uwot list outputs, only the
+embedding is returned; model and other auxiliary results are discarded.
 }
 \description{
 Calculate UMAP or tSNE dimension reduction based on flow frame

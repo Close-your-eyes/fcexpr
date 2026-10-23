@@ -2,31 +2,33 @@
 % Please edit documentation in R/dimred_to_fcs.R
 \name{dimred_to_fcs}
 \alias{dimred_to_fcs}
-\title{Calculate dimension reduction and cluster annotation with data from one or more flow frames and add these parameters to a (concatenated) fcs file}
+\title{Add dimension reductions and cluster annotations to merged flow data}
 \usage{
 dimred_to_fcs(
-  ff.list,
+  ff_list,
+  ff_transformation = c("transformed", "untransformed"),
   channels = NULL,
   grouplist = NULL,
-  scale.whole = c("none", "z.score", "min.max"),
-  scale.samples = c("none", "z.score", "min.max"),
-  run.pca = 0,
-  run.umap = T,
-  run.som = T,
-  run.find.clusters = T,
+  scale_whole = c("none", "z.score", "min.max"),
+  scale_samples = c("none", "z.score", "min.max"),
+  downsample = 1,
+  run_pca = 0,
+  run_harmony = F,
+  run_umap = T,
+  run_som = F,
+  run_find_clusters = T,
   calc_cluster_marker = F,
   UMAP_args = list(metric = "cosine", verbose = T, scale = T),
   SOM_args = list(),
   EmbedSOM_args = list(),
   FindNeighbors_args = list(),
   FindClusters_args = list(resolution = c(0.1)),
-  mc.cores = 1,
-  save.to.disk = c("fcs", "rds"),
-  save.path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
+  mc_cores = 1,
+  save_to_disk = c("fcs", "rds"),
+  save_path = file.path(getwd(), paste0(substr(gsub("\\\\.", "",
     make.names(as.character(Sys.time()))), 2, 15), "_FCS_dr")),
-  save.name = NULL,
-  write.transformed.channels.to.FCS = T,
-  write.untransformed.channels.to.FCS = T,
+  save_name = NULL,
+  trafo_to_fcs = c("transformed", "untransformed"),
   trafoname = "trafolistinv",
   timeChannel = c("Time", "HDR-T"),
   seed = 42,
@@ -34,110 +36,192 @@ dimred_to_fcs(
 )
 }
 \arguments{
-\item{ff.list}{a list of flowFrames as received from fcexpr::wsp_get_ff
-(compensated with Compensation Matrix as defined in FlowJo by default) or
-as received from fcexpr::inds_get_ff (directly from FCS files, not
-compensated by default)}
+\item{ff_list}{A nonempty list of \code{flowCore::flowFrame} objects,
+with matching channel names and order. Their expression values must match
+\code{ff_transformation}. For transformed data from \code{\link[=wsp_get_ff]{wsp_get_ff()}}, select
+the transformed frames obtained with \code{return_transformed = TRUE} and
+\code{return_untransformed = FALSE}. Inverse transformation requires the
+transformation attribute specified by \code{trafoname} on every frame.}
 
-\item{channels}{channel selection, passed to ff_get_channels}
+\item{ff_transformation}{Transformation state of the input expression values:
+\code{"transformed"} (default) or \code{"untransformed"}. This declares the input state;
+it does not transform values before analysis. With untransformed input,
+\code{trafo_to_fcs} is forced to \code{"untransformed"}.}
 
-\item{grouplist}{named list of additional channels to identify samples or
-group them in flowjo; see ff_add_groups}
+\item{channels}{Channels to use for analysis, passed to \code{\link[=ff_get_channels]{ff_get_channels()}}.
+The default, \code{NULL}, uses that helper's channel selection rules. The selected
+channels must be present in every input frame.}
 
-\item{scale.whole}{if and how to scale channels after concatenation of
-flowframes in ff.list}
+\item{grouplist}{A named list of sample annotations to append as channels;
+see \code{\link[=ff_add_groups]{ff_add_groups()}}. Each element must contain one value per input frame,
+in the same order as \code{ff_list}, with no missing values. Default: \code{NULL}.}
 
-\item{scale.samples}{if and how to scale channels of flowframes in ff.list
-individually before concatenation}
+\item{scale_whole}{Scaling applied after sample matrices are concatenated:
+\code{"none"} (default), \code{"z.score"}, or \code{"min.max"}. Z-score scaling uses \code{\link[=scale]{scale()}}
+on each channel; min-max scaling uses \code{\link[scales:rescale]{scales::rescale()}} on the entire
+selected matrix, using a common range across channels.}
 
-\item{run.pca}{select number of pcs; if 0 no pca is computed}
+\item{scale_samples}{Scaling applied separately to each sample before
+concatenation. Accepts the same options as \code{scale_whole}; default: \code{"none"}.
+For \code{"min.max"}, each sample uses a common range across its selected channels.}
 
-\item{run.umap}{logical, whether to calculate UMAP dimension reduction
-with uwot::umap}
+\item{downsample}{One finite nonnegative number controlling random sampling
+within each input frame before analysis and merging. Default: \code{1}, which
+keeps all events. Values below \code{1} retain that fraction of each sample,
+rounded down, with a minimum target of one event. Values above \code{1} specify
+an event count per sample; use whole numbers. Samples no larger than the
+target are kept intact. Sampling uses \code{seed}, without replacement, and
+preserves the original order of retained events.}
 
-\item{run.som}{logical, whether to calculate SOM dimension reduction
-EmbedSOM::SOM followed by EmbedSOM::EmbedSOM}
+\item{run_pca}{Number of principal components to retain for downstream UMAP,
+SOM, and clustering, and append to the output. Default: \code{0}, which skips PCA.
+Positive values are capped at one fewer than the number of selected channels.
+The returned PCA object contains the full result from \code{\link[=ff_calc_pca]{ff_calc_pca()}}.}
 
-\item{run.find.clusters}{logical, whether to detect clusters with
-get_louvain_clusters}
+\item{run_harmony}{Whether to correct sample effects with
+\code{harmony::RunHarmony}. Default: \code{FALSE}. Runs only with more than one input
+frame, treating each frame as a batch. Uses the selected expression matrix
+after scaling and optional PCA; requires the harmony package.}
 
-\item{calc_cluster_marker}{calculate global cluster markers;
-see ff_calc_markers}
+\item{run_umap}{Whether to calculate UMAP coordinates with
+\code{\link[=ff_calc_umap_tsne]{ff_calc_umap_tsne()}} using \code{uwot::umap}. Default: \code{TRUE}.}
 
-\item{UMAP_args}{arguments to uwot::umap}
+\item{run_som}{Whether to calculate SOM coordinates with \code{\link[=ff_calc_som]{ff_calc_som()}},
+using \code{EmbedSOM::SOM} followed by \code{EmbedSOM::EmbedSOM}. Default: \code{FALSE}.}
 
-\item{SOM_args}{args to EmbedSOM::SOM}
+\item{run_find_clusters}{Whether to calculate Louvain clusters with
+\code{\link[=get_louvain_cluster]{get_louvain_cluster()}} and append numeric cluster labels. Default: \code{TRUE}.}
 
-\item{EmbedSOM_args}{args to EmbedSOM::EmbedSOM}
+\item{calc_cluster_marker}{Whether to calculate global cluster markers with
+\code{\link[=ff_calc_marker]{ff_calc_marker()}}. Requires cluster assignments from \code{run_find_clusters}.
+Marker calculation uses expression values from the retained events before
+scaling, PCA, and Harmony, in the transformation state supplied by the caller.
+Default: \code{FALSE}.}
 
-\item{FindNeighbors_args}{arguments to Seurat function fof louvain clustering}
+\item{UMAP_args}{A list passed as \code{fun_args} to \code{\link[=ff_calc_umap_tsne]{ff_calc_umap_tsne()}}.
+Default: \code{list(metric = "cosine", verbose = TRUE, scale = TRUE)}.
+An explicit list replaces these defaults; it is not merged with them.
+Other UMAP settings use the defaults of \code{uwot::umap}.}
 
-\item{FindClusters_args}{arguments to Seurat function fof louvain clustering}
+\item{SOM_args}{A list of arguments passed to \code{EmbedSOM::SOM} through
+\code{\link[=ff_calc_som]{ff_calc_som()}}. Default: \code{list()}, which uses the backend defaults.}
 
-\item{mc.cores}{number of cores to use for parallel computing of
-cluster markers and multiple cluster resolutions;
-mc.cores is passed to parallel::mclapply or parallel::mcmapply;
-limited to parallel::detectCores()-1}
+\item{EmbedSOM_args}{A list of arguments passed to \code{EmbedSOM::EmbedSOM}
+through \code{\link[=ff_calc_som]{ff_calc_som()}}. Default: \code{list()}, which uses the backend defaults.}
 
-\item{save.to.disk}{what to save to disk: (concatenated) and appended FCS
-file and/or rds file with several elements in a list}
+\item{FindNeighbors_args}{A list of arguments passed to
+\code{Seurat::FindNeighbors} through \code{\link[=get_louvain_cluster]{get_louvain_cluster()}}. Default: \code{list()}.}
 
-\item{save.path}{where to save elements specified in save.to.disk;
-set to NULL to have nothing written to disk}
+\item{FindClusters_args}{A list of arguments passed to \code{Seurat::FindClusters}
+through \code{\link[=get_louvain_cluster]{get_louvain_cluster()}}. Default: \code{list(resolution = c(0.1))}.
+Supply multiple resolutions to calculate multiple clusterings.}
 
-\item{save.name}{name to use for save rds and or fcs file}
+\item{mc_cores}{Number of cores used by \code{\link[=get_louvain_cluster]{get_louvain_cluster()}} for multiple
+clustering resolutions. Default: \code{1}; capped at one fewer than the detected
+number of cores.
+This argument is not forwarded to marker calculation.}
 
-\item{write.transformed.channels.to.FCS}{do save transformed channels
-(e.g. logicle or arcsinh) to FCS file}
+\item{save_to_disk}{Output formats: \code{"fcs"}, \code{"rds"}, or both (the default).
+Set to \code{NULL} to skip file writing. RDS output contains the same list that is
+returned by this function.}
 
-\item{write.untransformed.channels.to.FCS}{do save untransformed channels
-(inverse) to FCS file; requires trafoname in attributes of ff}
+\item{save_path}{Output directory. By default, a timestamped directory ending
+in \verb{_FCS_dr} is created in the working directory. Set to \code{NULL} or \code{NA} to
+disable file writing. A non-missing path may be created even when
+\code{save_to_disk = NULL}.}
 
-\item{trafoname}{name of transformatio in attributes of ff}
+\item{save_name}{Output file stem. Default: \code{NULL}, which uses timestamped
+names. A supplied trailing \code{.fcs} extension is removed, ignoring case;
+\code{.fcs} or \code{.rds} is then appended for the respective output format.}
 
-\item{timeChannel}{name of the Time channel to exclude from all
-analyses and calculation; if NULL will be attempted to be detected
-automatically}
+\item{trafo_to_fcs}{Expression channel states to include in the returned
+flow frame and any saved FCS file: \code{"transformed"}, \code{"untransformed"}, or
+both (the default). For transformed input, requesting both uses \code{\link[=ff_merge]{ff_merge()}}
+to retain transformed fluorescence channels with the \verb{_trans} suffix and
+inverse-transformed channels with their original names; non-fluorescence
+channels follow that helper's exclusion rules. Requesting either state alone
+keeps the original channel names. Untransformed input is always returned
+as untransformed channels.}
 
-\item{seed}{set a seed for reproduction of dimension reductions}
+\item{trafoname}{Name of the inverse-transformation attribute on each input
+frame. Default: \code{"trafolistinv"}. Used to inverse-transform transformed input
+when untransformed output channels are requested.}
 
-\item{...}{arguments to ff_get_channels}
+\item{timeChannel}{Candidate time channel names passed to \code{\link[=ff_get_channels]{ff_get_channels()}}.
+Default: \code{c("Time", "HDR-T")}. That helper controls time-channel exclusion and
+automatic detection, including when this argument is \code{NULL}.}
+
+\item{seed}{Random seed used for downsampling, Harmony, and the UMAP and
+SOM wrappers. Default: \code{42}.
+Clustering seeds are controlled separately through \code{FindClusters_args}.}
+
+\item{...}{Additional arguments passed to \code{\link[=ff_get_channels]{ff_get_channels()}}, such as
+\code{part_match} and \code{rm_scatter}.}
 }
 \value{
-a list with flow frame and optionally global marker and pca results
+Normally, a list with \code{flowframe} (the merged flow frame with analysis
+channels), \code{marker} (the result of \code{\link[=ff_calc_marker]{ff_calc_marker()}}, or \code{NULL}), and \code{pca}
+(the result of \code{\link[=ff_calc_pca]{ff_calc_pca()}}, or \code{NULL} when PCA is disabled).
+If channel names are incompatible, the diagnostics from
+\code{\link[=ff_compare_channels]{ff_compare_channels()}} are returned instead.
 }
 \description{
-It is expected that ff.list was made with wsp_get_ff with return_transformed
-TRUE and return_untransformed FALSE.
-After optional scaling, this runs ff_calc_pca, ff_calc_umap, ff_calc_som,
-get_louvain_cluster. flow frames from ff.list are joined with ff_merge,
-data from pca, umap etc added with ff_add_columns.
-If write.untransformed.channels.to.FCS is TRUE, ff_transform is called.
+Combine flow frames, optionally scale the selected expression values and
+correct sample effects with Harmony, calculate dimension reductions and
+Louvain clusters, and append the results as channels. Optionally calculate
+cluster markers and save FCS and RDS files.
+}
+\details{
+Downsampling is applied first, followed by sample scaling,
+whole-data scaling, optional PCA, and optional Harmony correction. UMAP, SOM,
+and clustering use the resulting analysis matrix. Scaling, PCA, and Harmony
+do not replace expression channels in the output. Appended PCA coordinates
+and the returned PCA object contain the result before Harmony correction;
+Harmony coordinates are not appended separately or returned.
+With all analyses disabled, the retained input events are still merged,
+with an \code{ident} channel identifying their input frame. \code{trafo_to_fcs} controls
+the expression channel states in this merged output.
+
+Errors from the SOM and marker helper calls are reported as messages, and
+their results remain \code{NULL}. Other errors propagate. Incompatible channel
+names cause an early return of the diagnostics from \code{\link[=ff_compare_channels]{ff_compare_channels()}}.
 }
 \examples{
 \dontrun{
-ff <- wsp_get_ff(wsp = ws[18],
-                 downsample = 0.05,
-                 FCS.file.folder = file.path(wd, "FCS_files"),
-                 groups = c("blood", "urine_spike"),
-                 population = "193Ir_DNA_2, 127I_DNA_3 subset")
-
-# select population and trafo
-ffs <- purrr::map(ff, ~.x[["transformed"]][[1]])
-pars <- ffs[[1]]@parameters@data
-channels <-
-  pars |>
-  dplyr::filter(grepl("_", desc)) |>
-  dplyr::filter(!grepl("Beads|DNA", desc)) |>
-  dplyr::pull(name)
-
-out <- dimred_to_fcs(
-  ff.list = ffs,
+# Simulated input has no inverse-transformation attribute.
+frames <- ff_simulate2(npop = 5, dims = 10, m = 3)
+channels <- setdiff(colnames(flowCore::exprs(frames[[1]])), "Time")
+result <- dimred_to_fcs(
+  ff_list = frames,
+  ff_transformation = "untransformed",
   channels = channels,
-  run.pca = 12,
-  save.path = "/Users/vonskopnik/Downloads/",
-  save.name = "testDR",
-  part_match = F)
+  downsample = 0.1,
+  run_pca = 5,
+  run_umap = FALSE,
+  run_find_clusters = FALSE,
+  save_path = NULL
+)
+result$flowframe
+result$pca
+
+# With transformed frames from wsp_get_ff(), keep transformed channels only.
+# This avoids requiring inverse-transformation attributes on the frames.
+transformed <- wsp_get_ff(
+  wsp = "workspace.wsp",
+  FCS.file.folder = "FCS_files",
+  groups = "All Samples",
+  population = "live",
+  return_transformed = TRUE,
+  return_untransformed = FALSE
+)
+frames <- lapply(transformed, function(x) x[["transformed"]][[1]])
+out <- dimred_to_fcs(
+  ff_list = frames,
+  trafo_to_fcs = "transformed",
+  run_pca = 5,
+  run_harmony = TRUE,
+  save_path = NULL
+)
 marker <- ff_calc_marker(
   out[["flowframe"]],
   cluster_cols = "res.0.1",

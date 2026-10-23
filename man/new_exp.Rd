@@ -4,7 +4,7 @@
 \alias{new_exp}
 \title{Create a template folder for flow cytometry experiments}
 \usage{
-new_exp(path = NULL, name = NULL, date_prefix = T)
+new_exp(path = getwd(), name = "fcexp", date_prefix = T)
 }
 \arguments{
 \item{path}{path to the parent directory where the experiment folder is to be initiated}

@@ -47,7 +47,7 @@ heatmap_long_df(
   pvals = NULL,
   pval_features = NULL,
   pval_max = 0.01,
-  pval_symnum_args = list(cutpoints = c(0, 1e-04, Inf), symbols = c("*", "ns")),
+  pval_symnum_args = list(cutpoints = c(0, 0.0001, Inf), symbols = c("*", "ns")),
   pval_filter = c("top", "pos_fc"),
   pval_logfc = "logFC",
   pval_text_args = list(size = 5, vjust = 0.75),

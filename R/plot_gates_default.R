@@ -12,10 +12,6 @@
 #'   `ggplot2::facet_wrap()` or `ggplot2::facet_grid()`. Use columns from
 #'   `flowCore::pData(gs)` for facet variables. `NULL` retains ggcyto's default
 #'   sample facets; `ggplot2::facet_null()` removes facets.
-#' @param plot_gates,plot_gate_names,plot_gate_pct Logical values that override
-#'   the corresponding `plot_gate`, `plot_gate_name`, and `plot_gate_pct` columns
-#'   of `gates_df` for every gate. The default `"gates_df"` uses each column's
-#'   existing values. Percentages are relative to the parent population.
 #' @param inverse_trans If `TRUE`, show inverse-transformed axis labels, as in
 #'   FlowJo.
 #' @param geom Event geometry: `"hex"` uses `ggplot2::geom_hex()` and the
@@ -48,6 +44,26 @@
 #' @param as_ggplot If `TRUE`, convert each result with `ggcyto::as.ggplot()`.
 #' @param style_preset One of `"technical"` (show axis text and ticks),
 #'   `"clean"` (hide axis text, ticks, and grid), or `"none"` (add no preset).
+#' @param plot_gates Logical value overriding the `plot_gate` column of
+#'   `gates_df` for all gates. `TRUE` draws gate outlines; `FALSE` hides them.
+#'   The default, `"gates_df"`, uses the existing column values.
+#' @param plot_gate_names Logical value overriding the `plot_gate_name` column
+#'   of `gates_df` for all gates. The default, `"gates_df"`, uses the existing
+#'   column values.
+#' @param plot_gate_pct Logical value overriding the `plot_gate_pct` column of
+#'   `gates_df` for all gates. Percentages are relative to the parent population.
+#'   The default, `"gates_df"`, uses the existing column values.
+#' @param title_repl Named character vector of title substitutions. Values are
+#'   regular expression patterns and names are their replacement strings,
+#'   applied in order using `gsub()` before superscript formatting. For example,
+#'   `c("T cells" = "T_cells")` replaces `"T_cells"` with `"T cells"`.
+#' @param axes_labels_sci10 If `TRUE` (the default), format axis labels using
+#'   `sci10()`. If `FALSE`, use the default scale labels. When
+#'   `inverse_trans = TRUE`, ggcyto overrides these labels with its
+#'   inverse-transformed labels.
+#' @param axes_labels_omit_zero If `TRUE` and `inverse_trans = TRUE`, remove
+#'   the zero label and its corresponding axis break (tick) from both axes.
+#'   Defaults to `FALSE`. Has no effect when `inverse_trans = FALSE`.
 #'
 #' @return A list of plots, one per combination of gating level, parent
 #'   population, and x and y channels. Plots are ggcyto objects unless
@@ -84,6 +100,7 @@ plot_gates <- function(gs,
                        plot_contours = F,
                        plot_title = T,
                        title = c("final_node", "short_path", "full_path"),
+                       title_repl = c(),
                        title_superscript = F,
                        contour_args = list(fill = "white",
                                            geom = "polygon",
@@ -100,7 +117,7 @@ plot_gates <- function(gs,
                                          axis.title.y = ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")),
                                          strip.text.x = ggplot2::element_text(margin = ggplot2::margin(2,0,2,0, unit = "pt")),
                                          strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0,2,0,2, unit = "pt")),
-                                         plot.margin = ggplot2::margin(1,1,1,1, "pt"),
+                                         plot.margin = ggplot2::margin(1,5,1,1, "pt"),
                                          plot.title = ggplot2::element_text(margin = ggplot2::margin(1,1,1,1, unit = "pt"), size = 12),
                                          panel.spacing = grid::unit(2, "pt"),
                                          legend.position = "none"),
@@ -113,7 +130,9 @@ plot_gates <- function(gs,
                        gate_args = list(colour = "black",
                                         linewidth = 0.3),
                        as_ggplot = F,
-                       style_preset = c("technical", "clean", "none")) {
+                       style_preset = c("technical", "clean", "none"),
+                       axes_labels_sci10 = T,
+                       axes_labels_omit_zero = F) {
   fcexpr:::.ensure_packages(c("colrr", "ggcyto", "ggplot2", "ggtext", "Gmisc", "scales"))
 
   geom <- rlang::arg_match(geom)
@@ -123,7 +142,6 @@ plot_gates <- function(gs,
   for (i in names(theme_args_repl)) {
     theme_args[[i]] <- theme_args_repl[[i]]
   }
-
 
   if (geom == "scattermore") {
     fcexpr:::.ensure_package("scattermore")
@@ -292,6 +310,9 @@ plot_gates <- function(gs,
                            short_path = gg$Parent_short[1],# multiple boolean parents?
                            final_node = gsub("root", "", rev(strsplit(gg$Parent[1], "/")[[1]])[1]),
                            full_path = gsub("root", "", gg$Parent[1]))
+        for (i in seq_along(title_repl)) {
+          titlechr <- gsub(title_repl[i], names(title_repl)[i], titlechr)
+        }
         if (title_superscript && !trimws(titlechr) == "") {
           titlechr <- gsub("-", "<sup>-</sup>", titlechr, fixed = T)
           titlechr <- gsub("+", "<sup>+</sup>", titlechr, fixed = T)
@@ -302,9 +323,33 @@ plot_gates <- function(gs,
       attr(p, "Population") <- paste(gg$Population, collapse = "__")
 
 
+      if (axes_labels_sci10) {
+        labels_fun <- function(x) brathering::sci10(x)
+      } else {
+        labels_fun <- ggplot2::waiver()
+      }
+
       p <- p +
-        ggplot2::scale_x_continuous(expand = ggplot2::expansion()) +
-        ggplot2::scale_y_continuous(expand = ggplot2::expansion())
+        ggplot2::scale_x_continuous(expand = ggplot2::expansion(), labels = labels_fun) +
+        ggplot2::scale_y_continuous(expand = ggplot2::expansion(), labels = labels_fun)
+        #ggplot2::guides(y = ggplot2::guide_axis_logticks())
+
+      if (inverse_trans && axes_labels_omit_zero) {
+        for (axis in c("x", "y")) {
+          ax <- p[["axis_inverse_trans"]][[axis]]
+          keep <- as.character(ax[["label"]]) != "0"
+
+          ax[["at"]] <- ax[["at"]][keep]
+          ax[["label"]] <- ax[["label"]][keep]
+
+          p[["axis_inverse_trans"]][[axis]] <- ax
+        }
+      }
+
+      # p <- p +
+      #   theme +
+      #   do.call(ggplot2::theme, args = theme_args)
+
       return(p)
     })
     return(p)

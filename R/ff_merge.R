@@ -35,15 +35,19 @@ ff_merge <- function(ff_list,
                      order_first = c("trafo", "raw")) {
   fcexpr:::.ensure_packages(c("flowCore"))
 
-  if (add_transformed_channels) {
+  if (add_transformed_channels && !all(purrr::map_lgl(ff_list, ~trafoname %in% names(attributes(.x))))) {
     # check trafoname in attr of ff.list
-    if (!all(purrr::map_lgl(ff_list, ~trafoname %in% names(attributes(.x))))) {
-      stop("trafolist not found in all attributes of ff_list.")
-    }
+    message("trafolist not found in all attributes of ff_list. setting add_transformed_channels to FALSE.")
+    add_transformed_channels <- F
+  }
+
+  if (add_transformed_channels && suffix_trafo == "" && suffix == "") {
     # check any suffix unequal ""
-    if (suffix_trafo == "" && suffix == "") {
-      stop("One suffix is needd, both cannot be empty.")
-    }
+    message("One suffix is needd, both cannot be empty. setting add_transformed_channels to FALSE.")
+    add_transformed_channels <- F
+  }
+
+  if (add_transformed_channels) {
     exclude_from <- rlang::arg_match(exclude_from)
     order_first <- rlang::arg_match(order_first)
 

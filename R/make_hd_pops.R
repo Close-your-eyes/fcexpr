@@ -1,15 +1,75 @@
 #' Create a high dimensional space with multiple populations
 #'
-#' @param npop number of population to generate
-#' @param popindexstart identity of first population
-#' @param ... arguments to create_pop
-#' @param rm_ann_cols remove annotation columns like cell and pop;
-#' keep protein cols only
+#' Generate multiple populations with create_pop() and combine their cells in
+#' one data frame. Each population is generated independently using the same
+#' supplied parameter settings and receives a population identifier.
 #'
-#' @return data frame
+#' @param npop Positive integer specifying how many populations to generate.
+#'   This counts calls to create_pop(), not necessarily visibly separated
+#'   clusters. A single population can contain several modes, and different
+#'   populations can overlap.
+#' @param popindexstart Integer label for the first population. Subsequent
+#'   populations receive consecutive labels, stored as character values in pop.
+#'   Use a new starting label when appending independently generated populations
+#'   to an existing data frame.
+#' @param rm_ann_cols Logical; if TRUE, retain only columns whose names contain
+#'   protein, removing the cell, group, and pop annotation columns. The default
+#'   FALSE retains these annotations.
+#' @param ... Arguments passed to create_pop() for every population, including
+#'   range_n, dims, range_mean, range_sd_fct, range_modes, and
+#'   mean_prob_vec_args. See create_pop() for their sampling behavior.
+#'
+#' @details
+#' The generation procedure is:
+#' \enumerate{
+#'   \item Call create_pop() independently once for each requested population.
+#'     Each call samples its own cell count from range_n and generates dims
+#'     marker dimensions with the requested candidate mode counts, means,
+#'     and spread factors.
+#'   \item Assign consecutive population labels starting at popindexstart and
+#'     combine all populations by rows. Store the labels in pop.
+#'   \item If rm_ann_cols is TRUE, remove annotation columns and return only
+#'     the simulated protein columns.
+#' }
+#'
+#' range_n controls cells per population, not the total number of cells in the
+#' combined data. For example, npop set to 5 and range_n set to 500 request
+#' five populations of 500 cells each, giving 2500 cells in total.
+#'
+#' dims controls the number of marker columns. When annotations are retained,
+#' cell, group, and pop are additional columns. Cell identifiers are local to
+#' each population; use pop together with cell to identify a cell in the
+#' combined data. group encodes mode membership across dimensions within a
+#' population and is not a population identifier.
+#'
+#' Setting range_modes to 1 requests one normal mode per dimension within each
+#' population. Allowing larger mode counts can produce several visible clusters
+#' within one population. Modes and independently generated populations can
+#' also overlap, so npop does not guarantee the number of visible clusters.
+#' Mode means are sampled separately for each dimension, and the default
+#' U-shaped sampling weights favor both low and high candidate means.
+#' Consequently, some dimensions may appear close to zero on a wide axis.
+#'
+#' This function creates one combined data frame and does not add a Time
+#' channel. When ff_simulate2() generates data internally, it calls this
+#' function once per sample, removes the annotations, and adds a Time channel.
+#' Its m argument controls the number of samples; each resulting flow frame
+#' contains the requested marker dimensions plus Time.
+#'
+#' @return A data frame containing the combined cells from all populations.
+#'   Marker columns are named protein1, protein2, and so on. Unless rm_ann_cols
+#'   is TRUE, the result also contains cell identifiers, group labels encoding
+#'   mode memberships, and the population labels in pop.
+#' @seealso create_pop(), ff_simulate2(), prob_vec()
 #' @export
 #'
 #' @examples
+#' # Five populations, each with 500 cells and one mode per marker dimension
+#' df <- make_hd_pops(npop = 5, range_n = 500, dims = 2, range_modes = 1)
+#' table(df$pop)
+#' # Return only the two marker columns
+#' proteins <- make_hd_pops(npop = 1, dims = 2, range_modes = 1,
+#'                          rm_ann_cols = TRUE)
 #' # default settings
 #' df1 <- make_hd_pops()
 #' # plot with ggplot
@@ -53,52 +113,133 @@ make_hd_pops <- function(npop = 5,
 
 #' Create a random population in high dimensional space
 #'
-#' @param range_n range of random total size
-#' @param dims number of dimensions (columns)
-#' @param range_mean range of random population means
-#' @param range_sd_fct population spread: mean/sample(range_sd_fct,1)
-#' @param range_modes random number peaks (modes, modalities) per dim,
-#' set 1 to have unimodality only, range_n is split by modes randomly
-#' with fcexpr:::random_split_with_bounds
-#' @param mean_prob_vec_args create a probability vector with
-#' fcexpr::prob_vec and provide its arguments here
+#' Generate one population with one or more normally distributed modes in each
+#' marker dimension. Mode counts, means, and spreads are sampled independently
+#' for each dimension; cell membership is coordinated across dimensions.
 #'
-#' @return data frame
+#' @param range_n Integer vector of candidate cell counts for this population.
+#'   One entry is sampled uniformly. A single value fixes the cell count;
+#'   c(500, 1000) selects either count, whereas 500:1000 allows every integer
+#'   count in that interval.
+#' @param dims Number of marker dimensions, named protein1, protein2, and so on.
+#'   Annotation columns are additional to these dimensions.
+#' @param range_mean Numeric vector of candidate mode means. Each mode mean is
+#'   sampled with replacement using weights from prob_vec(). A single value
+#'   fixes all mode means. The default candidates span 1 to 100000.
+#' @param range_sd_fct Positive numeric vector of candidate spread factors.
+#'   One entry is sampled uniformly with replacement for each mode. The mode's
+#'   standard deviation is its mean divided by the sampled factor. Larger
+#'   factors produce tighter modes; smaller factors produce wider modes.
+#'   A single value fixes the factor for all modes.
+#' @param range_modes Positive integer vector of candidate mode counts. One
+#'   entry is sampled uniformly for each dimension. Set to 1 for one mode per
+#'   dimension, to 3 for three modes per dimension, or to 1:3 to choose randomly
+#'   among one, two, and three modes. Mode counts do not specify the number of
+#'   populations or guarantee the number of visibly separated clusters.
+#' @param mean_prob_vec_args Named list of additional arguments passed to
+#'   prob_vec() to control the weights used to sample mode means. Weights follow
+#'   the order of entries in range_mean. By default, the weights are U-shaped,
+#'   favoring both ends of the ordered default candidate vector.
+#' @param ... Additional arguments; currently unused by create_pop().
+#'
+#' @details
+#' The generation procedure is:
+#' \enumerate{
+#'   \item Sample one cell count from range_n for the whole population.
+#'   \item For each marker dimension, sample a mode count from range_modes,
+#'     then sample a mean and a spread factor for each mode.
+#'   \item Split the cell indices into shared blocks using
+#'     random_split_with_bounds(), with as many blocks as the largest mode
+#'     count across dimensions. For dimensions with fewer modes, randomly
+#'     combine blocks using collapse_vectors(). This coordinates mode
+#'     membership across dimensions instead of assigning each cell independently
+#'     in every dimension.
+#'   \item For each mode, generate values from a normal distribution with the
+#'     selected mean and standard deviation. Combine the dimensions by cell
+#'     identity and retain each cell's combination of mode memberships in group.
+#' }
+#'
+#' One generated population can therefore contain several visible clusters.
+#' Modes can also overlap, so the number of visible clusters need not match
+#' either the mode counts or the number of populations requested elsewhere.
+#' With range_modes set to 1, each population has one normal mode per dimension,
+#' but separate populations may still overlap.
+#'
+#' Means are sampled separately for each dimension. With the default U-shaped
+#' weights, a population may have several dimensions with very low means and
+#' others with high means. Low values can appear to be zero on a wide axis.
+#' If range_mean includes zero and it is selected, that mode has zero standard
+#' deviation and all its generated values are exactly zero. Normal draws are
+#' not truncated, so positive mode means can also produce negative values.
+#'
+#' make_hd_pops() calls create_pop() once per requested population; its npop
+#' argument controls the population count. ff_simulate2() generates m samples,
+#' each with independently generated populations when exprs is not supplied.
+#' It removes the annotation columns, appends a Time channel, and optionally
+#' renames and annotates marker channels when annotate_channels is TRUE.
+#' Thus, dims specifies marker dimensions; each resulting flow frame also
+#' contains the additional Time channel.
+#'
+#' @return A data frame with one row per cell, marker columns named protein1,
+#'   protein2, and so on, a cell identifier column, and a group column encoding
+#'   the combination of mode memberships across dimensions. This function does
+#'   not add a population identifier or a Time channel.
+#' @seealso make_hd_pops(), ff_simulate2(), prob_vec()
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' # unimodal only
+#' # One mode per dimension
 #' df <- create_pop(range_modes = 1, dims = 3)
 #' brathering::plot3d(df, color = "group")
-#' # trimodal
+#' # Randomly choose one to three modes separately for each dimension
 #' df <- create_pop(range_modes = 1:3, dims = 3)
 #' brathering::plot3d(df, color = "group")
-#' # tight modes
-#' df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 2)
+#' # Tighter modes using a larger spread factor
+#' df <- create_pop(range_modes = 1:3, dims = 3, range_sd_fct = 20)
 #' brathering::plot3d(df, color = "group")
+#' # Fix the cell count, mode count, means, and spread factor
+#' df <- create_pop(range_n = 500, dims = 3, range_modes = 1,
+#'                  range_mean = 10000, range_sd_fct = 20)
+#' #umap
+#' tt <- ff_simulate2(
+#'   npop = 6,
+#'   range_n = 1e3:1e4,
+#'   dims = 6,
+#'   m = 2,
+#'   annotate_channels = T,
+#'   range_modes = 3
+#' )
+#' um <- fcexpr::ff_calc_umap_tsne(tt[[1]])
+#' brathering::plot2(um)
 #' }
-create_pop <- function(range_n = c(5e1:1e3),
+create_pop <- function(range_n = c(5e2:1e4),
                        dims = 5,
                        range_mean = c(1:1e5),
                        range_sd_fct = c(2:10),
                        range_modes = c(1:3),
                        mean_prob_vec_args = list(),
                        ...) {
+
   fcexpr:::.ensure_packages(c("brathering"))
-  n <- sample(range_n, 1)
-
+  n <- range_n[sample.int(length(range_n), 1)]
   # one list entry of m modalities for each dim
-  pars <- purrr::map(stats::setNames(1:dims, paste0("protein", 1:dims)), function(x) {
-    m <- sample(range_modes, 1)
 
-    means <- sample(
-      x = range_mean,
-      size = m,
-      replace = T,
-      prob = do.call(prob_vec, args = c(list(n = length(range_mean)), mean_prob_vec_args))
-    )
-    sd_fct <- sample(range_sd_fct, m, replace = T)
+  pars <- purrr::map(stats::setNames(1:dims, paste0("protein", 1:dims)), function(x) {
+    m <- range_modes[sample.int(length(range_modes), 1)]
+    means <- range_mean[
+      sample.int(
+        n = length(range_mean),
+        size = m,
+        replace = TRUE,
+        prob = do.call(
+          prob_vec,
+          args = c(list(n = length(range_mean)), mean_prob_vec_args)
+        )
+      )
+    ]
+
+    sd_fct <- range_sd_fct[sample.int(length(range_sd_fct), m, replace = TRUE)]
     sds <- means / sd_fct
     return(data.frame(means, sds))
   })
@@ -114,8 +255,7 @@ create_pop <- function(range_n = c(5e1:1e3),
   })
 
   out <-  purrr::map_dfr(pars, function(x) {
-    purrr::pmap_dfr(asplit(x,2), function(means,sds,inds) {
-
+    purrr::pmap_dfr(x, function(means,sds,inds) {
       data.frame(cell = inds,
                  FI = stats::rnorm(n = length(inds), mean = means, sd = sds))
     }, .id = "channel_mode")
@@ -133,6 +273,10 @@ create_pop <- function(range_n = c(5e1:1e3),
     dplyr::select(-channel_mode) |>
     tidyr::pivot_wider(names_from = channel, values_from = FI)
   out <- dplyr::relocate(out, cell, group, .after = names(out)[ncol(out)])
+
+  # um <- fcexpr::ff_calc_umap_tsne(exprs = as.matrix(out[,1:(ncol(out)-2)]))
+  # brathering::plot2(cbind(um, out[,ncol(out)]), color = "group")
+
   if (anyNA(out)) {
     message("NA found")
   }
@@ -170,8 +314,7 @@ create_pop <- function(range_n = c(5e1:1e3),
 #'   geom_line() +
 #'   facet_wrap(vars(power))
 prob_vec <- function(n = 1e3,
-                     type = c("U",
-                              "M"),
+                     type = c("U", "M"),
                      power = 5,
                      peakshift = c(0.2, 0.2),
                      beta_ab = c(0.2, 0.4)) {

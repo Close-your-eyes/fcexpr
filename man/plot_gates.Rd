@@ -18,6 +18,7 @@ plot_gates(
   plot_contours = F,
   plot_title = T,
   title = c("final_node", "short_path", "full_path"),
+  title_repl = c(),
   title_superscript = F,
   contour_args = list(fill = "white", geom = "polygon", color = "black", contour_var =
     "ndensity", breaks = seq(0.05, 0.95, 0.1), alpha = 0, linewidth = 0.2),
@@ -29,16 +30,19 @@ plot_gates(
     ggplot2::element_text(margin = ggplot2::margin(b = 2, unit = "pt")), strip.text.x =
     ggplot2::element_text(margin = ggplot2::margin(2, 0, 2, 0, unit = "pt")),
     strip.text.y = ggplot2::element_text(margin = ggplot2::margin(0, 2, 0, 2, unit =
-    "pt")), plot.margin = ggplot2::margin(1, 1, 1, 1, "pt"), plot.title =
+    "pt")), plot.margin = ggplot2::margin(1, 5, 1, 1, "pt"), plot.title =
     ggplot2::element_text(margin = ggplot2::margin(1, 
      1, 1, 1, unit = "pt"), size =
     12), panel.spacing = grid::unit(2, "pt"), legend.position = "none"),
   theme_args_repl = list(),
-  max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore = 2e+06),
+  max_nrow_to_plot = switch(geom, hex = 50000, pointdensity = 2000, scattermore =
+    2000000),
   geom_args = list(),
   gate_args = list(colour = "black", linewidth = 0.3),
   as_ggplot = F,
-  style_preset = c("technical", "clean", "none")
+  style_preset = c("technical", "clean", "none"),
+  axes_labels_sci10 = T,
+  axes_labels_omit_zero = F
 )
 }
 \arguments{
@@ -53,10 +57,17 @@ channels, limits, bin widths, gate display, labels, and facet strips.}
 \code{flowCore::pData(gs)} for facet variables. \code{NULL} retains ggcyto's default
 sample facets; \code{ggplot2::facet_null()} removes facets.}
 
-\item{plot_gates, plot_gate_names, plot_gate_pct}{Logical values that override
-the corresponding \code{plot_gate}, \code{plot_gate_name}, and \code{plot_gate_pct} columns
-of \code{gates_df} for every gate. The default \code{"gates_df"} uses each column's
-existing values. Percentages are relative to the parent population.}
+\item{plot_gates}{Logical value overriding the \code{plot_gate} column of
+\code{gates_df} for all gates. \code{TRUE} draws gate outlines; \code{FALSE} hides them.
+The default, \code{"gates_df"}, uses the existing column values.}
+
+\item{plot_gate_names}{Logical value overriding the \code{plot_gate_name} column
+of \code{gates_df} for all gates. The default, \code{"gates_df"}, uses the existing
+column values.}
+
+\item{plot_gate_pct}{Logical value overriding the \code{plot_gate_pct} column of
+\code{gates_df} for all gates. Percentages are relative to the parent population.
+The default, \code{"gates_df"}, uses the existing column values.}
 
 \item{inverse_trans}{If \code{TRUE}, show inverse-transformed axis labels, as in
 FlowJo.}
@@ -77,6 +88,11 @@ across facets.}
 \item{plot_title}{If \code{TRUE}, show a title based on the parent population.}
 
 \item{title}{Title format: \code{"final_node"}, \code{"short_path"}, or \code{"full_path"}.}
+
+\item{title_repl}{Named character vector of title substitutions. Values are
+regular expression patterns and names are their replacement strings,
+applied in order using \code{gsub()} before superscript formatting. For example,
+\code{c("T cells" = "T_cells")} replaces \code{"T_cells"} with \code{"T cells"}.}
 
 \item{title_superscript}{If \code{TRUE}, render plus and minus signs in titles as
 superscripts.}
@@ -108,6 +124,15 @@ Defaults depend on \code{geom}. This limit does not apply when a gate uses
 
 \item{style_preset}{One of \code{"technical"} (show axis text and ticks),
 \code{"clean"} (hide axis text, ticks, and grid), or \code{"none"} (add no preset).}
+
+\item{axes_labels_sci10}{If \code{TRUE} (the default), format axis labels using
+\code{sci10()}. If \code{FALSE}, use the default scale labels. When
+\code{inverse_trans = TRUE}, ggcyto overrides these labels with its
+inverse-transformed labels.}
+
+\item{axes_labels_omit_zero}{If \code{TRUE} and \code{inverse_trans = TRUE}, remove
+the zero label and its corresponding axis break (tick) from both axes.
+Defaults to \code{FALSE}. Has no effect when \code{inverse_trans = FALSE}.}
 }
 \value{
 A list of plots, one per combination of gating level, parent

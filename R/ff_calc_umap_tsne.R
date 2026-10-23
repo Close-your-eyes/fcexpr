@@ -1,19 +1,32 @@
 #' Calculate UMAP or tSNE dimension reduction based on flow frame
 #'
-#' @param ff flow frame
-#' @param channels which channels to use, see ff_get_channels for selection
-#' options
-#' @param exprs expression matrix, either provide ff or exprs
-#' @param fun_args arguments to fun
-#' @param seed random seed
-#' @param names names of new dimensions to add as channels, when auto
-#' adjusted to UMAP or tSNE with trailing dimension numbers
-#' @param return return UMAP object or flow frame with umap channels added
-#' @param ... arguments to ff_get_channels
-#' @param fun uwot::umap or Rtsne::Rtsne or Seurat::RunTSNE or Seurat::RunUMAP
-#' or brathering::fft_tsne
+#' @param ff A flow frame. Required when exprs is NULL. If omitted, coordinates
+#' are returned even when return is "ff".
+#' @param channels Channels to use when extracting expression values from ff;
+#' see ff_get_channels for selection options. Ignored when exprs is supplied.
+#' @param exprs An expression matrix with observations in rows and channels in
+#' columns. If NULL, values are extracted from ff.
+#' @param fun_args A list of arguments passed to fun. The default is NULL,
+#' which uses list(n_neighbors = 20, metric = "cosine", verbose = TRUE,
+#' scale = TRUE) for uwot::umap and an empty list for all other backends,
+#' leaving their defaults in effect. Supply list() to use uwot's own defaults.
+#' An explicit list replaces the wrapper defaults rather than merging with them.
+#' @param seed Random seed, default 42. Also passed as rand_seed to
+#' brathering::fft_tsne or seed.use to the Seurat backends, unless that argument
+#' is already supplied in fun_args. Explicit backend seed arguments take precedence.
+#' @param names Names of the output dimensions. The default, "..auto..", uses
+#' UMAP or tSNE followed by an underscore and the dimension number. If too few
+#' names are supplied, Dim names with trailing dimension numbers are used.
+#' Duplicate names are made unique and excess names are discarded.
+#' @param return Either "coords" (the default) for a coordinate matrix or "ff"
+#' for the input flow frame with the dimensions added as channels.
+#' @param ... Additional arguments passed to ff_get_channels when exprs is NULL.
+#' @param fun Dimension reduction function: uwot::umap (the default),
+#' Rtsne::Rtsne, Seurat::RunTSNE, Seurat::RunUMAP, or brathering::fft_tsne.
 #'
-#' @return flow frame or umap object
+#' @return A coordinate matrix with one row per observation, or a flow frame
+#' with the dimensions added as channels. For uwot list outputs, only the
+#' embedding is returned; model and other auxiliary results are discarded.
 #' @export
 #'
 #' @examples
@@ -66,19 +79,53 @@
 ff_calc_umap_tsne <- function(ff,
                               channels = NULL,
                               exprs = NULL,
-                              fun_args = list(n_neighbors = 20, metric = "cosine", verbose = T, scale = T),
+                              fun_args = NULL,
                               seed = 42,
                               names = "..auto..",
                               return = c("coords", "ff"),
                               fun = uwot::umap,
                               ...) {
-  fcexpr:::.ensure_packages(c("brathering", "flowCore", "Gmisc", "Rtsne", "Seurat", "uwot"))
+
+  fcexpr:::.ensure_packages("Gmisc")
+
+  if (missing(fun)) {
+    fcexpr:::.ensure_packages("uwot")
+  }
+  if (!is.function(fun) || !isNamespace(environment(fun))) {
+    stop("fun not supported.")
+  }
+  backend <- getNamespaceName(environment(fun))
+  supported <- switch(backend,
+                      uwot = "umap",
+                      brathering = "fft_tsne",
+                      Rtsne = "Rtsne",
+                      Seurat = c("RunTSNE", "RunUMAP"),
+                      character())
+  matches <- vapply(supported, function(name) {
+    identical(fun, get(name, envir = environment(fun), inherits = FALSE))
+  }, logical(1))
+  if (!any(matches)) {
+    stop("fun not supported.")
+  }
+  method <- supported[matches][1]
+  fcexpr:::.ensure_packages(backend)
+
+  if (is.null(fun_args)) {
+    fun_args <- if (backend == "uwot") {
+      list(n_neighbors = 20, metric = "cosine", verbose = TRUE, scale = TRUE)
+    } else {
+      list()
+    }
+  }
 
   return <- rlang::arg_match(return)
   if (return == "ff" && missing(ff)) {
     return <- "coords"
   }
 
+  if (is.null(exprs) || return == "ff") {
+    fcexpr:::.ensure_packages("flowCore")
+  }
   if (is.null(exprs)) {
     channels <- ff_get_channels(ff, channels = channels, ...)
     stopifnot("umap/tSNE: less than 3 channels provided." = length(channels) > 2)
@@ -91,31 +138,28 @@ ff_calc_umap_tsne <- function(ff,
 
 
   set.seed(seed)
-  if (identical(fun, uwot::umap) || identical(fun, brathering::fft_tsne)) {
-    coords <- Gmisc::fastDoCall(fun, args = c(list(X = exprs), fun_args))
-    if (identical(fun, brathering::fft_tsne)) {
-      what <- "tSNE"
-    } else {
-      what <- "UMAP"
-    }
-  } else if (identical(fun, Rtsne::Rtsne)) {
-    coords <- Gmisc::fastDoCall(fun, args = c(list(X = exprs), fun_args))[["Y"]]
-    what <- "tSNE"
-  } else if (identical(fun, Seurat::RunTSNE)) {
-    if (is.null(rownames(exprs))) {
-      rownames(exprs) <- as.character(1:nrow(exprs))
-    }
-    coords <- Gmisc::fastDoCall(fun, args = c(list(object = exprs, assay = "RNA"), fun_args))@cell.embeddings
-    what <- "tSNE"
-  } else if (identical(fun, Seurat::RunUMAP)) {
-    if (is.null(rownames(exprs))) {
-      rownames(exprs) <- as.character(1:nrow(exprs))
-    }
-    coords <- Gmisc::fastDoCall(fun, args = c(list(object = exprs, assay = "RNA"), fun_args))@cell.embeddings
-    what <- "UMAP"
-  } else {
-    stop("fun not supported.")
+  if (backend == "brathering" && !"rand_seed" %in% names(fun_args)) {
+    fun_args$rand_seed <- seed
   }
+  if (backend == "Seurat" && !"seed.use" %in% names(fun_args)) {
+    fun_args$seed.use <- seed
+  }
+
+  if (backend == "Seurat") {
+    if (is.null(rownames(exprs))) {
+      rownames(exprs) <- as.character(seq_len(nrow(exprs)))
+    }
+    coords <- Gmisc::fastDoCall(fun, c(list(object = exprs, assay = "RNA"), fun_args))@cell.embeddings
+  } else {
+    coords <- Gmisc::fastDoCall(fun, c(list(X = exprs), fun_args))
+    if (backend == "Rtsne") {
+      coords <- coords[["Y"]]
+    } else if (backend == "uwot" && is.list(coords)) {
+      coords <- coords[["embedding"]]
+    }
+  }
+  stopifnot("Backend must return a coordinate matrix." = is.matrix(coords))
+  what <- if (method %in% c("umap", "RunUMAP")) "UMAP" else "tSNE"
 
   ## prep and check names to avoid error below
   if (names[1] == "..auto..") {

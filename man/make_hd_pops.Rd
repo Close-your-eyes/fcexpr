@@ -7,22 +7,79 @@
 make_hd_pops(npop = 5, popindexstart = 1, rm_ann_cols = F, ...)
 }
 \arguments{
-\item{npop}{number of population to generate}
+\item{npop}{Positive integer specifying how many populations to generate.
+This counts calls to create_pop(), not necessarily visibly separated
+clusters. A single population can contain several modes, and different
+populations can overlap.}
 
-\item{popindexstart}{identity of first population}
+\item{popindexstart}{Integer label for the first population. Subsequent
+populations receive consecutive labels, stored as character values in pop.
+Use a new starting label when appending independently generated populations
+to an existing data frame.}
 
-\item{rm_ann_cols}{remove annotation columns like cell and pop;
-keep protein cols only}
+\item{rm_ann_cols}{Logical; if TRUE, retain only columns whose names contain
+protein, removing the cell, group, and pop annotation columns. The default
+FALSE retains these annotations.}
 
-\item{...}{arguments to create_pop}
+\item{...}{Arguments passed to create_pop() for every population, including
+range_n, dims, range_mean, range_sd_fct, range_modes, and
+mean_prob_vec_args. See create_pop() for their sampling behavior.}
 }
 \value{
-data frame
+A data frame containing the combined cells from all populations.
+Marker columns are named protein1, protein2, and so on. Unless rm_ann_cols
+is TRUE, the result also contains cell identifiers, group labels encoding
+mode memberships, and the population labels in pop.
 }
 \description{
-Create a high dimensional space with multiple populations
+Generate multiple populations with create_pop() and combine their cells in
+one data frame. Each population is generated independently using the same
+supplied parameter settings and receives a population identifier.
+}
+\details{
+The generation procedure is:
+\enumerate{
+\item Call create_pop() independently once for each requested population.
+Each call samples its own cell count from range_n and generates dims
+marker dimensions with the requested candidate mode counts, means,
+and spread factors.
+\item Assign consecutive population labels starting at popindexstart and
+combine all populations by rows. Store the labels in pop.
+\item If rm_ann_cols is TRUE, remove annotation columns and return only
+the simulated protein columns.
+}
+
+range_n controls cells per population, not the total number of cells in the
+combined data. For example, npop set to 5 and range_n set to 500 request
+five populations of 500 cells each, giving 2500 cells in total.
+
+dims controls the number of marker columns. When annotations are retained,
+cell, group, and pop are additional columns. Cell identifiers are local to
+each population; use pop together with cell to identify a cell in the
+combined data. group encodes mode membership across dimensions within a
+population and is not a population identifier.
+
+Setting range_modes to 1 requests one normal mode per dimension within each
+population. Allowing larger mode counts can produce several visible clusters
+within one population. Modes and independently generated populations can
+also overlap, so npop does not guarantee the number of visible clusters.
+Mode means are sampled separately for each dimension, and the default
+U-shaped sampling weights favor both low and high candidate means.
+Consequently, some dimensions may appear close to zero on a wide axis.
+
+This function creates one combined data frame and does not add a Time
+channel. When ff_simulate2() generates data internally, it calls this
+function once per sample, removes the annotations, and adds a Time channel.
+Its m argument controls the number of samples; each resulting flow frame
+contains the requested marker dimensions plus Time.
 }
 \examples{
+# Five populations, each with 500 cells and one mode per marker dimension
+df <- make_hd_pops(npop = 5, range_n = 500, dims = 2, range_modes = 1)
+table(df$pop)
+# Return only the two marker columns
+proteins <- make_hd_pops(npop = 1, dims = 2, range_modes = 1,
+                         rm_ann_cols = TRUE)
 # default settings
 df1 <- make_hd_pops()
 # plot with ggplot
@@ -49,4 +106,7 @@ ggplot(df2, aes(protein1, protein2)) +
   scale_x_log10() +
   scale_y_log10() +
   brathering::scale_color_custom()
+}
+\seealso{
+create_pop(), ff_simulate2(), prob_vec()
 }
