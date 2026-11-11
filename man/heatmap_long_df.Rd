@@ -54,6 +54,7 @@ heatmap_long_df(
   impute_missing_to = NULL,
   lower_tri = F,
   col_na = "..auto..",
+  feature_label_groups = NULL,
   ...
 )
 }
@@ -79,8 +80,9 @@ assigns features to higher-level feature groups.}
 
 \item{featuregroup_style}{One or both of \code{"facet"} and \code{"color"}. Faceting
 separates feature groups into panels; coloring renders feature-axis labels
-in group-specific colors. With both styles, each facet uses its own
-feature-group color.}
+in group-specific colors. For a feature in several groups, use the
+color of its assigned group with the highest plotted value when group
+names match. With no matching groups, use the first assignment.}
 
 \item{featuregroup_col_name}{Character string used as the feature-group
 color legend title.}
@@ -219,6 +221,10 @@ and features describe the same entities.}
 
 \item{col_na}{Color used for missing values. With \code{"..auto.."}, the plot
 background color is used.}
+
+\item{feature_label_groups}{Optional named character vector mapping
+features to the feature groups used for label color. Supply it to use
+assignments calculated from a larger set of groups than the plot displays.}
 
 \item{...}{Additional arguments intended for \code{\link[=heatmap_ordering]{heatmap_ordering()}}, including
 \code{feature_order} and \code{group_order}.}

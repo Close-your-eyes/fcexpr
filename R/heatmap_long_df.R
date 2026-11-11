@@ -21,8 +21,9 @@
 #'   assigns features to higher-level feature groups.
 #' @param featuregroup_style One or both of `"facet"` and `"color"`. Faceting
 #'   separates feature groups into panels; coloring renders feature-axis labels
-#'   in group-specific colors. With both styles, each facet uses its own
-#'   feature-group color.
+#'   in group-specific colors. For a feature in several groups, use the
+#'   color of its assigned group with the highest plotted value when group
+#'   names match. With no matching groups, use the first assignment.
 #' @param featuregroup_col_name Character string used as the feature-group
 #'   color legend title.
 #' @param featuregroup_col_pal Palette name passed to [colrr::col_pal()] for
@@ -120,6 +121,9 @@
 #'   and features describe the same entities.
 #' @param col_na Color used for missing values. With `"..auto.."`, the plot
 #'   background color is used.
+#' @param feature_label_groups Optional named character vector mapping
+#'   features to the feature groups used for label color. Supply it to use
+#'   assignments calculated from a larger set of groups than the plot displays.
 #' @param ... Additional arguments intended for [heatmap_ordering()], including
 #'   `feature_order` and `group_order`.
 #'
@@ -257,6 +261,7 @@ heatmap_long_df <- function(df,
                             impute_missing_to = NULL,
                             lower_tri = F,
                             col_na = "..auto..",
+                            feature_label_groups = NULL,
                             ...) {
   fcexpr:::.ensure_packages(c("brathering", "colrr", "ggplot2", "ggtext", "Gmisc", "scales"))
 
@@ -284,7 +289,6 @@ heatmap_long_df <- function(df,
   }
   featuregroup_style <- rlang::arg_match(featuregroup_style, multiple = T)
   facet_features <- !is.null(featuregroup) && "facet" %in% featuregroup_style
-  color_features <- !is.null(featuregroup) && "color" %in% featuregroup_style
 
   if (missing(features) || missing(groups)) {
     # first two char columns
@@ -583,21 +587,19 @@ heatmap_long_df <- function(df,
                                    facet_args))
     }
 
-    if (color_features) {
+    if ("color" %in% featuregroup_style) {
       marker_df <- dplyr::distinct(df, !!rlang::sym(features), !!rlang::sym(featuregroup))
-      feature_groups <- marker_df[[featuregroup]]
-      if (!is.factor(feature_groups)) {
-        feature_groups <- as.character(feature_groups)
-      }
-      group_colors <- colrr::col_pal(featuregroup_col_pal, n = feature_groups, return = "char")
-      group_colors <- group_colors[!is.na(names(group_colors))]
+      color_conv <- colrr::col_pal(featuregroup_col_pal, n = marker_df[[featuregroup]], return = "char")
+      marker_df$color <- color_conv[marker_df[[featuregroup]]]
+      colman <- stats::setNames(marker_df$color, marker_df[[featuregroup]])
+
 
       plot <- plot +
         ggplot2::geom_point(
           data = data.frame(
             x = NA,
             y = NA,
-            yaxis = feature_groups
+            yaxis = marker_df[[featuregroup]]
           ) |> dplyr::mutate(!!values := 0),
           ggplot2::aes(x = x, y = y, color = yaxis, fill = !!rlang::sym(values)),
           na.rm = TRUE,
@@ -605,7 +607,7 @@ heatmap_long_df <- function(df,
         ) +
         ggplot2::scale_color_manual(
           name = featuregroup_col_name,
-          values = group_colors
+          values = colman[!duplicated(colman)]
         ) +
         ggplot2::scale_x_discrete(na.translate = F)
       if (axes_flip) {
@@ -629,31 +631,33 @@ heatmap_long_df <- function(df,
       repel_args = repel_args,
       featurelabels = featurelabels,
       featuresitalic = featuresitalic)
-  } else if (color_features) {
-    label_text <- gsub("([[:punct:]])", "\\\\\\1", names(featurelabels), perl = TRUE)
-    labels <- stats::setNames(label_text, featurelabels)
-    selected <- marker_df[[features]] %in% featurelabels
-    feature_ids <- as.character(marker_df[[features]][selected])
-    panel_groups <- as.character(feature_groups[selected])
-    colors <- group_colors[match(panel_groups, names(group_colors))]
-    colored_labels <- color_labels(labels[match(feature_ids, featurelabels)], colors)
+  } else {
+    if (!is.null(featuregroup) && "color" %in% featuregroup_style) {
+      if (is.null(feature_label_groups)) {
+        peaks <- df |>
+          dplyr::filter(as.character(.data[[groups]]) == as.character(.data[[featuregroup]])) |>
+          dplyr::slice_max(
+            order_by = .data[[values]], n = 1L, by = dplyr::all_of(features),
+            with_ties = FALSE, na_rm = TRUE
+          )
+        feature_label_groups <- stats::setNames(
+          as.character(peaks[[featuregroup]]), peaks[[features]]
+        )
+      }
+      label_colors <- stats::setNames(marker_df$color, marker_df[[features]])
+      label_colors <- label_colors[!duplicated(names(label_colors))]
+      peak_colors <- color_conv[as.character(feature_label_groups[names(label_colors)])]
+      matched <- !is.na(peak_colors)
+      label_colors[matched] <- unname(peak_colors[matched])
 
-    if (facet_features) {
-      plot <- plot + ggplot2::scale_y_discrete(
-        na.translate = FALSE, breaks = featurelabels, labels = labels
-      )
-      plot$facet <- label_feature_facets(
-        plot$facet, featuregroup, labels, split(colored_labels, panel_groups)
-      )
-    } else {
-      label_map <- colored_labels[!duplicated(names(colored_labels))]
       plot <- plot + ggplot2::scale_y_discrete(
         na.translate = FALSE, breaks = featurelabels,
-        labels = function(breaks) unname(label_map[match(breaks, names(label_map))])
+        labels = function(y) color_labels(y, label_colors)
       )
+    } else {
+      plot <- plot +
+        ggplot2::scale_y_discrete(breaks = featurelabels, labels = names(featurelabels))
     }
-  } else {
-    plot <- plot + ggplot2::scale_y_discrete(breaks = featurelabels, labels = names(featurelabels))
   }
 
   return(plot)
@@ -663,9 +667,7 @@ heatmap_long_df <- function(df,
 repel_features <- function(df, plot, repel_args, featurelabels, featuresitalic) {
   fcexpr:::.ensure_packages(c("cowplot", "ggplot2", "ggrepel"))
 
-  axis.df <- data.frame(
-    y = 1:length(levels(df$feature)),
-    feature = levels(df$feature))
+  axis.df <- data.frame(y = 1:length(levels(df$feature)), feature = levels(df$feature))
   axis.df$label = stats::setNames(names(featurelabels), featurelabels)[axis.df$feature]
   axis <- ggplot2::ggplot(axis.df, ggplot2::aes(x = 0, y = y, label = feature)) +
     ggrepel::geom_text_repel(
@@ -740,27 +742,12 @@ round_auto_any <- function(x,
   res
 }
 
-label_feature_facets <- function(facet, featuregroup, default_labels, labels_by_group) {
-  force(featuregroup)
-  force(default_labels)
-  force(labels_by_group)
-  ggplot2::ggproto(NULL, facet, init_scales = function(layout, x_scale = NULL, y_scale = NULL, params) {
-    scales <- facet$init_scales(layout, x_scale, y_scale, params)
-    if (identical(y_scale$labels, default_labels)) {
-      groups <- layout[[featuregroup]][match(seq_along(scales$y), layout$SCALE_Y)]
-      panel_labels <- labels_by_group[match(groups, names(labels_by_group))]
-      for (i in seq_along(scales$y)) {
-        if (!is.null(panel_labels[[i]])) {
-          scales$y[[i]]$labels <- panel_labels[[i]]
-        }
-      }
+color_labels <- function(labels, col_map) {
+  sapply(labels, function(x) {
+    if (x %in% names(col_map)) {
+      paste0("<span style='color:", col_map[x], ";'>", x, "</span>")
+    } else {
+      x
     }
-    scales
   })
-}
-
-color_labels <- function(labels, colors) {
-  colored <- !is.na(colors)
-  labels[colored] <- sprintf("<span style='color:%s;'>%s</span>", colors[colored], labels[colored])
-  labels
 }
