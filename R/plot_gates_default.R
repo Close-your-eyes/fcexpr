@@ -64,6 +64,8 @@
 #' @param axes_labels_omit_zero If `TRUE` and `inverse_trans = TRUE`, remove
 #'   the zero label and its corresponding axis break (tick) from both axes.
 #'   Defaults to `FALSE`. Has no effect when `inverse_trans = FALSE`.
+#' @param cut_evts_at_plot_limits use this for scattermore plotting to
+#' omit events outside the axis limits
 #'
 #' @return A list of plots, one per combination of gating level, parent
 #'   population, and x and y channels. Plots are ggcyto objects unless
@@ -81,11 +83,24 @@
 #' plots <- fcexpr::plot_gates(
 #'   gs = gs,
 #'   gates_df = gates,
+#'   facetting = ggplot2::facet_wrap(ggplot2::vars(FileName), nrow = 1),
 #'   plot_gate_names = FALSE,
 #'   plot_gate_pct = FALSE,
 #'   theme_args_repl = list(plot.title = ggplot2::element_text(size = 10))
 #' )
 #' print(plots[[1]])
+#'
+#' # plot many points with scattermore and avoid memory overflow by stat_hexbin
+#' plot1 <- plot_gates(gs,
+#'                     geom = "scattermore",
+#'                     gates_df = gates,
+#'                     facetting = ggplot2::facet_wrap(ggplot2::vars(FileName), nrow = 1),
+#'                     geom_args = list(pointsize = 3.2),
+#'                     max_nrow_to_plot = 5e6,
+#'                     as_ggplot = T,
+#'                     gate_args = list(colour = "hotpink",
+#'                                      linewidth = 0.3))
+#' patchwork::wrap_plots(plot1)
 #' }
 plot_gates <- function(gs,
                        gates_df,
@@ -132,7 +147,8 @@ plot_gates <- function(gs,
                        as_ggplot = F,
                        style_preset = c("technical", "clean", "none"),
                        axes_labels_sci10 = T,
-                       axes_labels_omit_zero = F) {
+                       axes_labels_omit_zero = F,
+                       cut_evts_at_plot_limits = T) {
   fcexpr:::.ensure_packages(c("colrr", "ggcyto", "ggplot2", "ggtext", "Gmisc", "scales"))
 
   geom <- rlang::arg_match(geom)
@@ -329,10 +345,32 @@ plot_gates <- function(gs,
         labels_fun <- ggplot2::waiver()
       }
 
+      # p <- p +
+      #   ggplot2::scale_x_continuous(expand = ggplot2::expansion(),
+      #                               labels = labels_fun) +
+      #   ggplot2::scale_y_continuous(expand = ggplot2::expansion(), labels = labels_fun)
+      #   #ggplot2::guides(y = ggplot2::guide_axis_logticks())
+
+      if (cut_evts_at_plot_limits) {
+        limits_x <- c(gg[1, "x_lowlim"], gg[1, "x_uplim"])
+        limits_y <- c(gg[1, "y_lowlim"], gg[1, "y_uplim"])
+        message("cut_evts_at_plot_limits may cause a warning about removed rows.")
+      } else {
+        limits_x <- NULL
+        limits_y <- NULL
+      }
+
       p <- p +
-        ggplot2::scale_x_continuous(expand = ggplot2::expansion(), labels = labels_fun) +
-        ggplot2::scale_y_continuous(expand = ggplot2::expansion(), labels = labels_fun)
-        #ggplot2::guides(y = ggplot2::guide_axis_logticks())
+        ggplot2::scale_x_continuous(
+          limits = limits_x,
+          expand = ggplot2::expansion(),
+          labels = labels_fun
+        ) +
+        ggplot2::scale_y_continuous(
+          limits = limits_y,
+          expand = ggplot2::expansion(),
+          labels = labels_fun
+        )
 
       if (inverse_trans && axes_labels_omit_zero) {
         for (axis in c("x", "y")) {

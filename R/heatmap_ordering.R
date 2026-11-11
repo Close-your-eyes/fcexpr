@@ -14,18 +14,21 @@
 #' @param groups column name with groups
 #' @param values column name that becomes values in heatmap
 #' @param feature_order how to order features
-#' @param group_order how to order groups
+#' @param group_order How to order groups. `"custom"` orders groups by the
+#'   position of their highest-value feature.
+#' @param feature_panels Optional vector giving the display position of the
+#'   feature panel for each data row. With `group_order = "custom"`, groups
+#'   are ordered by panel position and then feature position within the panel.
 #'
 #' @return data frame with updated factor levels for rows and cols
 #' @export
-#'
-#' @examples
 heatmap_ordering <- function(df,
                              features = "channel",
                              groups = "cluster",
                              values = "mean_cluster_scale",
                              feature_order = c("custom", "hclust", "none"),
-                             group_order = c("hclust", "none", "custom")) {
+                             group_order = c("hclust", "none", "custom"),
+                             feature_panels = NULL) {
   fcexpr:::.ensure_packages(c("brathering"))
 
   cols <- groups
@@ -50,8 +53,8 @@ heatmap_ordering <- function(df,
   }
 
 
-  clust_rows <- cluster_mat(mat = mat)
-  clust_cols <- cluster_mat(mat = t(mat))
+  clust_rows <- if (nrow(mat) > 1L) cluster_mat(mat = mat)
+  clust_cols <- if (ncol(mat) > 1L) cluster_mat(mat = t(mat))
 
   # the default
   # if rows or cols are factors, keep that order
@@ -73,7 +76,7 @@ heatmap_ordering <- function(df,
   for (i in 1:2) {
     # i not used, just run this 2 times
     # in case column order has changed, re-ordering of rows must react to this
-    if (row_order_method == "hclust") {
+    if (row_order_method == "hclust" && !is.null(clust_rows)) {
       row_order <- rownames(mat)[clust_rows$order]
     } else if (row_order_method == "custom") {
       row_order <- order_custom_for_heatmap(df = df,
@@ -84,14 +87,15 @@ heatmap_ordering <- function(df,
     }
     df[[rows]] <- factor(df[[rows]], levels = row_order)
 
-    if (col_order_method == "hclust") {
+    if (col_order_method == "hclust" && !is.null(clust_cols)) {
       col_order <- colnames(mat)[clust_cols$order]
     } else if (col_order_method == "custom") {
       col_order <- order_custom_for_heatmap(df = df,
                                             col_to_order = cols,
                                             order_metric = values,
                                             col_secondary = rows,
-                                            secondary_order = row_order)
+                                            secondary_order = row_order,
+                                            secondary_panels = feature_panels)
     }
     df[[cols]] <- factor(df[[cols]], levels = col_order)
   }
@@ -141,25 +145,34 @@ order_custom_for_heatmap <- function(df,
                                      col_to_order,
                                      order_metric,
                                      col_secondary,
-                                     secondary_order = NULL) {
+                                     secondary_order = NULL,
+                                     secondary_panels = NULL) {
 
   # this is from scexpr::heatmap_pseudobulk
 
   if (is.null(secondary_order)) {
     if (is.factor(df[[col_secondary]])) {
-      secondary_order <- levels(secondary_order)
+      secondary_order <- levels(df[[col_secondary]])
     } else {
       secondary_order <- unique(df[[col_secondary]])
     }
   }
 
-  df <-
-    df |>
-    dplyr::group_by(!!rlang::sym(col_to_order)) |>
-    dplyr::slice_max(order_by = !!rlang::sym(order_metric), n = 1, with_ties = F) |>
-    dplyr::ungroup() |>
-    dplyr::mutate(!!col_secondary := factor(!!rlang::sym(col_secondary), levels = unlist(secondary_order))) |>
-    dplyr::arrange(!!rlang::sym(col_secondary), !!rlang::sym(order_metric))
+  ordering <- tibble::tibble(
+    item = df[[col_to_order]],
+    feature_position = factor(df[[col_secondary]], levels = secondary_order),
+    value = df[[order_metric]],
+    panel_position = if (is.null(secondary_panels)) rep.int(1L, nrow(df)) else secondary_panels
+  )
+  if (!is.null(secondary_panels)) {
+    # For tied peaks, select the first occurrence in display order.
+    ordering <- dplyr::arrange(ordering, .data$panel_position, .data$feature_position)
+  }
 
-  return(df[[col_to_order]])
+  ordering |>
+    dplyr::group_by(.data$item) |>
+    dplyr::slice_max(order_by = .data$value, n = 1, with_ties = FALSE) |>
+    dplyr::ungroup() |>
+    dplyr::arrange(.data$panel_position, .data$feature_position, .data$value) |>
+    dplyr::pull("item")
 }

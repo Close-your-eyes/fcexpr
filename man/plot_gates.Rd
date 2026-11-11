@@ -42,7 +42,8 @@ plot_gates(
   as_ggplot = F,
   style_preset = c("technical", "clean", "none"),
   axes_labels_sci10 = T,
-  axes_labels_omit_zero = F
+  axes_labels_omit_zero = F,
+  cut_evts_at_plot_limits = T
 )
 }
 \arguments{
@@ -133,6 +134,9 @@ inverse-transformed labels.}
 \item{axes_labels_omit_zero}{If \code{TRUE} and \code{inverse_trans = TRUE}, remove
 the zero label and its corresponding axis break (tick) from both axes.
 Defaults to \code{FALSE}. Has no effect when \code{inverse_trans = FALSE}.}
+
+\item{cut_evts_at_plot_limits}{use this for scattermore plotting to
+omit events outside the axis limits}
 }
 \value{
 A list of plots, one per combination of gating level, parent
@@ -155,10 +159,23 @@ gates <- gs_data$gate_dfs[[1]]
 plots <- fcexpr::plot_gates(
   gs = gs,
   gates_df = gates,
+  facetting = ggplot2::facet_wrap(ggplot2::vars(FileName), nrow = 1),
   plot_gate_names = FALSE,
   plot_gate_pct = FALSE,
   theme_args_repl = list(plot.title = ggplot2::element_text(size = 10))
 )
 print(plots[[1]])
+
+# plot many points with scattermore and avoid memory overflow by stat_hexbin
+plot1 <- plot_gates(gs,
+                    geom = "scattermore",
+                    gates_df = gates,
+                    facetting = ggplot2::facet_wrap(ggplot2::vars(FileName), nrow = 1),
+                    geom_args = list(pointsize = 3.2),
+                    max_nrow_to_plot = 5e6,
+                    as_ggplot = T,
+                    gate_args = list(colour = "hotpink",
+                                     linewidth = 0.3))
+patchwork::wrap_plots(plot1)
 }
 }

@@ -10,7 +10,8 @@ heatmap_ordering(
   groups = "cluster",
   values = "mean_cluster_scale",
   feature_order = c("custom", "hclust", "none"),
-  group_order = c("hclust", "none", "custom")
+  group_order = c("hclust", "none", "custom"),
+  feature_panels = NULL
 )
 }
 \arguments{
@@ -24,7 +25,12 @@ heatmap_ordering(
 
 \item{feature_order}{how to order features}
 
-\item{group_order}{how to order groups}
+\item{group_order}{How to order groups. \code{"custom"} orders groups by the
+position of their highest-value feature.}
+
+\item{feature_panels}{Optional vector giving the display position of the
+feature panel for each data row. With \code{group_order = "custom"}, groups
+are ordered by panel position and then feature position within the panel.}
 }
 \value{
 data frame with updated factor levels for rows and cols

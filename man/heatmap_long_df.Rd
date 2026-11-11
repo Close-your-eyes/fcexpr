@@ -79,7 +79,8 @@ assigns features to higher-level feature groups.}
 
 \item{featuregroup_style}{One or both of \code{"facet"} and \code{"color"}. Faceting
 separates feature groups into panels; coloring renders feature-axis labels
-in group-specific colors.}
+in group-specific colors. With both styles, each facet uses its own
+feature-group color.}
 
 \item{featuregroup_col_name}{Character string used as the feature-group
 color legend title.}
@@ -238,6 +239,9 @@ group-feature combinations, handles missing values, and scales values within
 each feature. It then orders the axes with \code{\link[=heatmap_ordering]{heatmap_ordering()}} and constructs
 either a tile or dot heatmap. Optional layers add significance symbols,
 feature-group facets or label colors, and separation lines.
+With \code{group_order = "custom"}, the order of faceted features is read
+from the bottom panel upward, or from the left panel rightward when
+\code{axes_flip = TRUE}.
 
 \code{groups}, \code{features}, \code{values}, \code{dotsizes}, \code{featuregroup}, \code{pvals}, and
 \code{pval_logfc} use column names supplied as character strings rather than tidy
